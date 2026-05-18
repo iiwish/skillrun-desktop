@@ -1,0 +1,167 @@
+schema_version: "ai-delivery-governor.packet.v1"
+packet_id: "001-desktop-alpha-T009"
+task_id: "T009"
+feature_id: "001-desktop-alpha"
+mode: "implementation"
+
+governance_inputs:
+  constitution: ".ai-platform/memory/constitution.md"
+  product_design: ".ai-platform/docs/product-design.md"
+  feature_spec: ".ai-platform/specs/001-desktop-alpha/spec.md"
+  requirements_checklist: ".ai-platform/specs/001-desktop-alpha/checklists/requirements.md"
+  technical_plan: ".ai-platform/specs/001-desktop-alpha/plan.md"
+  work_graph: ".ai-platform/specs/001-desktop-alpha/tasks.md"
+  analysis: ".ai-platform/specs/001-desktop-alpha/analysis.md"
+  source_docs:
+    - "docs/desktop-core-contract.md"
+    - "docs/desktop-alpha-roadmap.md"
+    - "docs/desktop-readiness.md"
+  dependency_evidence:
+    - ".ai-platform/evidence/T002/summary.md"
+    - ".ai-platform/evidence/T003/summary.md"
+    - ".ai-platform/evidence/T008/summary.md"
+
+work_unit:
+  title: "Implement Envelope Explorer Summary"
+  goal: "从 Core JSON 展示 run list 和 safe inspect details，不读取 logs、完整 input 或 artifact content。"
+  story_or_requirement:
+    - "US-006"
+    - "FR-010"
+    - "FR-011"
+    - "NFR-001"
+    - "NFR-003"
+  priority: "P1"
+  depends_on:
+    - "T008"
+  blocks:
+    - "T010"
+  parallel: false
+  conflicts_with:
+    - "T008"
+  expected_deliverables:
+    - "Runs service reads list/inspect through Core JSON parsers."
+    - "Runs state maps list summaries and safe inspect details."
+    - "Run inspect failure surfaces Core error code and matches."
+    - "Envelope Explorer view displays run summary, availability, hashes, and artifact metadata only."
+
+codebase_context:
+  current_repo_state: "T001-T008 are accepted. T009 can use T002 runner and T003 runs parsers."
+  relevant_existing_files:
+    - "src/core/runner.ts"
+    - "src/core/errors.ts"
+    - "src/core/contracts/index.ts"
+    - "src/core/fixtures/consumer-runs-list.v1.json"
+    - "src/core/fixtures/consumer-runs-inspect.v1.json"
+    - "src/state/mountManager.ts"
+    - "src/views/MountManager/MountManager.tsx"
+  existing_patterns:
+    - "Core JSON commands use runSkillrunJson with injected CommandExecutor."
+    - "State modules convert Core contracts into UI-safe view models and are covered by Vitest."
+    - "Presentational views receive state/callback props and avoid hidden Core side effects."
+  core_contract_notes:
+    - "List command is skillrun consumer runs list --json, optionally with --capsule CAPSULE_ID and --limit LIMIT."
+    - "Inspect command is skillrun consumer runs inspect RUN_ID --json --capsule CAPSULE_ID."
+    - "Inspect ok=false should surface Core error code and matches, not guess filesystem repair."
+    - "Default inspect does not include full input, stdout/stderr, or artifact content."
+  forbidden_changes:
+    - "不得直接读取 .skillrun/runs。"
+    - "不得直接读取 record.json。"
+    - "不得展示 stdout/stderr content。"
+    - "不得展示完整 input content。"
+    - "不得打开或读取 artifact content。"
+    - "不得从 filesystem 猜测 run/capsule 匹配。"
+
+execution_constraints:
+  allowed_files:
+    - "src/views/EnvelopeExplorer/**"
+    - "src/state/runs.ts"
+    - "src/state/runs.test.ts"
+    - "src/core/runsService.ts"
+    - ".ai-platform/specs/001-desktop-alpha/packets/T009.yaml"
+    - ".ai-platform/specs/001-desktop-alpha/tasks.md"
+    - ".ai-platform/docs/tasks.md"
+    - ".ai-platform/docs/release-report.md"
+    - ".ai-platform/evidence/T009/**"
+  disallowed_files:
+    - "src-tauri/**"
+    - "src/core/runner.ts"
+    - "src/core/contracts/**"
+    - "src/tray/**"
+    - "docs/**"
+    - "src/App.tsx"
+  branch_or_worktree: "Use current worktree after checking git status; T008 commit 282a15b must be present."
+  ownership: "T009 owns runs service, runs state, envelope explorer view, packet/status docs, and evidence only."
+  stop_if:
+    - "T008 is not accepted."
+    - "Implementation requires changing Core runner/parser contracts."
+    - "Implementation requires wiring global dashboard navigation outside allowed files."
+    - "Implementation requires direct filesystem reads under .skillrun."
+
+tdd_plan:
+  red:
+    - "Add runs state/service tests first and confirm they fail because runs modules do not exist."
+    - "Capture RED output in .ai-platform/evidence/T009/test-results.md."
+  green:
+    - "Implement runs service with injected executor."
+    - "Implement runs state summary, safe inspect mapping, and ok=false failure mapping."
+    - "Implement a small EnvelopeExplorer presentational component."
+  refactor:
+    - "Only extract label helpers after tests pass; keep scope inside allowed files."
+  exception_policy: "TDD exception is not pre-approved for T009."
+
+validation_loop:
+  commands:
+    - "npm test -- src/state/runs.test.ts --run"
+    - "npm exec tsc -- --noEmit"
+    - "npm run build"
+    - "npm test -- --run"
+  expected_signals:
+    - "Runs tests fail in RED before implementation and pass in GREEN."
+    - "List and inspect command args match Core contract."
+    - "Inspect state excludes full input, stdout/stderr content, and artifact content."
+    - "Artifact output is metadata only."
+    - "Inspect ok=false surfaces Core error code and matches."
+  retry_budget: 2
+  failure_handling:
+    - "First failure: fix task-scoped service/state/view issue."
+    - "Second failure: decide whether runs contract ambiguity blocks T009."
+    - "Do not weaken safe-content assertions."
+
+evidence_contract:
+  evidence_dir: ".ai-platform/evidence/T009"
+  required_files:
+    - "summary.md"
+    - "diff.patch"
+    - "test-results.md"
+  summary_must_include:
+    - "Changed files."
+    - "RED/GREEN command outputs."
+    - "Safe inspect review."
+    - "Content exclusion review."
+    - "Diff summary."
+    - "Residual risk."
+
+review_contract:
+  spec_compliance:
+    - "Matches US-006, FR-010, FR-011, NFR-001, and NFR-003."
+    - "No direct .skillrun/runs, record.json, log, full input, or artifact content reads."
+    - "Inspect failure shows Core error code and matches."
+  engineering_quality:
+    - "Core calls are dependency-injected and testable."
+    - "View component is presentational and does not perform hidden filesystem reads."
+    - "Safe summaries preserve useful evidence without content leakage."
+  qa_acceptance:
+    - "A future dashboard can list runs and inspect safe run evidence summaries."
+
+handoff:
+  next_tasks:
+    - "T010"
+  finish_options_after_acceptance:
+    - "Keep local commit/worktree."
+    - "Continue to T010 packetize."
+  user_acceptance_required: true
+
+stop_conditions:
+  - "RED tests cannot be captured."
+  - "Validation commands cannot run."
+  - "Implementation requires broad app navigation changes."

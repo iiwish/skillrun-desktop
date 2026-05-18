@@ -1,0 +1,1202 @@
+﻿diff --git a/.ai-platform/docs/release-report.md b/.ai-platform/docs/release-report.md
+index 85a145c..16a31c2 100644
+--- a/.ai-platform/docs/release-report.md
++++ b/.ai-platform/docs/release-report.md
+@@ -7,12 +7,12 @@
+ ## Release Metadata
+ 
+ - Release scope：SkillRun Desktop Alpha planning artifacts。
+-- Accepted tasks：T001, T002, T003, T004, T005, T006, T007, T008。
+-- Implementation status：T001-T008 accepted；T009 not packetized。
++- Accepted tasks：T001, T002, T003, T004, T005, T006, T007, T008, T009。
++- Implementation status：T001-T009 accepted；T010 not packetized。
+ 
+ ## Validation Summary
+ 
+-T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T001/test-results.md`。T002 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T002/test-results.md`。T003 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T003/test-results.md`。T004 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T004/test-results.md`。T005 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T005/test-results.md`。T006 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T006/test-results.md`。T007 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T007/test-results.md`。T008 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T008/test-results.md`。
++T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T001/test-results.md`。T002 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T002/test-results.md`。T003 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T003/test-results.md`。T004 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T004/test-results.md`。T005 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T005/test-results.md`。T006 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T006/test-results.md`。T007 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T007/test-results.md`。T008 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T008/test-results.md`。T009 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T009/test-results.md`。
+ 
+ ## Evidence Links
+ 
+@@ -40,6 +40,9 @@ T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/eviden
+ - `.ai-platform/evidence/T008/summary.md`
+ - `.ai-platform/evidence/T008/diff.patch`
+ - `.ai-platform/evidence/T008/test-results.md`
++- `.ai-platform/evidence/T009/summary.md`
++- `.ai-platform/evidence/T009/diff.patch`
++- `.ai-platform/evidence/T009/test-results.md`
+ 
+ ## Review Summary
+ 
+@@ -47,7 +50,7 @@ Product contract 已 confirmed。Constitution、technical plan 和 task breakdow
+ 
+ ## User Acceptance
+ 
+-Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 2026-05-18 通过文档 review gate。T001-T008 已于 2026-05-18 通过用户接受。
++Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 2026-05-18 通过文档 review gate。T001-T009 已于 2026-05-18 通过用户接受。
+ 
+ ## Known Limitations
+ 
+@@ -59,7 +62,8 @@ Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 20
+ - T006 已创建 switchboard service、state 和 presentational view，并通过本地提交前 review。
+ - T007 已创建 exposure service、state 和 presentational view，并通过本地提交前 review。
+ - T008 已创建 mount service、state 和 presentational view，并通过本地提交前 review。
+-- T009-T010 execution packets 尚未生成。
++- T009 已创建 runs service、state 和 Envelope Explorer presentational view，并通过本地提交前 review。
++- T010 execution packet 尚未生成。
+ - Analyze Mode 已运行，且无 Critical/High findings。
+ 
+ ## Unfinished Tasks
+@@ -68,4 +72,4 @@ Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 20
+ 
+ ## Next Recommended Actions
+ 
+-继续 T009 Packetize Mode：生成 Envelope Explorer Summary 的 self-contained execution packet。
++进入 T010 Packetize，生成 Alpha Golden Path Verification execution packet。
+diff --git a/.ai-platform/docs/tasks.md b/.ai-platform/docs/tasks.md
+index e911819..c67e25b 100644
+--- a/.ai-platform/docs/tasks.md
++++ b/.ai-platform/docs/tasks.md
+@@ -10,7 +10,7 @@
+ - Feature：`001-desktop-alpha`
+ - Work graph：`.ai-platform/specs/001-desktop-alpha/tasks.md`
+ - 状态：`Confirmed`
+-- 可执行 tasks：T001-T008 已通过 review 和用户 acceptance，下一步进入 T009 packetize。
++- 可执行 tasks：T001-T009 已通过 review 和用户 acceptance；T010 尚未 packetize。
+ 
+ ## Global Task Index
+ 
+@@ -74,14 +74,14 @@ Packet path:
+ 
+ ## 当前闸门
+ 
+-`T001`、`T002`、`T003`、`T004`、`T005`、`T006`、`T007`、`T008` 已完成 governed execution，并于 2026-05-18 通过用户接受。其他 task 保持 `Draft`。
++`T001`、`T002`、`T003`、`T004`、`T005`、`T006`、`T007`、`T008`、`T009` 已完成 governed execution 或 direct execution，并于 2026-05-18 通过用户接受。其他 task 保持 `Draft`。
+ 
+ ## 下一步建议
+ 
+-下一步进入 T009 Packetize Mode，输入文档：
++下一步进入 T010 Packetize，输入文档：
+ 
+ - `.ai-platform/memory/constitution.md`
+ - `.ai-platform/specs/001-desktop-alpha/plan.md`
+ - `.ai-platform/specs/001-desktop-alpha/tasks.md`
+ 
+-Analyze Mode 已完成且无 Critical/High findings。`T001`-`T008` 已生成 packet 和 evidence，并已 accepted；`T009` 仍需生成 execution packet 后才能执行。
++Analyze Mode 已完成且无 Critical/High findings。`T001`-`T009` 已生成 packet 和 evidence，并已 accepted；`T010` 需要生成 execution packet。
+diff --git a/.ai-platform/evidence/T009/summary.md b/.ai-platform/evidence/T009/summary.md
+new file mode 100644
+index 0000000..8cb268c
+--- /dev/null
++++ b/.ai-platform/evidence/T009/summary.md
+@@ -0,0 +1,79 @@
++# T009 Evidence Summary
++
++**Task ID**：T009
++**Status**：Accepted
++**Executor**：Codex direct execute fallback
++**Branch/worktree**：`main` in `D:\data\skillrun-desktop`
++**Packet**：`.ai-platform/specs/001-desktop-alpha/packets/T009.yaml`
++
++## Direct Execute Reason
++
++The user asked to review, commit locally, and continue. Sub-agent delegation was not explicitly authorized for this turn, so direct execute fallback was used for T009.
++
++## Files Changed
++
++- `.ai-platform/specs/001-desktop-alpha/packets/T009.yaml`
++- `.ai-platform/specs/001-desktop-alpha/tasks.md`
++- `.ai-platform/docs/tasks.md`
++- `.ai-platform/docs/release-report.md`
++- `.ai-platform/evidence/T009/summary.md`
++- `.ai-platform/evidence/T009/test-results.md`
++- `.ai-platform/evidence/T009/diff.patch`
++- `src/core/runsService.ts`
++- `src/state/runs.ts`
++- `src/state/runs.test.ts`
++- `src/views/EnvelopeExplorer/EnvelopeExplorer.tsx`
++- `src/views/EnvelopeExplorer/index.ts`
++
++## Implementation Summary
++
++- Added runs service for Core JSON runs list and runs inspect commands.
++- Added runs list state for run id, capsule id, mode, status, error code, duration, hashes, artifact count, and input inclusion flag.
++- Added safe run detail state for input/log availability, envelope key summary, warnings, hashes, and artifact metadata.
++- Added inspect ok=false handling that surfaces Core error code and matches.
++- Added presentational EnvelopeExplorer view for run list and safe detail summary.
++
++## TDD Evidence
++
++- RED captured: `npm test -- src/state/runs.test.ts --run` failed because `./runs` did not exist.
++- GREEN captured: `npm test -- src/state/runs.test.ts --run` passed with 4 tests.
++
++## Safe Inspect Review
++
++- List command args support `consumer runs list --json --capsule CAPSULE_ID --limit LIMIT`.
++- Inspect command args support `consumer runs inspect RUN_ID --json --capsule CAPSULE_ID`.
++- Inspect state maps only safe summaries and metadata.
++- Inspect ok=false returns `ok_false`, Core error code, and Core matches.
++- Implementation does not directly read `.skillrun/runs`, `record.json`, logs, inputs, or artifacts.
++
++## Content Exclusion Review
++
++- Tests inject full input, envelope output text, artifact content, stdout content, and stderr content.
++- State output excludes all injected content values.
++- Artifact output is limited to `name`, `kind`, `path`, and `available`.
++- Envelope value output is limited to type and top-level keys.
++
++## Spec Compliance Review
++
++- `US-006`, `FR-010`, `FR-011`, `NFR-001`, and `NFR-003` are covered at service/state/view component layer.
++- T009 did not wire global dashboard navigation because `App.tsx` is outside the approved T009 write scope.
++
++## Bug/Code Quality Review
++
++- No blocking issues found in the reviewed diff.
++- Core calls are dependency-injected and covered by unit tests.
++- Safe summaries preserve evidence usefulness without displaying sensitive content.
++
++## QA Acceptance Review
++
++- The future dashboard can list runs, inspect safe run summaries, show input/log availability, and display artifact metadata.
++- View-level integration is intentionally deferred to a later dashboard wiring task.
++
++## Residual Risk
++
++- The EnvelopeExplorer component is not yet connected to the dashboard shell.
++- Envelope value summarization currently exposes only top-level keys, not deeper structured value summaries.
++
++## User Acceptance Status
++
++Accepted by user on 2026-05-18 after review request.
+diff --git a/.ai-platform/evidence/T009/test-results.md b/.ai-platform/evidence/T009/test-results.md
+new file mode 100644
+index 0000000..038cb87
+--- /dev/null
++++ b/.ai-platform/evidence/T009/test-results.md
+@@ -0,0 +1,103 @@
++# T009 Test Results
++
++## RED
++
++Command:
++
++```text
++npm test -- src/state/runs.test.ts --run
++```
++
++Result: failed as expected.
++
++Key output:
++
++```text
++Error: Cannot find module './runs' imported from 'D:/data/skillrun-desktop/src/state/runs.test.ts'
++Test Files 1 failed
++Tests no tests
++```
++
++## GREEN
++
++Command:
++
++```text
++npm test -- src/state/runs.test.ts --run
++```
++
++Result: passed.
++
++Key output:
++
++```text
++Test Files 1 passed
++Tests 4 passed
++```
++
++## Validation
++
++Command:
++
++```text
++npm exec tsc -- --noEmit
++```
++
++Initial result: failed due unused test import, JSON fixture literal type widening, and an error helper return type that was too broad.
++
++Resolution: fixed inside T009-owned files only. No production contract or parser was changed.
++
++Final result: passed.
++
++Command:
++
++```text
++npm run build
++```
++
++Result: passed.
++
++Key output:
++
++```text
++tsc && vite build
++29 modules transformed.
++built in 1.12s
++```
++
++Command:
++
++```text
++npm test -- --run
++```
++
++Result: passed.
++
++Key output:
++
++```text
++Test Files 10 passed
++Tests 55 passed
++```
++
++Command:
++
++```text
++git diff --check
++```
++
++Result: passed.
++
++Command:
++
++```text
++python D:\data\ai-rd-skill\ai-delivery-governor\scripts\validate_delivery_artifacts.py --root D:\data\skillrun-desktop --task-id T009
++```
++
++Result: passed.
++
++Key output:
++
++```text
++ok: delivery artifacts passed lightweight validation
++```
+diff --git a/.ai-platform/specs/001-desktop-alpha/packets/T009.yaml b/.ai-platform/specs/001-desktop-alpha/packets/T009.yaml
+new file mode 100644
+index 0000000..8d20097
+--- /dev/null
++++ b/.ai-platform/specs/001-desktop-alpha/packets/T009.yaml
+@@ -0,0 +1,167 @@
++schema_version: "ai-delivery-governor.packet.v1"
++packet_id: "001-desktop-alpha-T009"
++task_id: "T009"
++feature_id: "001-desktop-alpha"
++mode: "implementation"
++
++governance_inputs:
++  constitution: ".ai-platform/memory/constitution.md"
++  product_design: ".ai-platform/docs/product-design.md"
++  feature_spec: ".ai-platform/specs/001-desktop-alpha/spec.md"
++  requirements_checklist: ".ai-platform/specs/001-desktop-alpha/checklists/requirements.md"
++  technical_plan: ".ai-platform/specs/001-desktop-alpha/plan.md"
++  work_graph: ".ai-platform/specs/001-desktop-alpha/tasks.md"
++  analysis: ".ai-platform/specs/001-desktop-alpha/analysis.md"
++  source_docs:
++    - "docs/desktop-core-contract.md"
++    - "docs/desktop-alpha-roadmap.md"
++    - "docs/desktop-readiness.md"
++  dependency_evidence:
++    - ".ai-platform/evidence/T002/summary.md"
++    - ".ai-platform/evidence/T003/summary.md"
++    - ".ai-platform/evidence/T008/summary.md"
++
++work_unit:
++  title: "Implement Envelope Explorer Summary"
++  goal: "从 Core JSON 展示 run list 和 safe inspect details，不读取 logs、完整 input 或 artifact content。"
++  story_or_requirement:
++    - "US-006"
++    - "FR-010"
++    - "FR-011"
++    - "NFR-001"
++    - "NFR-003"
++  priority: "P1"
++  depends_on:
++    - "T008"
++  blocks:
++    - "T010"
++  parallel: false
++  conflicts_with:
++    - "T008"
++  expected_deliverables:
++    - "Runs service reads list/inspect through Core JSON parsers."
++    - "Runs state maps list summaries and safe inspect details."
++    - "Run inspect failure surfaces Core error code and matches."
++    - "Envelope Explorer view displays run summary, availability, hashes, and artifact metadata only."
++
++codebase_context:
++  current_repo_state: "T001-T008 are accepted. T009 can use T002 runner and T003 runs parsers."
++  relevant_existing_files:
++    - "src/core/runner.ts"
++    - "src/core/errors.ts"
++    - "src/core/contracts/index.ts"
++    - "src/core/fixtures/consumer-runs-list.v1.json"
++    - "src/core/fixtures/consumer-runs-inspect.v1.json"
++    - "src/state/mountManager.ts"
++    - "src/views/MountManager/MountManager.tsx"
++  existing_patterns:
++    - "Core JSON commands use runSkillrunJson with injected CommandExecutor."
++    - "State modules convert Core contracts into UI-safe view models and are covered by Vitest."
++    - "Presentational views receive state/callback props and avoid hidden Core side effects."
++  core_contract_notes:
++    - "List command is skillrun consumer runs list --json, optionally with --capsule CAPSULE_ID and --limit LIMIT."
++    - "Inspect command is skillrun consumer runs inspect RUN_ID --json --capsule CAPSULE_ID."
++    - "Inspect ok=false should surface Core error code and matches, not guess filesystem repair."
++    - "Default inspect does not include full input, stdout/stderr, or artifact content."
++  forbidden_changes:
++    - "不得直接读取 .skillrun/runs。"
++    - "不得直接读取 record.json。"
++    - "不得展示 stdout/stderr content。"
++    - "不得展示完整 input content。"
++    - "不得打开或读取 artifact content。"
++    - "不得从 filesystem 猜测 run/capsule 匹配。"
++
++execution_constraints:
++  allowed_files:
++    - "src/views/EnvelopeExplorer/**"
++    - "src/state/runs.ts"
++    - "src/state/runs.test.ts"
++    - "src/core/runsService.ts"
++    - ".ai-platform/specs/001-desktop-alpha/packets/T009.yaml"
++    - ".ai-platform/specs/001-desktop-alpha/tasks.md"
++    - ".ai-platform/docs/tasks.md"
++    - ".ai-platform/docs/release-report.md"
++    - ".ai-platform/evidence/T009/**"
++  disallowed_files:
++    - "src-tauri/**"
++    - "src/core/runner.ts"
++    - "src/core/contracts/**"
++    - "src/tray/**"
++    - "docs/**"
++    - "src/App.tsx"
++  branch_or_worktree: "Use current worktree after checking git status; T008 commit 282a15b must be present."
++  ownership: "T009 owns runs service, runs state, envelope explorer view, packet/status docs, and evidence only."
++  stop_if:
++    - "T008 is not accepted."
++    - "Implementation requires changing Core runner/parser contracts."
++    - "Implementation requires wiring global dashboard navigation outside allowed files."
++    - "Implementation requires direct filesystem reads under .skillrun."
++
++tdd_plan:
++  red:
++    - "Add runs state/service tests first and confirm they fail because runs modules do not exist."
++    - "Capture RED output in .ai-platform/evidence/T009/test-results.md."
++  green:
++    - "Implement runs service with injected executor."
++    - "Implement runs state summary, safe inspect mapping, and ok=false failure mapping."
++    - "Implement a small EnvelopeExplorer presentational component."
++  refactor:
++    - "Only extract label helpers after tests pass; keep scope inside allowed files."
++  exception_policy: "TDD exception is not pre-approved for T009."
++
++validation_loop:
++  commands:
++    - "npm test -- src/state/runs.test.ts --run"
++    - "npm exec tsc -- --noEmit"
++    - "npm run build"
++    - "npm test -- --run"
++  expected_signals:
++    - "Runs tests fail in RED before implementation and pass in GREEN."
++    - "List and inspect command args match Core contract."
++    - "Inspect state excludes full input, stdout/stderr content, and artifact content."
++    - "Artifact output is metadata only."
++    - "Inspect ok=false surfaces Core error code and matches."
++  retry_budget: 2
++  failure_handling:
++    - "First failure: fix task-scoped service/state/view issue."
++    - "Second failure: decide whether runs contract ambiguity blocks T009."
++    - "Do not weaken safe-content assertions."
++
++evidence_contract:
++  evidence_dir: ".ai-platform/evidence/T009"
++  required_files:
++    - "summary.md"
++    - "diff.patch"
++    - "test-results.md"
++  summary_must_include:
++    - "Changed files."
++    - "RED/GREEN command outputs."
++    - "Safe inspect review."
++    - "Content exclusion review."
++    - "Diff summary."
++    - "Residual risk."
++
++review_contract:
++  spec_compliance:
++    - "Matches US-006, FR-010, FR-011, NFR-001, and NFR-003."
++    - "No direct .skillrun/runs, record.json, log, full input, or artifact content reads."
++    - "Inspect failure shows Core error code and matches."
++  engineering_quality:
++    - "Core calls are dependency-injected and testable."
++    - "View component is presentational and does not perform hidden filesystem reads."
++    - "Safe summaries preserve useful evidence without content leakage."
++  qa_acceptance:
++    - "A future dashboard can list runs and inspect safe run evidence summaries."
++
++handoff:
++  next_tasks:
++    - "T010"
++  finish_options_after_acceptance:
++    - "Keep local commit/worktree."
++    - "Continue to T010 packetize."
++  user_acceptance_required: true
++
++stop_conditions:
++  - "RED tests cannot be captured."
++  - "Validation commands cannot run."
++  - "Implementation requires broad app navigation changes."
+diff --git a/.ai-platform/specs/001-desktop-alpha/tasks.md b/.ai-platform/specs/001-desktop-alpha/tasks.md
+index 865bd31..8b3476f 100644
+--- a/.ai-platform/specs/001-desktop-alpha/tasks.md
++++ b/.ai-platform/specs/001-desktop-alpha/tasks.md
+@@ -465,7 +465,7 @@ Packet path:
+ 
+ #### T009: Implement Envelope Explorer Summary
+ 
+-状态: Draft  
++状态: Accepted
+ 优先级: P1  
+ 依赖: T008  
+ 阻塞: T010  
+@@ -502,8 +502,10 @@ Definition of Done:
+ - Runs state tests 通过。
+ 
+ 验证命令:
+-- `npm test -- src/state`
+-- `npm run typecheck`
++- `npm test -- src/state/runs.test.ts --run`
++- `npm exec tsc -- --noEmit`
++- `npm run build`
++- `npm test -- --run`
+ 
+ TDD plan:
+ - RED: 添加 run summary 和 safe-inspect tests。
+@@ -579,4 +581,4 @@ Packet path:
+ 
+ ## Approval Gate
+ 
+-本 work graph 已确认。`T001`-`T008` 已 accepted；其他 tasks 保持 `Draft`，按依赖逐个推进。
++本 work graph 已确认。`T001`-`T009` 已 accepted；其他 tasks 保持 `Draft`，按依赖逐个推进。
+diff --git a/src/core/runsService.ts b/src/core/runsService.ts
+new file mode 100644
+index 0000000..7cac982
+--- /dev/null
++++ b/src/core/runsService.ts
+@@ -0,0 +1,92 @@
++import {
++  parseRunsInspectContract,
++  parseRunsListContract,
++  type RunsInspectContract,
++  type RunsListContract,
++} from "./contracts";
++import type { CoreRunnerError } from "./errors";
++import {
++  runSkillrunJson,
++  type CommandExecutor,
++  type CoreRunnerResult,
++} from "./runner";
++
++export type RunsListOptions = {
++  executor: CommandExecutor;
++  cwd?: string;
++  now?: () => number;
++  capsuleId?: string;
++  limit?: number;
++};
++
++export type RunsInspectOptions = {
++  executor: CommandExecutor;
++  cwd?: string;
++  now?: () => number;
++  runId: string;
++  capsuleId?: string;
++};
++
++export type RunsListResult = {
++  contract: RunsListContract;
++  runner: CoreRunnerResult<unknown>;
++};
++
++export type RunsInspectResult = {
++  contract: RunsInspectContract;
++  runner: CoreRunnerResult<unknown>;
++};
++
++export async function fetchRunsList(options: RunsListOptions): Promise<RunsListResult> {
++  const args = ["consumer", "runs", "list", "--json"];
++  if (options.capsuleId) {
++    args.push("--capsule", options.capsuleId);
++  }
++  if (options.limit !== undefined) {
++    args.push("--limit", String(options.limit));
++  }
++
++  const runner = await runSkillrunJson({
++    args,
++    cwd: options.cwd,
++    executor: options.executor,
++    expectedSchemaVersion: "consumer.runs.list.v1",
++    now: options.now,
++  });
++
++  return {
++    contract: parseRunsListContract(runner.data),
++    runner,
++  };
++}
++
++export async function fetchRunInspect(options: RunsInspectOptions): Promise<RunsInspectResult> {
++  const args = ["consumer", "runs", "inspect", options.runId, "--json"];
++  if (options.capsuleId) {
++    args.push("--capsule", options.capsuleId);
++  }
++
++  const runner = await runSkillrunJson({
++    args,
++    cwd: options.cwd,
++    executor: options.executor,
++    expectedSchemaVersion: "consumer.runs.inspect.v1",
++    now: options.now,
++  });
++
++  return {
++    contract: parseRunsInspectContract(runner.data),
++    runner,
++  };
++}
++
++export function coreErrorKind(error: unknown): CoreRunnerError["kind"] | "unknown_core_error" {
++  if (typeof error === "object" && error !== null && "kind" in error) {
++    const kind = (error as { kind?: unknown }).kind;
++    if (typeof kind === "string") {
++      return kind as CoreRunnerError["kind"];
++    }
++  }
++
++  return "unknown_core_error";
++}
+diff --git a/src/state/runs.test.ts b/src/state/runs.test.ts
+new file mode 100644
+index 0000000..81609aa
+--- /dev/null
++++ b/src/state/runs.test.ts
+@@ -0,0 +1,193 @@
++import { describe, expect, it } from "vitest";
++import runsListFixture from "../core/fixtures/consumer-runs-list.v1.json";
++import runsInspectFixture from "../core/fixtures/consumer-runs-inspect.v1.json";
++import type { CommandExecutor } from "../core/runner";
++import {
++  buildRunDetailState,
++  inspectRun,
++  loadRunsList,
++} from "./runs";
++import type { RunsInspectContract } from "../core/contracts";
++
++describe("runs state", () => {
++  it("loads runs list through Core with capsule and limit filters", async () => {
++    const calls: Parameters<CommandExecutor>[0][] = [];
++    const result = await loadRunsList({
++      capsuleId: "refund-helper",
++      limit: 5,
++      executor: runsExecutor(calls, { list: runsListWithRun() }),
++      cwd: "D:\\data\\skillrun-desktop",
++      now: () => 100,
++    });
++
++    expect(calls.map((call) => call.args)).toEqual([
++      ["consumer", "runs", "list", "--json", "--capsule", "refund-helper", "--limit", "5"],
++    ]);
++    expect(result.status).toBe("ready");
++    if (result.status === "ready") {
++      expect(result.state.runs[0].runId).toBe("run-001");
++      expect(result.state.runs[0].inputIncluded).toBe(false);
++    }
++  });
++
++  it("inspects a run through Core using run id and capsule id", async () => {
++    const calls: Parameters<CommandExecutor>[0][] = [];
++    const result = await inspectRun({
++      runId: "run-001",
++      capsuleId: "refund-helper",
++      executor: runsExecutor(calls, { inspect: runsInspectFixture }),
++    });
++
++    expect(calls.map((call) => call.args)).toEqual([
++      ["consumer", "runs", "inspect", "run-001", "--json", "--capsule", "refund-helper"],
++    ]);
++    expect(result.status).toBe("ready");
++  });
++
++  it("maps inspect details without leaking input, log, or artifact content", () => {
++    const state = buildRunDetailState({
++      inspect: {
++        ...(runsInspectFixture as RunsInspectContract),
++        input: {
++          included: true,
++          available: true,
++          value: { secret: "do-not-show-input" },
++        },
++        envelope: {
++          included: true,
++          status: "ok",
++          value: {
++            ok: true,
++            output: "do-not-show-output",
++            artifacts: [
++              {
++                name: "report",
++                kind: "json",
++                path: "report.json",
++                content: "do-not-show-artifact",
++              },
++            ],
++          },
++        },
++        artifacts: [
++          {
++            name: "report",
++            kind: "json",
++            path: "report.json",
++            available: true,
++            content: "do-not-show-artifact",
++          },
++        ],
++        logs: {
++          stdout_available: true,
++          stderr_available: true,
++          stdout_included: true,
++          stderr_included: true,
++          stdout: "do-not-show-stdout",
++          stderr: "do-not-show-stderr",
++        },
++      },
++    });
++
++    const serialized = JSON.stringify(state);
++    expect(state.input).toEqual({ included: true, available: true });
++    expect(state.logs).toEqual({
++      stdoutAvailable: true,
++      stderrAvailable: true,
++      stdoutIncluded: true,
++      stderrIncluded: true,
++    });
++    expect(state.artifacts).toEqual([
++      {
++        name: "report",
++        kind: "json",
++        path: "report.json",
++        available: true,
++      },
++    ]);
++    expect(state.envelope.valueSummary).toEqual({
++      type: "object",
++      keys: ["artifacts", "ok", "output"],
++    });
++    expect(serialized).not.toContain("do-not-show-input");
++    expect(serialized).not.toContain("do-not-show-output");
++    expect(serialized).not.toContain("do-not-show-artifact");
++    expect(serialized).not.toContain("do-not-show-stdout");
++    expect(serialized).not.toContain("do-not-show-stderr");
++  });
++
++  it("surfaces inspect ok=false error code and matches", async () => {
++    const result = await inspectRun({
++      runId: "ambiguous-run",
++      capsuleId: "refund-helper",
++      executor: async () => ({
++        exitCode: 0,
++        stdout: JSON.stringify({
++          command: "consumer runs inspect",
++          schema_version: "consumer.runs.inspect.v1",
++          registry_path: "C:/Users/iiwish/.skillrun/registry.json",
++          ok: false,
++          error: {
++            code: "AmbiguousRunId",
++            message: "run_id matched multiple registered capsules",
++          },
++          matches: [
++            { kind: "local_run", capsule_id: "capsule-a", run_id: "ambiguous-run" },
++            { kind: "local_run", capsule_id: "capsule-b", run_id: "ambiguous-run" },
++          ],
++        }),
++        stderr: "",
++      }),
++    });
++
++    expect(result.status).toBe("error");
++    if (result.status === "error") {
++      expect(result.error.kind).toBe("ok_false");
++      expect(result.error.code).toBe("AmbiguousRunId");
++      expect(result.error.matches.map((match) => match.capsuleId)).toEqual(["capsule-a", "capsule-b"]);
++    }
++  });
++});
++
++function runsListWithRun() {
++  return {
++    ...runsListFixture,
++    runs: [
++      {
++        run_id: "run-001",
++        run_ref: { kind: "local_run", capsule_id: "refund-helper", run_id: "run-001" },
++        capsule_id: "refund-helper",
++        capsule_path: "C:/Users/iiwish/.skillrun/imports/refund-helper",
++        mode: "run",
++        status: "ok",
++        ok: true,
++        error_code: null,
++        started_at: "2026-05-18T00:00:00Z",
++        finished_at: "2026-05-18T00:00:01Z",
++        duration_ms: 1000,
++        manifest_sha256: "manifest-hash",
++        skill_sha256: "skill-hash",
++        action_sha256: "action-hash",
++        artifact_count: 1,
++        input_included: false,
++      },
++    ],
++  };
++}
++
++function runsExecutor(
++  calls: Parameters<CommandExecutor>[0][],
++  contracts: { list?: unknown; inspect?: unknown },
++): CommandExecutor {
++  return async (request) => {
++    calls.push(request);
++    const args = request.args.join(" ");
++    if (args === "consumer runs list --json --capsule refund-helper --limit 5") {
++      return { exitCode: 0, stdout: JSON.stringify(contracts.list), stderr: "" };
++    }
++    if (args === "consumer runs inspect run-001 --json --capsule refund-helper") {
++      return { exitCode: 0, stdout: JSON.stringify(contracts.inspect), stderr: "" };
++    }
++    return { exitCode: 1, stdout: "", stderr: `unexpected command: ${args}` };
++  };
++}
+diff --git a/src/state/runs.ts b/src/state/runs.ts
+new file mode 100644
+index 0000000..a683af7
+--- /dev/null
++++ b/src/state/runs.ts
+@@ -0,0 +1,312 @@
++import {
++  coreErrorKind,
++  fetchRunInspect,
++  fetchRunsList,
++  type RunsInspectOptions,
++  type RunsListOptions,
++} from "../core/runsService";
++import type { RunsInspectContract, RunsListContract } from "../core/contracts";
++
++export type RunSummary = {
++  runId: string;
++  capsuleId: string;
++  mode: string;
++  status: string;
++  ok: boolean | null;
++  errorCode?: string;
++  startedAt?: string;
++  finishedAt?: string;
++  durationMs?: number;
++  manifestHash?: string;
++  skillHash?: string;
++  actionHash?: string;
++  artifactCount: number;
++  inputIncluded: boolean;
++};
++
++export type RunsListState = {
++  status: "ready";
++  scope: {
++    kind: string;
++    capsuleId?: string;
++  };
++  runs: RunSummary[];
++  safetyCopy: string;
++};
++
++export type RunDetailState = {
++  status: "ready";
++  runId: string;
++  capsuleId: string;
++  mode: string;
++  recordStatus: string;
++  durationMs?: number;
++  hashes: {
++    manifest?: string;
++    skill?: string;
++    action?: string;
++  };
++  input: {
++    included: boolean;
++    available: boolean;
++  };
++  envelope: {
++    included: boolean;
++    status: string;
++    valueSummary: {
++      type: string;
++      keys: string[];
++    };
++  };
++  artifacts: ArtifactMetadata[];
++  logs: {
++    stdoutAvailable: boolean;
++    stderrAvailable: boolean;
++    stdoutIncluded: boolean;
++    stderrIncluded: boolean;
++  };
++  warnings: string[];
++  safetyCopy: string;
++};
++
++export type ArtifactMetadata = {
++  name: string;
++  kind: string;
++  path: string;
++  available: boolean;
++};
++
++export type RunErrorMatch = {
++  kind: string;
++  capsuleId: string;
++  runId: string;
++};
++
++export type RunsError = {
++  kind: string;
++  message: string;
++  code?: string;
++  matches: RunErrorMatch[];
++};
++
++export type RunsListResult =
++  | {
++      status: "ready";
++      state: RunsListState;
++    }
++  | {
++      status: "error";
++      error: RunsError;
++    };
++
++export type RunDetailResult =
++  | {
++      status: "ready";
++      state: RunDetailState;
++    }
++  | {
++      status: "error";
++      error: RunsError;
++    };
++
++export type BuildRunsListInput = {
++  list: Pick<RunsListContract, "scope" | "runs">;
++};
++
++export type BuildRunDetailInput = {
++  inspect: RunsInspectContract;
++};
++
++export const RUNS_SAFETY_COPY =
++  "Runs Explorer shows Core-reported summaries and availability metadata only. It does not show full input, log content, or artifact content.";
++
++export async function loadRunsList(options: RunsListOptions): Promise<RunsListResult> {
++  try {
++    const result = await fetchRunsList(options);
++    return {
++      status: "ready",
++      state: buildRunsListState({ list: result.contract }),
++    };
++  } catch (error) {
++    return runsErrorResult(error, "Runs list failed.");
++  }
++}
++
++export async function inspectRun(options: RunsInspectOptions): Promise<RunDetailResult> {
++  try {
++    const result = await fetchRunInspect(options);
++    return {
++      status: "ready",
++      state: buildRunDetailState({ inspect: result.contract }),
++    };
++  } catch (error) {
++    return runsErrorResult(error, "Run inspect failed.");
++  }
++}
++
++export function buildRunsListState(input: BuildRunsListInput): RunsListState {
++  const scope = asRecord(input.list.scope);
++  return {
++    status: "ready",
++    scope: {
++      kind: readString(scope, "kind"),
++      capsuleId: readOptionalString(scope, "capsule_id"),
++    },
++    runs: input.list.runs.map(readRunSummary),
++    safetyCopy: RUNS_SAFETY_COPY,
++  };
++}
++
++export function buildRunDetailState(input: BuildRunDetailInput): RunDetailState {
++  const runRef = asRecord(input.inspect.run_ref);
++  const capsule = asRecord(input.inspect.capsule);
++  const record = asRecord(input.inspect.record);
++  const inputSummary = asRecord(input.inspect.input);
++  const envelope = asRecord(input.inspect.envelope);
++  const logs = asRecord(input.inspect.logs);
++
++  return {
++    status: "ready",
++    runId: readString(runRef, "run_id"),
++    capsuleId: readString(capsule, "id", readString(runRef, "capsule_id")),
++    mode: readString(record, "mode"),
++    recordStatus: readString(record, "status"),
++    durationMs: readOptionalNumber(record, "duration_ms"),
++    hashes: {
++      manifest: readOptionalString(record, "manifest_sha256"),
++      skill: readOptionalString(record, "skill_sha256"),
++      action: readOptionalString(record, "action_sha256"),
++    },
++    input: {
++      included: inputSummary.included === true,
++      available: inputSummary.available === true,
++    },
++    envelope: {
++      included: envelope.included === true,
++      status: readString(envelope, "status"),
++      valueSummary: summarizeValue(envelope.value),
++    },
++    artifacts: input.inspect.artifacts.map(readArtifactMetadata),
++    logs: {
++      stdoutAvailable: logs.stdout_available === true,
++      stderrAvailable: logs.stderr_available === true,
++      stdoutIncluded: logs.stdout_included === true,
++      stderrIncluded: logs.stderr_included === true,
++    },
++    warnings: input.inspect.warnings.map(readWarning),
++    safetyCopy: RUNS_SAFETY_COPY,
++  };
++}
++
++function readRunSummary(input: unknown): RunSummary {
++  const record = asRecord(input);
++  return {
++    runId: readString(record, "run_id"),
++    capsuleId: readString(record, "capsule_id"),
++    mode: readString(record, "mode"),
++    status: readString(record, "status"),
++    ok: typeof record.ok === "boolean" ? record.ok : null,
++    errorCode: readOptionalString(record, "error_code"),
++    startedAt: readOptionalString(record, "started_at"),
++    finishedAt: readOptionalString(record, "finished_at"),
++    durationMs: readOptionalNumber(record, "duration_ms"),
++    manifestHash: readOptionalString(record, "manifest_sha256"),
++    skillHash: readOptionalString(record, "skill_sha256"),
++    actionHash: readOptionalString(record, "action_sha256"),
++    artifactCount: readNumber(record, "artifact_count"),
++    inputIncluded: record.input_included === true,
++  };
++}
++
++function readArtifactMetadata(input: unknown): ArtifactMetadata {
++  const record = asRecord(input);
++  return {
++    name: readString(record, "name"),
++    kind: readString(record, "kind"),
++    path: readString(record, "path"),
++    available: record.available === true,
++  };
++}
++
++function readWarning(input: unknown): string {
++  const record = asRecord(input);
++  const code = readString(record, "code", "warning");
++  const message = readString(record, "message", "");
++  return message ? `${code}: ${message}` : code;
++}
++
++function summarizeValue(input: unknown): RunDetailState["envelope"]["valueSummary"] {
++  if (typeof input !== "object" || input === null || Array.isArray(input)) {
++    return {
++      type: input === null ? "null" : Array.isArray(input) ? "array" : typeof input,
++      keys: [],
++    };
++  }
++  return {
++    type: "object",
++    keys: Object.keys(input as Record<string, unknown>).sort(),
++  };
++}
++
++function runsErrorResult(error: unknown, fallback: string): { status: "error"; error: RunsError } {
++  const data = readErrorData(error);
++  return {
++    status: "error",
++    error: {
++      kind: coreErrorKind(error),
++      message: error instanceof Error ? error.message : fallback,
++      code: data.code,
++      matches: data.matches,
++    },
++  };
++}
++
++function readErrorData(error: unknown): { code?: string; matches: RunErrorMatch[] } {
++  if (typeof error !== "object" || error === null || !("data" in error)) {
++    return { matches: [] };
++  }
++
++  const data = asRecord((error as { data?: unknown }).data);
++  const errorRecord = asRecord(data.error);
++  const matches = Array.isArray(data.matches) ? data.matches.map(readRunErrorMatch) : [];
++  return {
++    code: readOptionalString(errorRecord, "code"),
++    matches,
++  };
++}
++
++function readRunErrorMatch(input: unknown): RunErrorMatch {
++  const record = asRecord(input);
++  return {
++    kind: readString(record, "kind"),
++    capsuleId: readString(record, "capsule_id"),
++    runId: readString(record, "run_id"),
++  };
++}
++
++function asRecord(input: unknown): Record<string, unknown> {
++  if (typeof input !== "object" || input === null || Array.isArray(input)) {
++    return {};
++  }
++  return input as Record<string, unknown>;
++}
++
++function readString(record: Record<string, unknown>, field: string, fallback = "unknown"): string {
++  const value = record[field];
++  return typeof value === "string" ? value : fallback;
++}
++
++function readOptionalString(record: Record<string, unknown>, field: string): string | undefined {
++  const value = record[field];
++  return typeof value === "string" ? value : undefined;
++}
++
++function readNumber(record: Record<string, unknown>, field: string): number {
++  const value = record[field];
++  return typeof value === "number" ? value : 0;
++}
++
++function readOptionalNumber(record: Record<string, unknown>, field: string): number | undefined {
++  const value = record[field];
++  return typeof value === "number" ? value : undefined;
++}
+diff --git a/src/views/EnvelopeExplorer/EnvelopeExplorer.tsx b/src/views/EnvelopeExplorer/EnvelopeExplorer.tsx
+new file mode 100644
+index 0000000..f385eef
+--- /dev/null
++++ b/src/views/EnvelopeExplorer/EnvelopeExplorer.tsx
+@@ -0,0 +1,88 @@
++import type {
++  RunDetailState,
++  RunsError,
++  RunsListState,
++} from "../../state/runs";
++import { RUNS_SAFETY_COPY } from "../../state/runs";
++
++export type EnvelopeExplorerProps = {
++  listState: RunsListState;
++  detailState?: RunDetailState;
++  error?: RunsError;
++  selectedRunId?: string;
++  onRefresh: () => void;
++  onInspect: (runId: string, capsuleId: string) => void;
++};
++
++export function EnvelopeExplorer({
++  listState,
++  detailState,
++  error,
++  selectedRunId,
++  onRefresh,
++  onInspect,
++}: EnvelopeExplorerProps) {
++  return (
++    <section aria-label="Envelope explorer">
++      <header>
++        <p className="eyebrow">Envelope Explorer</p>
++        <h2>Runs</h2>
++      </header>
++
++      <p>{RUNS_SAFETY_COPY}</p>
++
++      <button type="button" onClick={onRefresh}>
++        Refresh
++      </button>
++
++      {error ? <p role="alert">{error.message}</p> : null}
++
++      <section aria-label="Run list">
++        <h3>Run List</h3>
++        {listState.runs.length === 0 ? <p>No runs found.</p> : null}
++        {listState.runs.map((run) => (
++          <article key={`${run.capsuleId}:${run.runId}`} aria-current={selectedRunId === run.runId}>
++            <h4>{run.runId}</h4>
++            <p>Capsule: {run.capsuleId}</p>
++            <p>Status: {run.status}</p>
++            <p>Mode: {run.mode}</p>
++            <p>Duration: {run.durationMs ?? "unknown"} ms</p>
++            <p>Artifacts: {run.artifactCount}</p>
++            {run.errorCode ? <p>Error: {run.errorCode}</p> : null}
++            <button type="button" onClick={() => onInspect(run.runId, run.capsuleId)}>
++              Inspect
++            </button>
++          </article>
++        ))}
++      </section>
++
++      {detailState ? (
++        <section aria-label="Run detail">
++          <h3>Run Detail</h3>
++          <p>Run: {detailState.runId}</p>
++          <p>Capsule: {detailState.capsuleId}</p>
++          <p>Status: {detailState.recordStatus}</p>
++          <p>Envelope: {detailState.envelope.status}</p>
++          <p>Envelope keys: {detailState.envelope.valueSummary.keys.join(", ") || "none"}</p>
++          <p>Input available: {String(detailState.input.available)}</p>
++          <p>Input included: {String(detailState.input.included)}</p>
++          <p>Stdout available: {String(detailState.logs.stdoutAvailable)}</p>
++          <p>Stderr available: {String(detailState.logs.stderrAvailable)}</p>
++
++          <section aria-label="Artifact metadata">
++            <h4>Artifacts</h4>
++            {detailState.artifacts.length === 0 ? <p>No artifacts reported.</p> : null}
++            {detailState.artifacts.map((artifact) => (
++              <article key={`${artifact.path}:${artifact.name}`}>
++                <h5>{artifact.name}</h5>
++                <p>Kind: {artifact.kind}</p>
++                <p>Path: {artifact.path}</p>
++                <p>Available: {String(artifact.available)}</p>
++              </article>
++            ))}
++          </section>
++        </section>
++      ) : null}
++    </section>
++  );
++}
+diff --git a/src/views/EnvelopeExplorer/index.ts b/src/views/EnvelopeExplorer/index.ts
+new file mode 100644
+index 0000000..7482b84
+--- /dev/null
++++ b/src/views/EnvelopeExplorer/index.ts
+@@ -0,0 +1,2 @@
++export { EnvelopeExplorer } from "./EnvelopeExplorer";
++export type { EnvelopeExplorerProps } from "./EnvelopeExplorer";
