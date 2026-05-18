@@ -1,0 +1,28 @@
+{
+  "command": "consumer mount plan",
+  "schema_version": "consumer.mount_plan.v1",
+  "client": {
+    "id": "claude-desktop",
+    "name": "Claude Desktop",
+    "supported": true,
+    "detected": false
+  },
+  "operation": "install_or_update_router",
+  "config": {
+    "path": "C:/Users/iiwish/AppData/Roaming/Claude/claude_desktop_config.json",
+    "path_source": "default",
+    "exists": false,
+    "parseable": true
+  },
+  "backup": {
+    "path": "C:/Users/iiwish/AppData/Roaming/Claude/claude_desktop_config.json.skillrun.<backup-id>.bak.json",
+    "required_before_apply": true
+  },
+  "router": {
+    "server_name": "skillrun",
+    "command": "skillrun",
+    "args": ["router", "serve", "--mcp"]
+  },
+  "changes": [],
+  "warnings": []
+}

@@ -1,0 +1,35 @@
+{
+  "command": "consumer inventory",
+  "schema_version": "consumer.inventory.v1",
+  "version": 1,
+  "registry_path": "C:/Users/iiwish/.skillrun/registry.json",
+  "capsules": [
+    {
+      "id": "refund-helper",
+      "path": "C:/Users/iiwish/.skillrun/imports/refund-helper",
+      "source_type": "imported_skr",
+      "enabled": false,
+      "registered_at": "2026-05-18T00:00:00Z",
+      "manifest": {
+        "path": ".skillrun/manifest.generated.yaml",
+        "present": true,
+        "freshness": "fresh"
+      },
+      "skill": {
+        "name": "Refund Helper"
+      },
+      "runtime": {
+        "adapter": "python",
+        "entrypoint": "action.py"
+      },
+      "tool": {
+        "name": "refund_helper"
+      },
+      "readiness": {
+        "ok": true,
+        "status": "ok",
+        "next_step": "none"
+      }
+    }
+  ]
+}

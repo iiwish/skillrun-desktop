@@ -1,0 +1,15 @@
+{
+  "command": "router serve --mcp",
+  "schema_version": "router.mcp.v1",
+  "mcp": {
+    "dry_run": true,
+    "protocol": "model-context-protocol",
+    "transport": "stdio"
+  },
+  "resources": [],
+  "router": {
+    "capsules": 0,
+    "snapshot": true
+  },
+  "tools": []
+}

@@ -1,0 +1,44 @@
+{
+  "command": "host status",
+  "schema_version": "host.status.v1",
+  "ok": true,
+  "binary": {
+    "name": "skillrun",
+    "version": "0.5.15"
+  },
+  "desktop_contract": {
+    "name": "desktop.alpha",
+    "version": 1,
+    "status": "frozen"
+  },
+  "contracts": {
+    "manifest_ir_version": "0.1.0",
+    "ipc_protocol_version": "0.1.0",
+    "adapter_protocol": "adapter.v1"
+  },
+  "platform": {
+    "os": "windows",
+    "arch": "x86_64",
+    "family": "windows"
+  },
+  "paths": {
+    "current_exe": "D:\\data\\skillrunv2\\target\\debug\\skillrun.exe",
+    "skillrun_home": "C:\\Users\\iiwish\\.skillrun",
+    "registry_path": "C:/Users/iiwish/.skillrun/registry.json"
+  },
+  "capabilities": [
+    {
+      "name": "host_status",
+      "command": "host status --json",
+      "process": "short_running",
+      "schema_version": "host.status.v1"
+    }
+  ],
+  "boundaries": {
+    "desktop_must_use_cli_json": true,
+    "desktop_must_not_read_internal_paths": true,
+    "desktop_must_not_start_router_as_daemon": true,
+    "router_runtime_entry": "skillrun router serve --mcp"
+  },
+  "warnings": []
+}

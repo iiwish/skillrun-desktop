@@ -1,0 +1,18 @@
+{
+  "command": "consumer mount rollback",
+  "schema_version": "consumer.mount_rollback.v1",
+  "client": {
+    "id": "claude-desktop",
+    "name": "Claude Desktop",
+    "supported": true,
+    "detected": true
+  },
+  "config": {
+    "path": "C:/Users/iiwish/AppData/Roaming/Claude/claude_desktop_config.json"
+  },
+  "backup": {
+    "path": "C:/Users/iiwish/AppData/Roaming/Claude/claude_desktop_config.json.skillrun.123.bak.json"
+  },
+  "rolled_back": true,
+  "warnings": []
+}

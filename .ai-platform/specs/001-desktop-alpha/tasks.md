@@ -126,7 +126,7 @@ Packet path:
 
 #### T003: Implement Core JSON DTO Parsers And Fixtures
 
-状态: Draft  
+状态: Accepted
 优先级: P0  
 依赖: T002  
 阻塞: T004, T005, T006, T007, T008  
@@ -160,7 +160,7 @@ Definition of Done:
 
 验证命令:
 - `npm test -- src/core`
-- `npm run typecheck`
+- `npm exec tsc -- --noEmit`
 
 TDD plan:
 - RED: 先添加 fixture parser tests。

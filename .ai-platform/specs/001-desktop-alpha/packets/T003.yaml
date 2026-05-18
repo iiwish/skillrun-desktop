@@ -1,0 +1,163 @@
+schema_version: "ai-delivery-governor.packet.v1"
+packet_id: "001-desktop-alpha-T003"
+task_id: "T003"
+feature_id: "001-desktop-alpha"
+mode: "implementation"
+
+governance_inputs:
+  constitution: ".ai-platform/memory/constitution.md"
+  product_design: ".ai-platform/docs/product-design.md"
+  feature_spec: ".ai-platform/specs/001-desktop-alpha/spec.md"
+  requirements_checklist: ".ai-platform/specs/001-desktop-alpha/checklists/requirements.md"
+  technical_plan: ".ai-platform/specs/001-desktop-alpha/plan.md"
+  work_graph: ".ai-platform/specs/001-desktop-alpha/tasks.md"
+  analysis: ".ai-platform/specs/001-desktop-alpha/analysis.md"
+  dependency_evidence:
+    - ".ai-platform/evidence/T001/summary.md"
+    - ".ai-platform/evidence/T002/summary.md"
+  source_contracts:
+    - "docs/desktop-core-contract.md"
+    - "D:/data/skillrunv2/docs/README.md"
+
+work_unit:
+  title: "Implement Core JSON DTO Parsers And Fixtures"
+  goal: "为所有 Desktop-facing Core JSON contracts 创建 DTO/parser modules 和 fixtures。"
+  story_or_requirement:
+    - "FR-001"
+    - "FR-005"
+    - "FR-006"
+    - "FR-008"
+    - "FR-009"
+    - "FR-010"
+    - "NFR-004"
+  priority: "P0"
+  depends_on:
+    - "T002"
+  blocks:
+    - "T004"
+    - "T005"
+    - "T006"
+    - "T007"
+    - "T008"
+  parallel: false
+  conflicts_with:
+    - "T002"
+  expected_deliverables:
+    - "DTO/parser modules for host status, import, inventory, exposure, router dry-run, mount plan/apply/rollback, runs list, and runs inspect."
+    - "At least one fixture per surface."
+    - "Tests proving schema_version validation and required-field fail-closed behavior."
+
+codebase_context:
+  current_repo_state: "T001 scaffold and T002 runner are accepted. Core calls must enter through runner/Tauri bridge; T003 only parses JSON data already returned by Core."
+  relevant_existing_files:
+    - "src/core/errors.ts"
+    - "src/core/runner.ts"
+    - "docs/desktop-core-contract.md"
+  fixture_source_policy:
+    live_core_outputs:
+      - "host status --json"
+      - "consumer inventory --json"
+      - "consumer exposure --json"
+      - "router serve --mcp --dry-run"
+      - "consumer mount plan --client claude-desktop --json"
+      - "consumer runs list --json --limit 3"
+    documented_contract_samples:
+      - "import.v1"
+      - "consumer.mount_apply.v1"
+      - "consumer.mount_rollback.v1"
+      - "consumer.runs.inspect.v1"
+  forbidden_changes:
+    - "不得调用真实 Core 命令作为 parser runtime dependency。"
+    - "不得直接读取 D:/data/skillrunv2 runtime files from Desktop code。"
+    - "不得读取 .skillrun internals。"
+    - "不得实现 UI flows 或 state machines。"
+    - "不得放宽 required field validation 来适配未知 JSON。"
+
+execution_constraints:
+  allowed_files:
+    - "src/core/contracts/**"
+    - "src/core/fixtures/**"
+    - "src/core/contracts.test.ts"
+    - ".ai-platform/specs/001-desktop-alpha/tasks.md"
+    - ".ai-platform/docs/tasks.md"
+    - ".ai-platform/docs/release-report.md"
+    - ".ai-platform/evidence/T003/**"
+  disallowed_files:
+    - "src/views/**"
+    - "src/state/**"
+    - "src/tray/**"
+    - "src-tauri/**"
+    - "docs/**"
+  branch_or_worktree: "Use current worktree after checking git status; T002 commit 796cf23 must be present."
+  ownership: "T003 owns parser contracts, fixtures, and evidence only."
+  stop_if:
+    - "T002 is not accepted."
+    - "Core contract examples are insufficient to build at least one fixture per required surface."
+    - "Implementation requires touching UI/state files."
+
+tdd_plan:
+  red:
+    - "Add fixture-backed parser tests first and confirm they fail because parser modules do not exist."
+    - "Capture RED output in .ai-platform/evidence/T003/test-results.md."
+  green:
+    - "Implement minimal DTO parser helpers and per-surface parsers."
+    - "Validate schema_version and required fields."
+  refactor:
+    - "Deduplicate object/string/boolean/array guards after tests pass."
+  exception_policy: "TDD exception is not pre-approved for T003."
+
+validation_loop:
+  commands:
+    - "npm test -- src/core/contracts.test.ts --run"
+    - "npm exec tsc -- --noEmit"
+    - "npm run build"
+    - "npm test -- --run"
+  expected_signals:
+    - "Contract parser tests fail in RED before implementation and pass in GREEN."
+    - "Each Desktop-facing schema has a fixture."
+    - "Missing schema_version or required nested fields fail closed."
+    - "No runtime file reads are introduced."
+  retry_budget: 2
+  failure_handling:
+    - "First failure: fix task-scoped parser or fixture issue."
+    - "Second failure: decide whether Core contract ambiguity blocks T003."
+    - "Do not remove required-field tests to force green."
+
+evidence_contract:
+  evidence_dir: ".ai-platform/evidence/T003"
+  required_files:
+    - "summary.md"
+    - "diff.patch"
+    - "test-results.md"
+  summary_must_include:
+    - "Changed files."
+    - "Fixture source list."
+    - "RED/GREEN command outputs."
+    - "Parser safety review."
+    - "Diff summary."
+    - "Residual risk."
+
+review_contract:
+  spec_compliance:
+    - "Matches FR-001, FR-005, FR-006, FR-008, FR-009, FR-010, and NFR-004."
+    - "No direct Core source or .skillrun filesystem coupling."
+    - "No UI/state implementation."
+  engineering_quality:
+    - "Required-field checks fail closed."
+    - "schema_version is validated for every surface."
+    - "Fixtures are stable and auditable."
+  qa_acceptance:
+    - "Future UI/state tasks can parse known Core JSON surfaces without guessing shape."
+
+handoff:
+  next_tasks:
+    - "T004"
+  finish_options_after_acceptance:
+    - "Keep local commit/worktree."
+    - "Continue to T004 packetize."
+  user_acceptance_required: true
+
+stop_conditions:
+  - "RED tests cannot be captured."
+  - "Validation commands cannot run."
+  - "Parser scope expands into business UI decisions."
