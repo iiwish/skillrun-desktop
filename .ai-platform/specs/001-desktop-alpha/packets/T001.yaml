@@ -1,0 +1,153 @@
+schema_version: "ai-delivery-governor.packet.v1"
+packet_id: "001-desktop-alpha-T001"
+task_id: "T001"
+feature_id: "001-desktop-alpha"
+mode: "implementation"
+
+governance_inputs:
+  constitution: ".ai-platform/memory/constitution.md"
+  product_design: ".ai-platform/docs/product-design.md"
+  feature_spec: ".ai-platform/specs/001-desktop-alpha/spec.md"
+  requirements_checklist: ".ai-platform/specs/001-desktop-alpha/checklists/requirements.md"
+  technical_plan: ".ai-platform/specs/001-desktop-alpha/plan.md"
+  work_graph: ".ai-platform/specs/001-desktop-alpha/tasks.md"
+  analysis: ".ai-platform/specs/001-desktop-alpha/analysis.md"
+  source_docs:
+    - "docs/desktop-readiness.md"
+    - "docs/desktop-core-contract.md"
+    - "docs/desktop-tray-design.md"
+    - "docs/desktop-alpha-roadmap.md"
+
+work_unit:
+  title: "Scaffold Tauri Tray App Shell"
+  goal: "创建初始 Desktop app scaffold，具备 Tauri tray 能力和 dashboard window 入口。"
+  story_or_requirement:
+    - "US-001"
+    - "FR-001"
+    - "FR-002"
+  priority: "P0"
+  depends_on: []
+  blocks:
+    - "T002"
+    - "T004"
+  parallel: false
+  conflicts_with:
+    - "T002"
+    - "T004"
+  expected_deliverables:
+    - "Tauri app 可本地启动。"
+    - "Tray menu 包含 Open Dashboard、Import .skr...、Refresh、Mount Manager、Envelope Explorer、Quit。"
+    - "Tray menu 不包含直接 enable、apply 或 rollback 动作。"
+
+codebase_context:
+  current_repo_state: "当前仓库只有 docs/ 和 .ai-platform/ 文档，没有应用源码。"
+  selected_stack:
+    shell: "Tauri v2"
+    frontend: "React + TypeScript + Vite"
+    package_manager: "npm"
+    test_runner: "Vitest where practical"
+  existing_patterns:
+    - "Desktop 必须是 tray-first local consumer control plane。"
+    - "Core interaction 只能通过 skillrun CLI JSON，后续由 T002 实现 runner。"
+    - "T001 只创建 shell 和文件结构，不实现 Core runner 或真实 Core calls。"
+  relevant_files:
+    - ".ai-platform/specs/001-desktop-alpha/tasks.md"
+    - ".ai-platform/specs/001-desktop-alpha/plan.md"
+    - "docs/desktop-tray-design.md"
+    - "docs/desktop-core-contract.md"
+  forbidden_changes:
+    - "不得实现 marketplace、daemon、dependency installer、artifact/log viewer 或 authoring IDE。"
+    - "不得让 tray 启动 skillrun router serve --mcp。"
+    - "不得在 tray menu 中加入 direct enable/apply/rollback。"
+    - "不得读取 .skillrun/ internals。"
+
+execution_constraints:
+  allowed_files:
+    - "package.json"
+    - "package-lock.json"
+    - "pnpm-lock.yaml"
+    - "npm-shrinkwrap.json"
+    - "yarn.lock"
+    - "src/**"
+    - "src-tauri/**"
+    - "index.html"
+    - "vite.config.*"
+    - "tsconfig*.json"
+    - ".gitignore"
+  disallowed_files:
+    - ".ai-platform/**"
+    - "docs/**"
+  branch_or_worktree: "Use current worktree after checking git status; do not overwrite unrelated staged docs."
+  ownership: "T001 owns initial scaffold files only."
+  stop_if:
+    - "Scaffold tooling requires interactive choices that cannot be made non-interactively."
+    - "Network/package install is unavailable and dependencies cannot be resolved."
+    - "Generated scaffold would overwrite existing user files outside allowed_files."
+
+tdd_plan:
+  red:
+    - "If Vitest is available after scaffold, add a minimal failing test for the tray/menu model or app shell label before implementation."
+    - "If scaffold generator creates no test harness, record a TDD exception for T001 scaffold-only work and add test harness in the smallest practical way."
+  green:
+    - "Create the minimal Tauri + React + TypeScript + Vite shell."
+    - "Add a tray/menu model or constants module whose items exclude enable/apply/rollback."
+    - "Render a dashboard entry surface rather than a marketing landing page."
+  refactor:
+    - "Normalize module directories for core, tray, state, and views only after build/tests pass."
+  exception_policy: "Any skipped RED step must be recorded in evidence with reason."
+
+validation_loop:
+  commands:
+    - "npm install"
+    - "npm test -- --run"
+    - "npm run build"
+  expected_signals:
+    - "Dependencies install without unresolved package errors."
+    - "Tests pass or documented scaffold-only exception exists."
+    - "Frontend/Tauri scaffold build succeeds enough to prove the shell compiles."
+  retry_budget: 2
+  failure_handling:
+    - "First failure: fix task-scoped scaffold/config issue."
+    - "Second failure: decide whether stack choice, environment, or dependency issue blocks T001."
+    - "Do not delete tests or broaden allowed files to force green."
+
+evidence_contract:
+  evidence_dir: ".ai-platform/evidence/T001"
+  required_files:
+    - "summary.md"
+    - "diff.patch"
+    - "test-results.md"
+  summary_must_include:
+    - "Changed files."
+    - "Commands run and exit status."
+    - "TDD evidence or approved exception."
+    - "Tray menu safety review."
+    - "Diff summary."
+    - "Residual risk."
+
+review_contract:
+  spec_compliance:
+    - "Matches US-001, FR-001, FR-002 at scaffold level."
+    - "Tray-first shell exists."
+    - "No forbidden dangerous tray actions."
+  engineering_quality:
+    - "Generated code is minimal and conventional for chosen Tauri stack."
+    - "Module boundaries leave room for T002 runner and T004 tray status."
+  qa_acceptance:
+    - "A user can launch or build the shell and see an operational dashboard entry."
+    - "No alpha non-goals are introduced."
+
+handoff:
+  next_tasks:
+    - "T002"
+    - "T004"
+  finish_options_after_acceptance:
+    - "Keep local commit/worktree."
+    - "Continue to T002 packetize."
+  user_acceptance_required: true
+
+stop_conditions:
+  - "Missing or unapproved governance input."
+  - "Allowed files insufficient for scaffold."
+  - "Validation commands cannot run and no acceptable scaffold-only exception exists."
+  - "Implementation requires changing docs or .ai-platform during worker execution."
