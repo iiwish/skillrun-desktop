@@ -291,7 +291,7 @@ Packet path:
 
 #### T006: Implement Capsule Switchboard
 
-状态: Draft  
+状态: Accepted
 优先级: P0  
 依赖: T004  
 阻塞: T007  
@@ -326,8 +326,10 @@ Definition of Done:
 - Switchboard state tests 通过。
 
 验证命令:
-- `npm test -- src/state`
-- `npm run typecheck`
+- `npm test -- src/state/switchboard.test.ts --run`
+- `npm exec tsc -- --noEmit`
+- `npm run build`
+- `npm test -- --run`
 
 TDD plan:
 - RED: 添加 enable/disable state tests。
@@ -573,4 +575,4 @@ Packet path:
 
 ## Approval Gate
 
-本 work graph 已确认。`T001`-`T005` 已 accepted；其他 tasks 保持 `Draft`，按依赖逐个推进。
+本 work graph 已确认。`T001`-`T006` 已 accepted；其他 tasks 保持 `Draft`，按依赖逐个推进。
