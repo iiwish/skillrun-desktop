@@ -1,0 +1,166 @@
+schema_version: "ai-delivery-governor.packet.v1"
+packet_id: "001-desktop-alpha-T007"
+task_id: "T007"
+feature_id: "001-desktop-alpha"
+mode: "implementation"
+
+governance_inputs:
+  constitution: ".ai-platform/memory/constitution.md"
+  product_design: ".ai-platform/docs/product-design.md"
+  feature_spec: ".ai-platform/specs/001-desktop-alpha/spec.md"
+  requirements_checklist: ".ai-platform/specs/001-desktop-alpha/checklists/requirements.md"
+  technical_plan: ".ai-platform/specs/001-desktop-alpha/plan.md"
+  work_graph: ".ai-platform/specs/001-desktop-alpha/tasks.md"
+  analysis: ".ai-platform/specs/001-desktop-alpha/analysis.md"
+  source_docs:
+    - "docs/desktop-core-contract.md"
+    - "docs/desktop-alpha-roadmap.md"
+    - "docs/desktop-readiness.md"
+  dependency_evidence:
+    - ".ai-platform/evidence/T002/summary.md"
+    - ".ai-platform/evidence/T003/summary.md"
+    - ".ai-platform/evidence/T006/summary.md"
+
+work_unit:
+  title: "Implement Exposure Preview"
+  goal: "展示 Router 将暴露的 tools 和 dry-run resource metadata，但不得启动长运行 Router。"
+  story_or_requirement:
+    - "US-004"
+    - "FR-008"
+    - "FR-011"
+    - "NFR-003"
+  priority: "P1"
+  depends_on:
+    - "T006"
+  blocks:
+    - "T008"
+  parallel: false
+  conflicts_with:
+    - "T006"
+    - "T008"
+  expected_deliverables:
+    - "Exposure service reads consumer exposure through Core JSON parser."
+    - "Exposure service reads router dry-run snapshot through Core JSON parser."
+    - "Exposure state filters disabled or not-ready tools out of exposed display."
+    - "Exposure view displays tool summary and router resource metadata only."
+
+codebase_context:
+  current_repo_state: "T001-T006 are accepted. T007 can use T002 runner, T003 exposure/router parsers, and T006 switchboard exposure wording."
+  relevant_existing_files:
+    - "src/core/runner.ts"
+    - "src/core/contracts/index.ts"
+    - "src/core/fixtures/consumer-exposure.v1.json"
+    - "src/core/fixtures/router-dry-run.v1.json"
+    - "src/state/switchboard.ts"
+    - "src/views/Switchboard/Switchboard.tsx"
+  existing_patterns:
+    - "Core JSON commands use runSkillrunJson with injected CommandExecutor."
+    - "State modules convert Core contracts into UI-safe view models and are covered by Vitest."
+    - "Presentational views receive state/callback props and avoid hidden Core side effects."
+  core_contract_notes:
+    - "Lightweight exposure command is skillrun consumer exposure --json."
+    - "Router snapshot command is skillrun router serve --mcp --dry-run."
+    - "Do not call skillrun router serve --mcp without --dry-run."
+    - "Disabled or not-ready capsules must not be shown as exposed."
+    - "Router dry-run resources are metadata only; do not display MCP text content."
+  forbidden_changes:
+    - "不得读取 .skillrun/runs、registry、manifest 或 capsule 文件。"
+    - "不得启动 router serve --mcp 长运行进程。"
+    - "不得从 MCP text content 反解析 UI 数据。"
+    - "不得把 exposed 描述为 sandboxed、trusted 或 safe。"
+    - "不得把 .skr 或 capsule path 当成 MCP client 挂载入口。"
+
+execution_constraints:
+  allowed_files:
+    - "src/views/ExposurePreview/**"
+    - "src/state/exposure.ts"
+    - "src/state/exposure.test.ts"
+    - "src/core/exposureService.ts"
+    - ".ai-platform/specs/001-desktop-alpha/packets/T007.yaml"
+    - ".ai-platform/specs/001-desktop-alpha/tasks.md"
+    - ".ai-platform/docs/tasks.md"
+    - ".ai-platform/docs/release-report.md"
+    - ".ai-platform/evidence/T007/**"
+  disallowed_files:
+    - "src-tauri/**"
+    - "src/core/runner.ts"
+    - "src/core/contracts/**"
+    - "src/tray/**"
+    - "docs/**"
+    - "src/App.tsx"
+  branch_or_worktree: "Use current worktree after checking git status; T006 commit 017f0d0 must be present."
+  ownership: "T007 owns exposure service, exposure state, exposure view, packet/status docs, and evidence only."
+  stop_if:
+    - "T006 is not accepted."
+    - "Implementation requires changing Core runner/parser contracts."
+    - "Implementation requires wiring global dashboard navigation outside allowed files."
+    - "Implementation requires starting router serve without --dry-run."
+
+tdd_plan:
+  red:
+    - "Add exposure state/service tests first and confirm they fail because exposure modules do not exist."
+    - "Capture RED output in .ai-platform/evidence/T007/test-results.md."
+  green:
+    - "Implement exposure service with injected executor."
+    - "Implement exposure state filtering and router metadata mapping."
+    - "Implement a small ExposurePreview presentational component."
+  refactor:
+    - "Only extract label helpers after tests pass; keep scope inside allowed files."
+  exception_policy: "TDD exception is not pre-approved for T007."
+
+validation_loop:
+  commands:
+    - "npm test -- src/state/exposure.test.ts --run"
+    - "npm exec tsc -- --noEmit"
+    - "npm run build"
+    - "npm test -- --run"
+  expected_signals:
+    - "Exposure tests fail in RED before implementation and pass in GREEN."
+    - "Service calls consumer exposure --json."
+    - "Service calls router serve --mcp --dry-run and never router serve --mcp without --dry-run."
+    - "Disabled or not-ready exposure entries are filtered from exposed tools."
+    - "Router resources display metadata only, not text/content payloads."
+  retry_budget: 2
+  failure_handling:
+    - "First failure: fix task-scoped service/state/view issue."
+    - "Second failure: decide whether router dry-run contract ambiguity blocks T007."
+    - "Do not weaken long-running-router assertions."
+
+evidence_contract:
+  evidence_dir: ".ai-platform/evidence/T007"
+  required_files:
+    - "summary.md"
+    - "diff.patch"
+    - "test-results.md"
+  summary_must_include:
+    - "Changed files."
+    - "RED/GREEN command outputs."
+    - "Router dry-run safety review."
+    - "Metadata-only resource review."
+    - "Diff summary."
+    - "Residual risk."
+
+review_contract:
+  spec_compliance:
+    - "Matches US-004, FR-008, FR-011, and NFR-003."
+    - "No .skillrun internals, MCP text content parsing, or long-running router serve."
+    - "Disabled/not-ready tools are not displayed as exposed."
+  engineering_quality:
+    - "Core calls are dependency-injected and testable."
+    - "Error state preserves Core error without guessing filesystem repair."
+    - "View component is presentational and does not perform hidden Core side effects."
+  qa_acceptance:
+    - "A future dashboard can preview current exposed tools and router dry-run metadata before mount."
+
+handoff:
+  next_tasks:
+    - "T008"
+  finish_options_after_acceptance:
+    - "Keep local commit/worktree."
+    - "Continue to T008 packetize."
+  user_acceptance_required: true
+
+stop_conditions:
+  - "RED tests cannot be captured."
+  - "Validation commands cannot run."
+  - "Implementation requires broad app navigation changes."
