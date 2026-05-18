@@ -7,16 +7,18 @@
 ## Release Metadata
 
 - Release scope：SkillRun Desktop Alpha planning artifacts。
-- Accepted tasks：None。
-- Implementation status：Not started。
+- Accepted tasks：T001。
+- Implementation status：T001 accepted；T002 not packetized。
 
 ## Validation Summary
 
-尚未进入 governed task execution，因此没有实现验证命令结果。
+T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T001/test-results.md`。
 
 ## Evidence Links
 
-暂无 task evidence。
+- `.ai-platform/evidence/T001/summary.md`
+- `.ai-platform/evidence/T001/diff.patch`
+- `.ai-platform/evidence/T001/test-results.md`
 
 ## Review Summary
 
@@ -24,12 +26,12 @@ Product contract 已 confirmed。Constitution、technical plan 和 task breakdow
 
 ## User Acceptance
 
-Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 2026-05-18 通过文档 review gate，下一步是 T001 packetize。
+Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 2026-05-18 通过文档 review gate。T001 已于 2026-05-18 通过用户接受。
 
 ## Known Limitations
 
-- `skillrun-desktop` 还没有代码 scaffold。
-- Execution packets 尚未生成；`T001` 是下一步。
+- T001 已创建代码 scaffold，并通过本地提交前 review。
+- T002-T010 execution packets 尚未生成。
 - Analyze Mode 已运行，且无 Critical/High findings。
 
 ## Unfinished Tasks
@@ -38,4 +40,4 @@ Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 20
 
 ## Next Recommended Actions
 
-生成 `T001` execution packet，并在 packet review 通过后进入 governed execution。
+继续 T002 Packetize Mode：生成 Core CLI runner 与 error model 的 self-contained execution packet。

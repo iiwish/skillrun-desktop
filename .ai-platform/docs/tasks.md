@@ -10,13 +10,13 @@
 - Feature：`001-desktop-alpha`
 - Work graph：`.ai-platform/specs/001-desktop-alpha/tasks.md`
 - 状态：`Confirmed`
-- 可执行 tasks：T001，前提是 execution packet 已生成且 validation commands 明确。
+- 可执行 tasks：T001 已通过 review 和用户 acceptance，下一步进入 T002 packetize。
 
 ## Global Task Index
 
 ### T001: Scaffold Tauri Tray App Shell
 
-状态: Ready  
+状态: Accepted
 优先级: P0  
 依赖: None  
 阻塞: T002, T004  
@@ -74,14 +74,14 @@ Packet path:
 
 ## 当前闸门
 
-Desktop Alpha work graph 已确认。当前可继续为 `T001` 生成 execution packet；其他 task 保持 `Draft`。
+`T001` 已完成 direct execution，并于 2026-05-18 通过用户接受。其他 task 保持 `Draft`。
 
 ## 下一步建议
 
-下一步进入 T001 Packetize Mode，输入文档：
+下一步进入 T002 Packetize Mode，输入文档：
 
 - `.ai-platform/memory/constitution.md`
 - `.ai-platform/specs/001-desktop-alpha/plan.md`
 - `.ai-platform/specs/001-desktop-alpha/tasks.md`
 
-Analyze Mode 已完成且无 Critical/High findings。生成 `T001` packet 后，才允许进入 governed execution。
+Analyze Mode 已完成且无 Critical/High findings。`T001` 已生成 packet 和 evidence，并已 accepted；`T002` 仍需生成 execution packet 后才能执行。

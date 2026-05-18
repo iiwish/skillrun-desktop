@@ -12,7 +12,7 @@
 
 #### T001: Scaffold Tauri Tray App Shell
 
-状态: Ready  
+状态: Accepted
 优先级: P0  
 依赖: None  
 阻塞: T002, T004  
@@ -570,4 +570,4 @@ Packet path:
 
 ## Approval Gate
 
-本 work graph 已确认。`T001` 可在 packet 完成后进入 governed execution；其他 tasks 保持 `Draft`，按依赖逐个推进。
+本 work graph 已确认。`T001` 已 accepted；其他 tasks 保持 `Draft`，按依赖逐个推进。
