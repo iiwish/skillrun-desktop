@@ -1,0 +1,151 @@
+schema_version: "ai-delivery-governor.packet.v1"
+packet_id: "001-desktop-alpha-T005"
+task_id: "T005"
+feature_id: "001-desktop-alpha"
+mode: "implementation"
+
+governance_inputs:
+  constitution: ".ai-platform/memory/constitution.md"
+  product_design: ".ai-platform/docs/product-design.md"
+  feature_spec: ".ai-platform/specs/001-desktop-alpha/spec.md"
+  requirements_checklist: ".ai-platform/specs/001-desktop-alpha/checklists/requirements.md"
+  technical_plan: ".ai-platform/specs/001-desktop-alpha/plan.md"
+  work_graph: ".ai-platform/specs/001-desktop-alpha/tasks.md"
+  analysis: ".ai-platform/specs/001-desktop-alpha/analysis.md"
+  source_docs:
+    - "docs/desktop-core-contract.md"
+  dependency_evidence:
+    - ".ai-platform/evidence/T002/summary.md"
+    - ".ai-platform/evidence/T003/summary.md"
+    - ".ai-platform/evidence/T004/summary.md"
+
+work_unit:
+  title: "Implement Import Flow And Capsule Review Entry"
+  goal: "允许选择 `.skr`，调用 Core import，并进入 capsule review；不得自动 enable 或 mount。"
+  story_or_requirement:
+    - "US-002"
+    - "FR-005"
+    - "FR-011"
+    - "NFR-001"
+  priority: "P0"
+  depends_on:
+    - "T004"
+  blocks:
+    - "T006"
+    - "T007"
+  parallel: false
+  conflicts_with:
+    - "T006"
+  expected_deliverables:
+    - "Import service calls skillrun import PACKAGE_PATH --json through the Core runner."
+    - "Import state returns imported capsule review data with enabled=false."
+    - "Import Flow view component exposes file-selected, importing, success, and error states."
+    - "No post-import enable, mount, package unzip, or trust/install wording."
+
+codebase_context:
+  current_repo_state: "T001-T004 are accepted. T005 can use T002 runner and T003 import parser."
+  relevant_existing_files:
+    - "src/core/runner.ts"
+    - "src/core/contracts/index.ts"
+    - "src/core/fixtures/import.v1.json"
+    - "src/state/trayStatus.ts"
+  existing_patterns:
+    - "State logic is pure or dependency-injected and covered by Vitest."
+    - "Core execution must go through runner/executor abstractions."
+  forbidden_changes:
+    - "不得自行解包 .skr。"
+    - "不得读取 package 内 Manifest。"
+    - "不得自动调用 switchboard enable。"
+    - "不得自动调用 mount plan/apply/rollback。"
+    - "不得把 imported 描述为 trusted、installed、safe 或 sandboxed。"
+
+execution_constraints:
+  allowed_files:
+    - "src/views/ImportFlow/**"
+    - "src/state/importFlow.ts"
+    - "src/state/importFlow.test.ts"
+    - "src/core/importService.ts"
+    - ".ai-platform/specs/001-desktop-alpha/tasks.md"
+    - ".ai-platform/docs/tasks.md"
+    - ".ai-platform/docs/release-report.md"
+    - ".ai-platform/evidence/T005/**"
+  disallowed_files:
+    - "src-tauri/**"
+    - "src/core/runner.ts"
+    - "src/core/contracts/**"
+    - "src/tray/**"
+    - "docs/**"
+  branch_or_worktree: "Use current worktree after checking git status; T004 commit f0bd6f9 must be present."
+  ownership: "T005 owns import service, import flow state, import flow view, and evidence only."
+  stop_if:
+    - "T004 is not accepted."
+    - "Implementation requires changing Core runner/parser contracts."
+    - "Implementation requires wiring global app navigation outside allowed files."
+
+tdd_plan:
+  red:
+    - "Add import flow/service tests first and confirm they fail because import modules do not exist."
+    - "Capture RED output in .ai-platform/evidence/T005/test-results.md."
+  green:
+    - "Implement import service and state transitions with injected runner."
+    - "Implement a small ImportFlow component that receives state and callbacks."
+  refactor:
+    - "Only extract helpers after tests pass."
+  exception_policy: "TDD exception is not pre-approved for T005."
+
+validation_loop:
+  commands:
+    - "npm test -- src/state/importFlow.test.ts --run"
+    - "npm exec tsc -- --noEmit"
+    - "npm run build"
+    - "npm test -- --run"
+  expected_signals:
+    - "Import tests fail in RED before implementation and pass in GREEN."
+    - "Import command args are exactly import PACKAGE_PATH --json."
+    - "Success state preserves enabled=false."
+    - "No enable/mount command is invoked."
+  retry_budget: 2
+  failure_handling:
+    - "First failure: fix task-scoped service/state/view issue."
+    - "Second failure: decide whether import contract ambiguity blocks T005."
+    - "Do not weaken safety assertions."
+
+evidence_contract:
+  evidence_dir: ".ai-platform/evidence/T005"
+  required_files:
+    - "summary.md"
+    - "diff.patch"
+    - "test-results.md"
+  summary_must_include:
+    - "Changed files."
+    - "RED/GREEN command outputs."
+    - "Import safety review."
+    - "Copy review notes."
+    - "Diff summary."
+    - "Residual risk."
+
+review_contract:
+  spec_compliance:
+    - "Matches US-002, FR-005, FR-011, and NFR-001."
+    - "No automatic enable or mount after import."
+    - "No package unzip or Manifest reads."
+  engineering_quality:
+    - "Core call is dependency-injected and testable."
+    - "Error state preserves Core error without guessing repair."
+    - "View component is presentational and does not perform dangerous side effects."
+  qa_acceptance:
+    - "A future dashboard can select .skr, call import, and land on capsule review with enabled=false."
+
+handoff:
+  next_tasks:
+    - "T006"
+    - "T007"
+  finish_options_after_acceptance:
+    - "Keep local commit/worktree."
+    - "Continue to T006 packetize."
+  user_acceptance_required: true
+
+stop_conditions:
+  - "RED tests cannot be captured."
+  - "Validation commands cannot run."
+  - "Implementation requires broad app navigation changes."

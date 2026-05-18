@@ -236,7 +236,7 @@ Packet path:
 
 #### T005: Implement Import Flow And Capsule Review Entry
 
-状态: Draft  
+状态: Accepted
 优先级: P0  
 依赖: T004  
 阻塞: T006, T007  
@@ -272,7 +272,7 @@ Definition of Done:
 
 验证命令:
 - `npm test -- src/state`
-- `npm run typecheck`
+- `npm exec tsc -- --noEmit`
 
 TDD plan:
 - RED: 添加 import flow tests。
@@ -573,4 +573,4 @@ Packet path:
 
 ## Approval Gate
 
-本 work graph 已确认。`T001`-`T004` 已 accepted；其他 tasks 保持 `Draft`，按依赖逐个推进。
+本 work graph 已确认。`T001`-`T005` 已 accepted；其他 tasks 保持 `Draft`，按依赖逐个推进。

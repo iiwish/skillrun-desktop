@@ -7,12 +7,12 @@
 ## Release Metadata
 
 - Release scope：SkillRun Desktop Alpha planning artifacts。
-- Accepted tasks：T001, T002, T003, T004。
-- Implementation status：T001-T004 accepted；T005 not packetized。
+- Accepted tasks：T001, T002, T003, T004, T005。
+- Implementation status：T001-T005 accepted；T006 not packetized。
 
 ## Validation Summary
 
-T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T001/test-results.md`。T002 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T002/test-results.md`。T003 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T003/test-results.md`。T004 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T004/test-results.md`。
+T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T001/test-results.md`。T002 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T002/test-results.md`。T003 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T003/test-results.md`。T004 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T004/test-results.md`。T005 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T005/test-results.md`。
 
 ## Evidence Links
 
@@ -28,6 +28,9 @@ T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/eviden
 - `.ai-platform/evidence/T004/summary.md`
 - `.ai-platform/evidence/T004/diff.patch`
 - `.ai-platform/evidence/T004/test-results.md`
+- `.ai-platform/evidence/T005/summary.md`
+- `.ai-platform/evidence/T005/diff.patch`
+- `.ai-platform/evidence/T005/test-results.md`
 
 ## Review Summary
 
@@ -35,7 +38,7 @@ Product contract 已 confirmed。Constitution、technical plan 和 task breakdow
 
 ## User Acceptance
 
-Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 2026-05-18 通过文档 review gate。T001-T004 已于 2026-05-18 通过用户接受。
+Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 2026-05-18 通过文档 review gate。T001-T005 已于 2026-05-18 通过用户接受。
 
 ## Known Limitations
 
@@ -43,7 +46,8 @@ Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 20
 - T002 已创建 Core CLI runner 和 Tauri command bridge，并通过本地提交前 review。
 - T003 已创建 Core JSON DTO/parser 与 fixtures，并通过本地提交前 review。
 - T004 已创建 tray status state model，并通过本地提交前 review。
-- T005-T010 execution packets 尚未生成。
+- T005 已创建 import service、import flow state 和 import flow view，并通过本地提交前 review。
+- T006-T010 execution packets 尚未生成。
 - Analyze Mode 已运行，且无 Critical/High findings。
 
 ## Unfinished Tasks
@@ -52,4 +56,4 @@ Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 20
 
 ## Next Recommended Actions
 
-继续 T005 Packetize Mode：生成 Import Flow And Capsule Review Entry 的 self-contained execution packet。
+继续 T006 Packetize Mode：生成 Capsule Switchboard 的 self-contained execution packet。
