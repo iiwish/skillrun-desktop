@@ -7,18 +7,21 @@
 ## Release Metadata
 
 - Release scope：SkillRun Desktop Alpha planning artifacts。
-- Accepted tasks：T001。
-- Implementation status：T001 accepted；T002 not packetized。
+- Accepted tasks：T001, T002。
+- Implementation status：T001 and T002 accepted；T003 not packetized。
 
 ## Validation Summary
 
-T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T001/test-results.md`。
+T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T001/test-results.md`。T002 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T002/test-results.md`。
 
 ## Evidence Links
 
 - `.ai-platform/evidence/T001/summary.md`
 - `.ai-platform/evidence/T001/diff.patch`
 - `.ai-platform/evidence/T001/test-results.md`
+- `.ai-platform/evidence/T002/summary.md`
+- `.ai-platform/evidence/T002/diff.patch`
+- `.ai-platform/evidence/T002/test-results.md`
 
 ## Review Summary
 
@@ -31,7 +34,8 @@ Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 20
 ## Known Limitations
 
 - T001 已创建代码 scaffold，并通过本地提交前 review。
-- T002-T010 execution packets 尚未生成。
+- T002 已创建 Core CLI runner 和 Tauri command bridge，并通过本地提交前 review。
+- T003-T010 execution packets 尚未生成。
 - Analyze Mode 已运行，且无 Critical/High findings。
 
 ## Unfinished Tasks
@@ -40,4 +44,4 @@ Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 20
 
 ## Next Recommended Actions
 
-继续 T002 Packetize Mode：生成 Core CLI runner 与 error model 的 self-contained execution packet。
+继续 T003 Packetize Mode：为 Desktop-facing Core JSON contracts 生成 DTO/parser 与 fixtures 执行包。

@@ -74,7 +74,7 @@ Packet path:
 
 ## 当前闸门
 
-`T001` 已完成 direct execution，并于 2026-05-18 通过用户接受。其他 task 保持 `Draft`。
+`T001` 已完成 direct execution，并于 2026-05-18 通过用户接受。`T002` 已完成 governed execution，并于 2026-05-18 通过用户接受。其他 task 保持 `Draft`。
 
 ## 下一步建议
 
@@ -84,4 +84,4 @@ Packet path:
 - `.ai-platform/specs/001-desktop-alpha/plan.md`
 - `.ai-platform/specs/001-desktop-alpha/tasks.md`
 
-Analyze Mode 已完成且无 Critical/High findings。`T001` 已生成 packet 和 evidence，并已 accepted；`T002` 仍需生成 execution packet 后才能执行。
+Analyze Mode 已完成且无 Critical/High findings。`T001` 和 `T002` 已生成 packet 和 evidence，并已 accepted；`T003` 仍需生成 execution packet 后才能执行。

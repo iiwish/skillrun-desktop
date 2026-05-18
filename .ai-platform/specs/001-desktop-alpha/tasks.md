@@ -70,7 +70,7 @@ Packet path:
 
 #### T002: Implement Core CLI Runner And Error Model
 
-状态: Draft  
+状态: Accepted
 优先级: P0  
 依赖: T001  
 阻塞: T003, T004, T005, T006, T007, T008  
@@ -86,6 +86,8 @@ Packet path:
 - `src/core/errors.ts`
 - `src/core/runner.test.ts`
 - `src/core/errors.test.ts`
+- `package.json`（仅限补充缺失的验证脚本）
+- `src-tauri/src/lib.rs`（仅限最小 Tauri command bridge）
 
 测试目标:
 - `src/core/runner.test.ts`
@@ -105,7 +107,8 @@ Definition of Done:
 
 验证命令:
 - `npm test -- src/core`
-- `npm run typecheck`
+- `npm exec tsc -- --noEmit`
+- `cargo check --manifest-path src-tauri\Cargo.toml`
 
 TDD plan:
 - RED: 先写 runner error tests。

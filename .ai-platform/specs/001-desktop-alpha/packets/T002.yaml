@@ -1,0 +1,160 @@
+schema_version: "ai-delivery-governor.packet.v1"
+packet_id: "001-desktop-alpha-T002"
+task_id: "T002"
+feature_id: "001-desktop-alpha"
+mode: "implementation"
+
+governance_inputs:
+  constitution: ".ai-platform/memory/constitution.md"
+  product_design: ".ai-platform/docs/product-design.md"
+  feature_spec: ".ai-platform/specs/001-desktop-alpha/spec.md"
+  requirements_checklist: ".ai-platform/specs/001-desktop-alpha/checklists/requirements.md"
+  technical_plan: ".ai-platform/specs/001-desktop-alpha/plan.md"
+  work_graph: ".ai-platform/specs/001-desktop-alpha/tasks.md"
+  analysis: ".ai-platform/specs/001-desktop-alpha/analysis.md"
+  dependency_evidence:
+    - ".ai-platform/evidence/T001/summary.md"
+    - ".ai-platform/evidence/T001/test-results.md"
+
+work_unit:
+  title: "Implement Core CLI Runner And Error Model"
+  goal: "实现可复用 runner：使用参数数组调用 skillrun，捕获 stdout/stderr/exit code/duration，只从 stdout 解析 JSON，并返回 typed error classes。"
+  story_or_requirement:
+    - "US-001"
+    - "FR-001"
+    - "FR-003"
+    - "FR-004"
+    - "NFR-003"
+  priority: "P0"
+  depends_on:
+    - "T001"
+  blocks:
+    - "T003"
+    - "T004"
+    - "T005"
+    - "T006"
+    - "T007"
+    - "T008"
+  parallel: false
+  conflicts_with:
+    - "T003"
+  expected_deliverables:
+    - "Runner result model with command, args, cwd, duration, stdout, stderr, exit code, and parsed JSON data."
+    - "Concrete Tauri command executor bridge that invokes skillrun without shell interpolation."
+    - "Typed errors for spawn failure, non-zero exit, JSON parse failure, contract mismatch, ok=false, and stale refresh."
+    - "Tests covering success and each failure type."
+
+codebase_context:
+  current_repo_state: "T001 已创建 Tauri v2 + React + TypeScript + Vite scaffold，并已 accepted。"
+  relevant_existing_files:
+    - "package.json"
+    - "src/tray/menu.ts"
+    - "src/tray/menu.test.ts"
+    - "tsconfig.json"
+    - "vite.config.ts"
+  existing_patterns:
+    - "Tests use Vitest."
+    - "Frontend modules live under src/."
+    - "Desktop must talk to Core only through skillrun CLI JSON surfaces."
+    - "stderr is diagnostic only; JSON state is parsed only from stdout."
+  selected_stack:
+    runtime: "Browser/Tauri frontend TypeScript with Node-side tests."
+    command_execution: "Use an injectable TypeScript executor and a Rust Tauri command bridge; do not use shell command strings."
+  forbidden_changes:
+    - "不得直接读取 D:\\data\\skillrunv2 source files at runtime."
+    - "不得读取 .skillrun internals."
+    - "不得 implement DTO parsers for all Core surfaces; that belongs to T003."
+    - "不得 add UI flows, tray status logic, import flow, mount manager, or exposure preview."
+    - "不得 suppress stderr or merge stderr into parsed JSON state."
+    - "不得通过 Node child_process 实现 runtime path；Tauri frontend 不能依赖 Node runtime。"
+
+execution_constraints:
+  allowed_files:
+    - "package.json"
+    - "src/core/runner.ts"
+    - "src/core/errors.ts"
+    - "src/core/runner.test.ts"
+    - "src/core/errors.test.ts"
+    - "src-tauri/src/lib.rs"
+  disallowed_files:
+    - "src-tauri/** except src-tauri/src/lib.rs"
+    - "src/views/**"
+    - "src/state/**"
+    - "src/tray/**"
+    - "docs/**"
+  branch_or_worktree: "Use current worktree after checking git status; T001 commit bb84ca7 must be present."
+  ownership: "T002 owns Core runner/error model and the minimal Tauri command bridge required to execute skillrun. package.json may only receive missing validation script support if needed."
+  stop_if:
+    - "Worktree has unrelated uncommitted source changes."
+    - "Tests require changing files outside allowed_files."
+    - "Node spawn cannot be tested without weakening runner behavior."
+
+tdd_plan:
+  red:
+    - "Add failing tests for success JSON parsing and each typed error path before implementing runner/errors."
+    - "Capture RED output in .ai-platform/evidence/T002/test-results.md."
+  green:
+    - "Implement typed errors and minimal runner logic using an injected executor with args-array command metadata."
+    - "Return parsed stdout JSON only when exit code is zero and contract checks pass."
+  refactor:
+    - "After tests pass, extract small helpers only if they reduce duplication."
+  exception_policy: "TDD exception is not pre-approved for T002. Stop if RED cannot be captured."
+
+validation_loop:
+  commands:
+    - "npm test -- src/core --run"
+    - "npm exec tsc -- --noEmit"
+    - "cargo fmt --manifest-path src-tauri\\Cargo.toml --check"
+    - "cargo check --manifest-path src-tauri\\Cargo.toml"
+    - "npm run build"
+  expected_signals:
+    - "Core tests fail in RED before implementation and pass in GREEN."
+    - "TypeScript check passes without adding broad any casts."
+    - "Rust command bridge compiles and remains shell-free."
+    - "Full frontend build remains green."
+  retry_budget: 2
+  failure_handling:
+    - "First failure: fix task-scoped code or test issue."
+    - "Second failure: decide whether command model or TypeScript config blocks T002."
+    - "Do not delete failure-path tests or loosen assertions to force green."
+
+evidence_contract:
+  evidence_dir: ".ai-platform/evidence/T002"
+  required_files:
+    - "summary.md"
+    - "diff.patch"
+    - "test-results.md"
+  summary_must_include:
+    - "Changed files."
+    - "RED and GREEN command outputs."
+    - "Runner safety review: args array, no shell string, stdout-only JSON parsing."
+    - "Typed error coverage."
+    - "Diff summary."
+    - "Residual risk."
+
+review_contract:
+  spec_compliance:
+    - "Matches US-001, FR-001, FR-003, FR-004, and NFR-003."
+    - "No Core DTO surface expansion beyond generic contract checks."
+    - "No direct Core source or .skillrun filesystem coupling."
+  engineering_quality:
+    - "Process execution is injectable/testable."
+    - "Errors preserve stdout, stderr, exit code, command metadata, and duration where relevant."
+    - "No shell interpolation or command string construction."
+  qa_acceptance:
+    - "A future caller can distinguish missing core, command failure, invalid JSON, contract mismatch, ok=false, and stale data."
+
+handoff:
+  next_tasks:
+    - "T003"
+    - "T004"
+  finish_options_after_acceptance:
+    - "Keep local commit/worktree."
+    - "Continue to T003 packetize."
+  user_acceptance_required: true
+
+stop_conditions:
+  - "T001 is not accepted."
+  - "RED tests cannot be captured."
+  - "Validation commands cannot run."
+  - "Implementation requires broadening into T003 parser inventory."

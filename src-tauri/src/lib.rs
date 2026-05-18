@@ -13,6 +13,7 @@ const QUIT: &str = "quit";
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![run_skillrun])
         .setup(|app| {
             create_tray(app.handle())?;
             Ok(())
@@ -25,6 +26,32 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SkillrunProcessOutput {
+    exit_code: i32,
+    stdout: String,
+    stderr: String,
+}
+
+#[tauri::command]
+fn run_skillrun(args: Vec<String>, cwd: Option<String>) -> Result<SkillrunProcessOutput, String> {
+    let mut command = std::process::Command::new("skillrun");
+    command.args(args);
+
+    if let Some(cwd) = cwd {
+        command.current_dir(cwd);
+    }
+
+    let output = command.output().map_err(|error| error.to_string())?;
+
+    Ok(SkillrunProcessOutput {
+        exit_code: output.status.code().unwrap_or(-1),
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+    })
 }
 
 fn create_tray(app: &AppHandle) -> tauri::Result<()> {
