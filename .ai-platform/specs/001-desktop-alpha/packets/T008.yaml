@@ -1,0 +1,172 @@
+schema_version: "ai-delivery-governor.packet.v1"
+packet_id: "001-desktop-alpha-T008"
+task_id: "T008"
+feature_id: "001-desktop-alpha"
+mode: "implementation"
+
+governance_inputs:
+  constitution: ".ai-platform/memory/constitution.md"
+  product_design: ".ai-platform/docs/product-design.md"
+  feature_spec: ".ai-platform/specs/001-desktop-alpha/spec.md"
+  requirements_checklist: ".ai-platform/specs/001-desktop-alpha/checklists/requirements.md"
+  technical_plan: ".ai-platform/specs/001-desktop-alpha/plan.md"
+  work_graph: ".ai-platform/specs/001-desktop-alpha/tasks.md"
+  analysis: ".ai-platform/specs/001-desktop-alpha/analysis.md"
+  source_docs:
+    - "docs/desktop-core-contract.md"
+    - "docs/desktop-alpha-roadmap.md"
+    - "docs/desktop-readiness.md"
+  dependency_evidence:
+    - ".ai-platform/evidence/T002/summary.md"
+    - ".ai-platform/evidence/T003/summary.md"
+    - ".ai-platform/evidence/T007/summary.md"
+
+work_unit:
+  title: "Implement Claude Desktop Mount Manager"
+  goal: "为 Claude Desktop mount 提供 plan-first apply 和 Core-backed rollback。"
+  story_or_requirement:
+    - "US-005"
+    - "FR-009"
+    - "FR-011"
+    - "NFR-001"
+  priority: "P0"
+  depends_on:
+    - "T007"
+  blocks:
+    - "T009"
+  parallel: false
+  conflicts_with:
+    - "T007"
+    - "T009"
+  expected_deliverables:
+    - "Mount service reads plan/apply/rollback through Core JSON parsers."
+    - "Mount state requires plan before apply and explicit confirmation before apply/rollback."
+    - "Rollback uses only Core-returned backup path."
+    - "Unsupported or non-Claude clients remain plan-only."
+    - "Warnings are preserved and displayed."
+
+codebase_context:
+  current_repo_state: "T001-T007 are accepted. T008 can use T002 runner and T003 mount parsers."
+  relevant_existing_files:
+    - "src/core/runner.ts"
+    - "src/core/contracts/index.ts"
+    - "src/core/fixtures/consumer-mount-plan.v1.json"
+    - "src/core/fixtures/consumer-mount-apply.v1.json"
+    - "src/core/fixtures/consumer-mount-rollback.v1.json"
+    - "src/state/exposure.ts"
+    - "src/views/ExposurePreview/ExposurePreview.tsx"
+  existing_patterns:
+    - "Core JSON commands use runSkillrunJson with injected CommandExecutor."
+    - "State modules convert Core contracts into UI-safe view models and are covered by Vitest."
+    - "Presentational views receive state/callback props and avoid hidden Core side effects."
+  core_contract_notes:
+    - "Plan command is skillrun consumer mount plan --client CLIENT_ID --json."
+    - "Apply command is skillrun consumer mount apply --client claude-desktop --json."
+    - "Rollback command is skillrun consumer mount rollback --client claude-desktop --backup CORE_BACKUP_PATH --json."
+    - "Optional --config path may be passed through only when user explicitly supplies it."
+    - "Apply and rollback are real config mutations and require confirmation."
+    - "Desktop must not directly edit MCP client config."
+  forbidden_changes:
+    - "不得直接读写 MCP client config。"
+    - "不得自行生成 rollback backup。"
+    - "不得使用用户自造 backup path rollback。"
+    - "不得吞掉 warnings。"
+    - "不得把 mount apply 描述为 dependency install。"
+    - "不得对 claude-desktop 以外 client 开启 apply/rollback。"
+
+execution_constraints:
+  allowed_files:
+    - "src/views/MountManager/**"
+    - "src/state/mountManager.ts"
+    - "src/state/mountManager.test.ts"
+    - "src/core/mountService.ts"
+    - ".ai-platform/specs/001-desktop-alpha/packets/T008.yaml"
+    - ".ai-platform/specs/001-desktop-alpha/tasks.md"
+    - ".ai-platform/docs/tasks.md"
+    - ".ai-platform/docs/release-report.md"
+    - ".ai-platform/evidence/T008/**"
+  disallowed_files:
+    - "src-tauri/**"
+    - "src/core/runner.ts"
+    - "src/core/contracts/**"
+    - "src/tray/**"
+    - "docs/**"
+    - "src/App.tsx"
+  branch_or_worktree: "Use current worktree after checking git status; T007 commit e245c92 must be present."
+  ownership: "T008 owns mount service, mount manager state, mount manager view, packet/status docs, and evidence only."
+  stop_if:
+    - "T007 is not accepted."
+    - "Implementation requires changing Core runner/parser contracts."
+    - "Implementation requires wiring global dashboard navigation outside allowed files."
+    - "Implementation requires direct config file editing."
+
+tdd_plan:
+  red:
+    - "Add mount manager state/service tests first and confirm they fail because mount modules do not exist."
+    - "Capture RED output in .ai-platform/evidence/T008/test-results.md."
+  green:
+    - "Implement mount service with injected executor."
+    - "Implement mount manager state with plan-before-apply, confirmation, warnings, plan-only client, and rollback path rules."
+    - "Implement a small MountManager presentational component."
+  refactor:
+    - "Only extract label helpers after tests pass; keep scope inside allowed files."
+  exception_policy: "TDD exception is not pre-approved for T008."
+
+validation_loop:
+  commands:
+    - "npm test -- src/state/mountManager.test.ts --run"
+    - "npm exec tsc -- --noEmit"
+    - "npm run build"
+    - "npm test -- --run"
+  expected_signals:
+    - "Mount tests fail in RED before implementation and pass in GREEN."
+    - "Apply is blocked before a plan exists."
+    - "Apply requires explicit confirmation."
+    - "Rollback requires explicit confirmation and uses only Core-returned backup path."
+    - "Warnings are preserved in state/view."
+    - "Unsupported or non-Claude clients remain plan-only."
+  retry_budget: 2
+  failure_handling:
+    - "First failure: fix task-scoped service/state/view issue."
+    - "Second failure: decide whether mount contract ambiguity blocks T008."
+    - "Do not weaken direct-config-editing or rollback-path assertions."
+
+evidence_contract:
+  evidence_dir: ".ai-platform/evidence/T008"
+  required_files:
+    - "summary.md"
+    - "diff.patch"
+    - "test-results.md"
+  summary_must_include:
+    - "Changed files."
+    - "RED/GREEN command outputs."
+    - "Mount safety review."
+    - "Rollback backup path review."
+    - "Diff summary."
+    - "Residual risk."
+
+review_contract:
+  spec_compliance:
+    - "Matches US-005, FR-009, FR-011, and NFR-001."
+    - "No direct MCP config editing."
+    - "Plan before apply; apply/rollback confirmation required."
+    - "Rollback uses Core-returned backup path only."
+  engineering_quality:
+    - "Core calls are dependency-injected and testable."
+    - "Warnings are preserved."
+    - "View component is presentational and does not perform hidden Core side effects."
+  qa_acceptance:
+    - "A future dashboard can preview Claude Desktop mount, apply after confirmation, and rollback using Core backup."
+
+handoff:
+  next_tasks:
+    - "T009"
+  finish_options_after_acceptance:
+    - "Keep local commit/worktree."
+    - "Continue to T009 packetize."
+  user_acceptance_required: true
+
+stop_conditions:
+  - "RED tests cannot be captured."
+  - "Validation commands cannot run."
+  - "Implementation requires broad app navigation changes."
