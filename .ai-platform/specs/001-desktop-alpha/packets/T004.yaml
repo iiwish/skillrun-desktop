@@ -1,0 +1,154 @@
+schema_version: "ai-delivery-governor.packet.v1"
+packet_id: "001-desktop-alpha-T004"
+task_id: "T004"
+feature_id: "001-desktop-alpha"
+mode: "implementation"
+
+governance_inputs:
+  constitution: ".ai-platform/memory/constitution.md"
+  product_design: ".ai-platform/docs/product-design.md"
+  feature_spec: ".ai-platform/specs/001-desktop-alpha/spec.md"
+  requirements_checklist: ".ai-platform/specs/001-desktop-alpha/checklists/requirements.md"
+  technical_plan: ".ai-platform/specs/001-desktop-alpha/plan.md"
+  work_graph: ".ai-platform/specs/001-desktop-alpha/tasks.md"
+  analysis: ".ai-platform/specs/001-desktop-alpha/analysis.md"
+  source_docs:
+    - "docs/desktop-tray-design.md"
+    - "docs/desktop-core-contract.md"
+  dependency_evidence:
+    - ".ai-platform/evidence/T001/summary.md"
+    - ".ai-platform/evidence/T002/summary.md"
+    - ".ai-platform/evidence/T003/summary.md"
+
+work_unit:
+  title: "Implement Tray Status State Model"
+  goal: "从 Core command snapshots 计算 tray status，并在刷新失败时保留 last known state。"
+  story_or_requirement:
+    - "US-001"
+    - "FR-001"
+    - "FR-002"
+    - "FR-004"
+    - "NFR-002"
+    - "NFR-003"
+  priority: "P0"
+  depends_on:
+    - "T003"
+  blocks:
+    - "T005"
+    - "T006"
+    - "T007"
+    - "T008"
+  parallel: false
+  conflicts_with:
+    - "T005"
+  expected_deliverables:
+    - "Tray status priority model: core_missing, core_error, recent_failures, mount_not_configured, tools_exposed, capsules_disabled, no_capsules."
+    - "Last-known-state stale behavior for refresh failures."
+    - "Low-frequency refresh/backoff policy constants or pure helper."
+    - "Unit tests for priority and stale behavior."
+
+codebase_context:
+  current_repo_state: "T001-T003 are accepted. T004 must consume parsed contract snapshots, not call Core directly."
+  relevant_existing_files:
+    - "src/core/errors.ts"
+    - "src/core/contracts/index.ts"
+    - "src/tray/menu.ts"
+    - "docs/desktop-tray-design.md"
+  existing_patterns:
+    - "Vitest tests live next to task code."
+    - "Core command execution and parsing are already separate from state logic."
+  forbidden_changes:
+    - "不得启动 router serve --mcp。"
+    - "不得调用真实 Core commands inside trayStatus model."
+    - "不得 implement Dashboard UI or tray native integration."
+    - "不得 add enable/apply/rollback tray actions."
+    - "不得读取 .skillrun internals."
+
+execution_constraints:
+  allowed_files:
+    - "src/state/trayStatus.ts"
+    - "src/state/trayStatus.test.ts"
+    - "src/tray/**"
+    - ".ai-platform/specs/001-desktop-alpha/tasks.md"
+    - ".ai-platform/docs/tasks.md"
+    - ".ai-platform/docs/release-report.md"
+    - ".ai-platform/evidence/T004/**"
+  disallowed_files:
+    - "src/views/**"
+    - "src-tauri/**"
+    - "src/core/**"
+    - "docs/**"
+  branch_or_worktree: "Use current worktree after checking git status; T003 commit 03a9b4a must be present."
+  ownership: "T004 owns tray status state logic only."
+  stop_if:
+    - "T003 is not accepted."
+    - "State model requires changing parser or runner contracts."
+    - "Implementation drifts into UI or native tray behavior."
+
+tdd_plan:
+  red:
+    - "Add trayStatus tests first and confirm they fail because state model does not exist."
+    - "Capture RED output in .ai-platform/evidence/T004/test-results.md."
+  green:
+    - "Implement pure status computation from snapshots."
+    - "Implement stale last-known-state behavior and refresh policy helper."
+  refactor:
+    - "Only extract helpers after tests pass."
+  exception_policy: "TDD exception is not pre-approved for T004."
+
+validation_loop:
+  commands:
+    - "npm test -- src/state/trayStatus.test.ts --run"
+    - "npm exec tsc -- --noEmit"
+    - "npm run build"
+    - "npm test -- --run"
+  expected_signals:
+    - "Status tests fail in RED before implementation and pass in GREEN."
+    - "Every status includes source command metadata."
+    - "Refresh failure can mark last-known state stale without blocking modal semantics."
+    - "No Core/runtime side effects are introduced."
+  retry_budget: 2
+  failure_handling:
+    - "First failure: fix task-scoped state logic or tests."
+    - "Second failure: decide whether status semantics are underspecified."
+    - "Do not change parser/runner code to force green."
+
+evidence_contract:
+  evidence_dir: ".ai-platform/evidence/T004"
+  required_files:
+    - "summary.md"
+    - "diff.patch"
+    - "test-results.md"
+  summary_must_include:
+    - "Changed files."
+    - "RED/GREEN command outputs."
+    - "Priority order review."
+    - "Stale behavior review."
+    - "Diff summary."
+    - "Residual risk."
+
+review_contract:
+  spec_compliance:
+    - "Matches US-001, FR-001, FR-002, FR-004, NFR-002, and NFR-003."
+    - "No Router startup."
+    - "No dangerous tray action."
+  engineering_quality:
+    - "Status computation is pure and unit-testable."
+    - "Command source metadata is preserved."
+    - "Stale state is explicit."
+  qa_acceptance:
+    - "Future tray UI can render a clear state for core missing, core error, no capsules, disabled capsules, exposed tools, mount missing, and recent failures."
+
+handoff:
+  next_tasks:
+    - "T005"
+    - "T006"
+  finish_options_after_acceptance:
+    - "Keep local commit/worktree."
+    - "Continue to T005 packetize."
+  user_acceptance_required: true
+
+stop_conditions:
+  - "RED tests cannot be captured."
+  - "Validation commands cannot run."
+  - "Implementation requires Core command side effects."

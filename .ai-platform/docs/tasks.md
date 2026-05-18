@@ -10,7 +10,7 @@
 - Feature：`001-desktop-alpha`
 - Work graph：`.ai-platform/specs/001-desktop-alpha/tasks.md`
 - 状态：`Confirmed`
-- 可执行 tasks：T001 已通过 review 和用户 acceptance，下一步进入 T002 packetize。
+- 可执行 tasks：T001-T004 已通过 review 和用户 acceptance，下一步进入 T005 packetize。
 
 ## Global Task Index
 
@@ -74,14 +74,14 @@ Packet path:
 
 ## 当前闸门
 
-`T001` 已完成 direct execution，并于 2026-05-18 通过用户接受。`T002` 已完成 governed execution，并于 2026-05-18 通过用户接受。`T003` 已完成 governed execution，并于 2026-05-18 通过用户接受。其他 task 保持 `Draft`。
+`T001`、`T002`、`T003`、`T004` 已完成 governed execution，并于 2026-05-18 通过用户接受。其他 task 保持 `Draft`。
 
 ## 下一步建议
 
-下一步进入 T002 Packetize Mode，输入文档：
+下一步进入 T005 Packetize Mode，输入文档：
 
 - `.ai-platform/memory/constitution.md`
 - `.ai-platform/specs/001-desktop-alpha/plan.md`
 - `.ai-platform/specs/001-desktop-alpha/tasks.md`
 
-Analyze Mode 已完成且无 Critical/High findings。`T001`、`T002` 和 `T003` 已生成 packet 和 evidence，并已 accepted；`T004` 仍需生成 execution packet 后才能执行。
+Analyze Mode 已完成且无 Critical/High findings。`T001`-`T004` 已生成 packet 和 evidence，并已 accepted；`T005` 仍需生成 execution packet 后才能执行。

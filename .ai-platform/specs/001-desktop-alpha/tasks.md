@@ -181,7 +181,7 @@ Packet path:
 
 #### T004: Implement Tray Status State Model
 
-状态: Draft  
+状态: Accepted
 优先级: P0  
 依赖: T003  
 阻塞: T005, T006, T007, T008  
@@ -215,7 +215,7 @@ Definition of Done:
 
 验证命令:
 - `npm test -- src/state`
-- `npm run typecheck`
+- `npm exec tsc -- --noEmit`
 
 TDD plan:
 - RED: 添加 status priority tests。
@@ -573,4 +573,4 @@ Packet path:
 
 ## Approval Gate
 
-本 work graph 已确认。`T001` 已 accepted；其他 tasks 保持 `Draft`，按依赖逐个推进。
+本 work graph 已确认。`T001`-`T004` 已 accepted；其他 tasks 保持 `Draft`，按依赖逐个推进。
