@@ -526,7 +526,7 @@ Packet path:
 
 #### T010: Alpha Golden Path Verification
 
-状态: Draft  
+状态: Accepted
 优先级: P0  
 依赖: T009  
 阻塞: None  
@@ -561,9 +561,12 @@ Definition of Done:
 - QA acceptance review 无 blocking findings。
 
 验证命令:
-- `npm test`
-- `npm run typecheck`
+- `npm test -- src/state/goldenPath.test.ts --run`
+- `npm exec tsc -- --noEmit`
 - `npm run build`
+- `npm test -- --run`
+- `git diff --check`
+- `python D:\data\ai-rd-skill\ai-delivery-governor\scripts\validate_delivery_artifacts.py --root D:\data\skillrun-desktop --task-id T010`
 
 TDD plan:
 - RED: 最终实现前添加 golden path acceptance test 或 scripted scenario。
@@ -581,4 +584,4 @@ Packet path:
 
 ## Approval Gate
 
-本 work graph 已确认。`T001`-`T009` 已 accepted；其他 tasks 保持 `Draft`，按依赖逐个推进。
+本 work graph 已确认。`T001`-`T010` 已 accepted。

@@ -1,0 +1,171 @@
+schema_version: "ai-delivery-governor.packet.v1"
+packet_id: "001-desktop-alpha-T010"
+task_id: "T010"
+feature_id: "001-desktop-alpha"
+mode: "implementation"
+
+governance_inputs:
+  constitution: ".ai-platform/memory/constitution.md"
+  product_design: ".ai-platform/docs/product-design.md"
+  feature_spec: ".ai-platform/specs/001-desktop-alpha/spec.md"
+  requirements_checklist: ".ai-platform/specs/001-desktop-alpha/checklists/requirements.md"
+  technical_plan: ".ai-platform/specs/001-desktop-alpha/plan.md"
+  work_graph: ".ai-platform/specs/001-desktop-alpha/tasks.md"
+  analysis: ".ai-platform/specs/001-desktop-alpha/analysis.md"
+  source_docs:
+    - "docs/desktop-core-contract.md"
+    - "docs/desktop-alpha-roadmap.md"
+    - "docs/desktop-readiness.md"
+  dependency_evidence:
+    - ".ai-platform/evidence/T001/summary.md"
+    - ".ai-platform/evidence/T002/summary.md"
+    - ".ai-platform/evidence/T003/summary.md"
+    - ".ai-platform/evidence/T004/summary.md"
+    - ".ai-platform/evidence/T005/summary.md"
+    - ".ai-platform/evidence/T006/summary.md"
+    - ".ai-platform/evidence/T007/summary.md"
+    - ".ai-platform/evidence/T008/summary.md"
+    - ".ai-platform/evidence/T009/summary.md"
+
+work_unit:
+  title: "Alpha Golden Path Verification"
+  goal: "用 mock runner 验证 tray-first .skr golden path：import、enable、exposure dry-run、mount plan/apply confirmation、runs list/inspect，并输出可审核 evidence。"
+  story_or_requirement:
+    - "US-001"
+    - "US-002"
+    - "US-003"
+    - "US-004"
+    - "US-005"
+    - "US-006"
+  priority: "P0"
+  depends_on:
+    - "T009"
+  blocks: []
+  parallel: false
+  conflicts_with: []
+  expected_deliverables:
+    - "Golden path state harness."
+    - "Golden path acceptance tests with command trace assertions."
+    - "T010 evidence summary, test results, diff patch, and known limitations."
+
+codebase_context:
+  current_repo_state: "T001-T009 are accepted. T010 is final alpha acceptance verification and should not introduce new product surface."
+  relevant_existing_files:
+    - "src/state/trayStatus.ts"
+    - "src/state/importFlow.ts"
+    - "src/state/switchboard.ts"
+    - "src/state/exposure.ts"
+    - "src/state/mountManager.ts"
+    - "src/state/runs.ts"
+    - "src/core/importService.ts"
+    - "src/core/switchboardService.ts"
+    - "src/core/exposureService.ts"
+    - "src/core/mountService.ts"
+    - "src/core/runsService.ts"
+    - "src/core/fixtures/*.json"
+  existing_patterns:
+    - "State modules use injected CommandExecutor and Core JSON services."
+    - "Confirmation-required flows return confirmation_required before executing mutating commands."
+    - "Exposure preview must call router serve --mcp --dry-run, never long-running router serve --mcp."
+    - "Runs inspect state must expose metadata and safe summaries only."
+  forbidden_changes:
+    - "Do not wire new dashboard navigation or build new UI scope."
+    - "Do not start the Router daemon."
+    - "Do not run mount apply against the user's real MCP client config."
+    - "Do not read .skillrun internals, record.json, logs, full inputs, or artifact content."
+    - "Do not implement alpha non-goals such as dependency install, trust scoring, sandboxing, marketplace, or rollback UX beyond existing Core-backed state."
+
+execution_constraints:
+  allowed_files:
+    - "src/state/goldenPath.ts"
+    - "src/state/goldenPath.test.ts"
+    - ".ai-platform/specs/001-desktop-alpha/packets/T010.yaml"
+    - ".ai-platform/specs/001-desktop-alpha/tasks.md"
+    - ".ai-platform/docs/tasks.md"
+    - ".ai-platform/docs/release-report.md"
+    - ".ai-platform/evidence/T010/**"
+  disallowed_files:
+    - "src/App.tsx"
+    - "src/views/**"
+    - "src-tauri/**"
+    - "src/core/runner.ts"
+    - "src/core/contracts/**"
+    - "docs/**"
+  branch_or_worktree: "Use current main worktree after checking git status; T009 commit b9ff70c must be present."
+  ownership: "T010 owns golden path verification harness, tests, packet/status docs, and evidence only."
+  stop_if:
+    - "T009 is not accepted."
+    - "Golden path requires real Core mutation against user config."
+    - "Verification requires adding new UI/product functionality."
+    - "Validation requires weakening existing safety assertions."
+
+tdd_plan:
+  red:
+    - "Add src/state/goldenPath.test.ts first and confirm it fails because ./goldenPath does not exist."
+    - "Capture RED output in .ai-platform/evidence/T010/test-results.md."
+  green:
+    - "Implement runDesktopAlphaGoldenPath with an instrumented mock runner trace."
+    - "Assert command order, confirmation gates, dry-run router use, mount plan-before-apply, tray status, and safe run inspect."
+  refactor:
+    - "Only extract small trace helpers after tests pass."
+  exception_policy: "Real Core command execution is not required unless an isolated test state is available; absence must be recorded as limitation, not failure."
+
+validation_loop:
+  commands:
+    - "npm test -- src/state/goldenPath.test.ts --run"
+    - "npm exec tsc -- --noEmit"
+    - "npm run build"
+    - "npm test -- --run"
+    - "git diff --check"
+    - "python D:\\data\\ai-rd-skill\\ai-delivery-governor\\scripts\\validate_delivery_artifacts.py --root D:\\data\\skillrun-desktop --task-id T010"
+  expected_signals:
+    - "Golden path test fails in RED before implementation and passes in GREEN."
+    - "Command trace covers import, inventory/exposure refresh, enable, exposure dry-run, mount plan, mount apply, runs list, and runs inspect."
+    - "No trace contains long-running router serve --mcp without --dry-run."
+    - "Mount apply is not called before mount plan and confirmation."
+    - "Run inspect state excludes injected full input, stdout/stderr, artifact content, and envelope leaf content."
+  retry_budget: 2
+  failure_handling:
+    - "First failure: fix only T010-owned harness/test/evidence issues."
+    - "Second failure: decide whether an upstream accepted task has a contract gap and stop with blocker evidence."
+    - "Do not broaden T010 into UI wiring."
+
+evidence_contract:
+  evidence_dir: ".ai-platform/evidence/T010"
+  required_files:
+    - "summary.md"
+    - "diff.patch"
+    - "test-results.md"
+  summary_must_include:
+    - "Changed files."
+    - "RED/GREEN command outputs."
+    - "Golden path command trace summary."
+    - "Screenshot/app verification status."
+    - "Known limitations."
+    - "Diff summary."
+    - "Residual risk."
+
+review_contract:
+  spec_compliance:
+    - "Covers tray status, import, enable, exposure, mount plan/apply confirmation, and run inspect flows."
+    - "All state changes are traceable to Core command metadata or explicit no-command confirmation gates."
+    - "Does not implement alpha non-goals."
+  engineering_quality:
+    - "Harness uses injected executor and does not mutate real user config."
+    - "Tests assert command ordering and safety exclusions."
+    - "No accepted task behavior is loosened."
+  qa_acceptance:
+    - "Evidence is sufficient for a human to verify Desktop Alpha golden path readiness at state/service layer."
+
+handoff:
+  next_tasks: []
+  finish_options_after_acceptance:
+    - "Commit T010 locally."
+    - "Prepare release handoff or PR."
+  user_acceptance_required: true
+
+stop_conditions:
+  - "RED tests cannot be captured."
+  - "Validation commands cannot run."
+  - "Harness needs direct filesystem reads under .skillrun."
+  - "Golden path requires real Core side effects against user environment."

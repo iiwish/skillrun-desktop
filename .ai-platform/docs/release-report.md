@@ -1,18 +1,18 @@
 # Release Report
 
 **版本**：0.1.0  
-**状态**：Draft  
-**最后更新**：2026-05-18  
+**状态**：Ready_For_User_Review
+**最后更新**：2026-05-19
 
 ## Release Metadata
 
 - Release scope：SkillRun Desktop Alpha planning artifacts。
-- Accepted tasks：T001, T002, T003, T004, T005, T006, T007, T008, T009。
-- Implementation status：T001-T009 accepted；T010 not packetized。
+- Accepted tasks：T001, T002, T003, T004, T005, T006, T007, T008, T009, T010。
+- Implementation status：T001-T010 accepted；release handoff ready for review。
 
 ## Validation Summary
 
-T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T001/test-results.md`。T002 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T002/test-results.md`。T003 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T003/test-results.md`。T004 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T004/test-results.md`。T005 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T005/test-results.md`。T006 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T006/test-results.md`。T007 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T007/test-results.md`。T008 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T008/test-results.md`。T009 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T009/test-results.md`。
+T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T001/test-results.md`。T002 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T002/test-results.md`。T003 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T003/test-results.md`。T004 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T004/test-results.md`。T005 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T005/test-results.md`。T006 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T006/test-results.md`。T007 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T007/test-results.md`。T008 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T008/test-results.md`。T009 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T009/test-results.md`。T010 已执行并通过 review gate，验证结果记录在 `.ai-platform/evidence/T010/test-results.md`。
 
 ## Evidence Links
 
@@ -43,6 +43,9 @@ T001 已执行并通过 review gate，验证结果记录在 `.ai-platform/eviden
 - `.ai-platform/evidence/T009/summary.md`
 - `.ai-platform/evidence/T009/diff.patch`
 - `.ai-platform/evidence/T009/test-results.md`
+- `.ai-platform/evidence/T010/summary.md`
+- `.ai-platform/evidence/T010/diff.patch`
+- `.ai-platform/evidence/T010/test-results.md`
 
 ## Review Summary
 
@@ -50,7 +53,7 @@ Product contract 已 confirmed。Constitution、technical plan 和 task breakdow
 
 ## User Acceptance
 
-Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 2026-05-18 通过文档 review gate。T001-T009 已于 2026-05-18 通过用户接受。
+Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 2026-05-18 通过文档 review gate。T001-T009 已于 2026-05-18 通过用户接受。T010 已于 2026-05-19 通过用户接受。
 
 ## Known Limitations
 
@@ -63,7 +66,7 @@ Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 20
 - T007 已创建 exposure service、state 和 presentational view，并通过本地提交前 review。
 - T008 已创建 mount service、state 和 presentational view，并通过本地提交前 review。
 - T009 已创建 runs service、state 和 Envelope Explorer presentational view，并通过本地提交前 review。
-- T010 execution packet 尚未生成。
+- T010 已创建 golden path verification harness 和 tests，并通过本地提交前 review；未运行真实 Core side-effect 验证或截图验证，因为当前没有隔离 Core 状态目录。
 - Analyze Mode 已运行，且无 Critical/High findings。
 
 ## Unfinished Tasks
@@ -72,4 +75,4 @@ Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 20
 
 ## Next Recommended Actions
 
-进入 T010 Packetize，生成 Alpha Golden Path Verification execution packet。
+Release report 等待用户最终确认；之后可进入 push/PR 或本地保留分支。
