@@ -66,6 +66,10 @@ mise exec -- ./bin/symphony --port 4000 /Users/iiwish/self/skillrun-desktop/symp
 4. Put selected Linear issues into `Todo`. Symphony will claim them and create
    workspaces under `~/code/skillrun-desktop-workspaces`.
 
+The workflow uses Codex `danger-full-access` because autonomous workers must be
+able to write Git metadata for branch creation, commits, pushes, and PR handoff.
+Keep `max_concurrent_agents` low until the loop is consistently reliable.
+
 ## Issue Factory Prompt
 
 Use this prompt in Codex when you want AI to create Linear issues from the
