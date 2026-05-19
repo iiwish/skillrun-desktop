@@ -10,7 +10,7 @@
 - Feature：`001-desktop-alpha`
 - Work graph：`.ai-platform/specs/001-desktop-alpha/tasks.md`
 - 状态：`Confirmed`
-- 可执行 tasks：T001-T010 已通过 review 和用户 acceptance。
+- 可执行 tasks：T001-T010 已通过 review 和用户 acceptance；release report 已 confirmed。
 
 ## Global Task Index
 
@@ -78,10 +78,10 @@ Packet path:
 
 ## 下一步建议
 
-下一步进入 release handoff，输入文档：
+当前进入 release handoff，输入文档：
 
 - `.ai-platform/memory/constitution.md`
 - `.ai-platform/specs/001-desktop-alpha/plan.md`
 - `.ai-platform/specs/001-desktop-alpha/tasks.md`
 
-Analyze Mode 已完成且无 Critical/High findings。`T001`-`T010` 已生成 packet 和 evidence，并已 accepted。
+Analyze Mode 已完成且无 Critical/High findings。`T001`-`T010` 已生成 packet 和 evidence，并已 accepted。Release report 已 confirmed，本地 Git handoff 就绪。

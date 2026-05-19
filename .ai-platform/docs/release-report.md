@@ -1,14 +1,14 @@
 # Release Report
 
 **版本**：0.1.0  
-**状态**：Ready_For_User_Review
+**状态**：Confirmed
 **最后更新**：2026-05-19
 
 ## Release Metadata
 
 - Release scope：SkillRun Desktop Alpha planning artifacts。
 - Accepted tasks：T001, T002, T003, T004, T005, T006, T007, T008, T009, T010。
-- Implementation status：T001-T010 accepted；release handoff ready for review。
+- Implementation status：T001-T010 accepted；local release handoff confirmed。
 
 ## Validation Summary
 
@@ -53,7 +53,7 @@ Product contract 已 confirmed。Constitution、technical plan 和 task breakdow
 
 ## User Acceptance
 
-Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 2026-05-18 通过文档 review gate。T001-T009 已于 2026-05-18 通过用户接受。T010 已于 2026-05-19 通过用户接受。
+Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 2026-05-18 通过文档 review gate。T001-T009 已于 2026-05-18 通过用户接受。T010 已于 2026-05-19 通过用户接受。Release report 已于 2026-05-19 通过用户继续交付授权。
 
 ## Known Limitations
 
@@ -71,8 +71,8 @@ Product contract 已于 2026-05-18 获得用户接受。Plan 和 tasks 已于 20
 
 ## Unfinished Tasks
 
-见 `.ai-platform/specs/001-desktop-alpha/tasks.md`。
+Desktop Alpha contract 内的 T001-T010 均已 accepted。剩余内容仅为 Known Limitations 中列出的后续真实环境验证与 UI wiring 风险。
 
 ## Next Recommended Actions
 
-Release report 等待用户最终确认；之后可进入 push/PR 或本地保留分支。
+本地 Git handoff 已就绪；可选择继续本地保留、push 分支、创建 PR，或另起下一轮真实 Core 隔离环境验证。
