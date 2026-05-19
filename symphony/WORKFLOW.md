@@ -20,10 +20,20 @@ workspace:
   root: ~/code/skillrun-desktop-workspaces
 hooks:
   after_create: |
-    git clone --depth 1 https://github.com/iiwish/skillrun-desktop.git .
+    git clone --local /Users/iiwish/self/skillrun-desktop .
+    git remote set-url origin https://github.com/iiwish/skillrun-desktop.git
+    npm ci
+  before_run: |
+    if [ ! -f package.json ]; then
+      find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+      git clone --local /Users/iiwish/self/skillrun-desktop .
+      git remote set-url origin https://github.com/iiwish/skillrun-desktop.git
+      npm ci
+    fi
+    git remote set-url origin https://github.com/iiwish/skillrun-desktop.git
     npm ci
   before_remove: |
-    git status --short
+    git status --short || true
 agent:
   max_concurrent_agents: 2
   max_turns: 20
