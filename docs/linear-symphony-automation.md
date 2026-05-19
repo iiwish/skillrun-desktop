@@ -13,8 +13,45 @@ This project can enter an autonomous optimization loop with two jobs:
 - `npm test -- --run`: passing, 57 tests
 - `npm run build`: passing
 - `cd src-tauri && cargo check`: passing
-- `skillrun` CLI: not found locally, so Core-integration validation needs a
-  separate environment setup before real CLI checks can be required
+- `skillrun` CLI: install from the upstream Core repository with
+  `npm run skillrun:install-local`, then verify with
+  `npm run skillrun:verify-local`
+
+## macOS Local Core CLI
+
+Desktop and Symphony workers expect the real Core CLI to be available as
+`skillrun` without embedding a Core checkout path in frontend code. For local
+macOS development, install the Core CLI from the upstream repository into
+Cargo's bin directory:
+
+```bash
+cargo install --git https://github.com/iiwish/skillrun --locked --force
+```
+
+The repository helper runs that install and verifies the resulting binary:
+
+```bash
+npm run skillrun:install-local
+```
+
+Use `SKILLRUN_CORE_PATH=/path/to/skillrun npm run skillrun:install-local` only
+when intentionally validating an active Core checkout, for example
+`/Users/iiwish/self/skillrun` during local Core development. The verification
+command checks that `which skillrun` resolves to Cargo's bin directory and that
+`skillrun --version` is available. When `SKILLRUN_CORE_PATH` is set, it also
+checks that the installed version and Cargo install record match that checkout:
+
+```bash
+which skillrun
+skillrun --version
+npm run skillrun:verify-local
+SKILLRUN_CORE_PATH=/Users/iiwish/self/skillrun npm run skillrun:verify-local
+```
+
+The Tauri bridge still starts `skillrun` through an argument-array process call.
+On macOS it also checks `~/.cargo/bin/skillrun` when the app process does not
+inherit a shell `PATH`, and `SKILLRUN_CLI_PATH` can override the binary for
+nonstandard local setups.
 
 ## Linear Setup
 

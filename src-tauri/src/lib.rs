@@ -1,3 +1,5 @@
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, WindowEvent};
@@ -38,7 +40,7 @@ struct SkillrunProcessOutput {
 
 #[tauri::command]
 fn run_skillrun(args: Vec<String>, cwd: Option<String>) -> Result<SkillrunProcessOutput, String> {
-    let mut command = std::process::Command::new("skillrun");
+    let mut command = std::process::Command::new(resolve_skillrun_binary());
     command.args(args);
 
     if let Some(cwd) = cwd {
@@ -52,6 +54,97 @@ fn run_skillrun(args: Vec<String>, cwd: Option<String>) -> Result<SkillrunProces
         stdout: String::from_utf8_lossy(&output.stdout).to_string(),
         stderr: String::from_utf8_lossy(&output.stderr).to_string(),
     })
+}
+
+fn resolve_skillrun_binary() -> OsString {
+    resolve_skillrun_binary_from_env(
+        std::env::var_os("SKILLRUN_CLI_PATH"),
+        std::env::var_os("PATH"),
+        std::env::var_os("HOME"),
+        |path| path.is_file(),
+    )
+}
+
+fn resolve_skillrun_binary_from_env(
+    configured_path: Option<OsString>,
+    path_env: Option<OsString>,
+    home_dir: Option<OsString>,
+    exists: impl Fn(&Path) -> bool,
+) -> OsString {
+    if let Some(configured_path) = configured_path {
+        if !configured_path.is_empty() {
+            return configured_path;
+        }
+    }
+
+    if path_env
+        .as_deref()
+        .map(|paths| {
+            std::env::split_paths(paths)
+                .map(|path| path.join("skillrun"))
+                .any(|path| exists(&path))
+        })
+        .unwrap_or(false)
+    {
+        return OsString::from("skillrun");
+    }
+
+    #[cfg(target_os = "macos")]
+    if let Some(home_dir) = home_dir {
+        if !home_dir.is_empty() {
+            let candidate = PathBuf::from(home_dir).join(".cargo/bin/skillrun");
+            if exists(&candidate) {
+                return candidate.into_os_string();
+            }
+        }
+    }
+
+    OsString::from("skillrun")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn configured_skillrun_path_wins() {
+        let resolved = resolve_skillrun_binary_from_env(
+            Some(OsString::from("/tmp/core/skillrun")),
+            Some(OsString::from("/usr/bin")),
+            Some(OsString::from("/Users/iiwish")),
+            |_| true,
+        );
+
+        assert_eq!(resolved, OsString::from("/tmp/core/skillrun"));
+    }
+
+    #[test]
+    fn path_lookup_keeps_command_name_when_available() {
+        let resolved = resolve_skillrun_binary_from_env(
+            None,
+            Some(OsString::from("/usr/bin:/opt/homebrew/bin")),
+            Some(OsString::from("/Users/iiwish")),
+            |path| path == Path::new("/opt/homebrew/bin/skillrun"),
+        );
+
+        assert_eq!(resolved, OsString::from("skillrun"));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_falls_back_to_cargo_bin_when_path_is_missing_skillrun() {
+        let resolved = resolve_skillrun_binary_from_env(
+            None,
+            Some(OsString::from("/usr/bin:/bin")),
+            Some(OsString::from("/Users/iiwish")),
+            |path| path == Path::new("/Users/iiwish/.cargo/bin/skillrun"),
+        );
+
+        assert_eq!(
+            resolved,
+            OsString::from("/Users/iiwish/.cargo/bin/skillrun")
+        );
+    }
 }
 
 fn create_tray(app: &AppHandle) -> tauri::Result<()> {
