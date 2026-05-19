@@ -13,3 +13,23 @@
 ## 核心原则
 
 Desktop 是 SkillRun Core 的 tray-first 消费者控制台，不是 Core replacement。它通过稳定 `skillrun` CLI JSON 编排 import、switchboard、exposure、mount 和 run evidence；不读取 `.skillrun/` 内部目录，不解析 Manifest YAML，不自行执行 action，不自行修改 MCP client 配置，也不把托盘做成隐形 Router daemon。
+
+## Local Validation
+
+Desktop uses Node/Vite for the React shell and Rust/Cargo for the Tauri shell
+in `src-tauri`. Cargo must be available on `PATH` before running Tauri or Rust
+validation.
+
+Run the Node validation flow for every desktop change:
+
+```bash
+npm test -- --run
+npm run build
+```
+
+When a change touches `src-tauri`, Tauri configuration, Rust dependencies, or
+desktop validation prerequisites, also run:
+
+```bash
+cd src-tauri && cargo check
+```
