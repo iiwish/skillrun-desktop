@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "test": "vitest",
+    "smoke:real-core": "vitest run --config vitest.smoke.config.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri"
