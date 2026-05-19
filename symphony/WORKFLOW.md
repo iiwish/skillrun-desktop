@@ -2,7 +2,7 @@
 tracker:
   kind: linear
   api_key: $LINEAR_API_KEY
-  project_slug: "skillrun-68dab379d537"
+  project_slug: "skillrun-desktop-60c64ea669d2"
   active_states:
     - Todo
     - In Progress
@@ -47,6 +47,15 @@ codex:
 
 You are working autonomously on Linear issue `{{ issue.identifier }}` for the
 `skillrun-desktop` repository.
+
+Language policy:
+
+- Linear issue workpads, acceptance criteria mirrors, progress notes, and
+  human-facing summaries must be written primarily in Simplified Chinese.
+- Keep command names, file paths, API names, schema versions, labels, branch
+  names, and code identifiers in English exactly as written.
+- When editing repository docs, follow the surrounding document language; for
+  new product requirements or delivery notes, default to Simplified Chinese.
 
 Issue context:
 Identifier: {{ issue.identifier }}
