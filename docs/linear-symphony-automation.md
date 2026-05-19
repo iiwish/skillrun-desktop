@@ -13,7 +13,7 @@ This project can enter an autonomous optimization loop with two jobs:
 - `npm test -- --run`: passing, 57 tests
 - `npm run build`: passing
 - `cd src-tauri && cargo check`: passing
-- `skillrun` CLI: install from the local Core checkout with
+- `skillrun` CLI: install from the upstream Core repository with
   `npm run skillrun:install-local`, then verify with
   `npm run skillrun:verify-local`
 
@@ -21,28 +21,31 @@ This project can enter an autonomous optimization loop with two jobs:
 
 Desktop and Symphony workers expect the real Core CLI to be available as
 `skillrun` without embedding a Core checkout path in frontend code. For local
-macOS development, install the current Core checkout into Cargo's bin directory:
+macOS development, install the Core CLI from the upstream repository into
+Cargo's bin directory:
+
+```bash
+cargo install --git https://github.com/iiwish/skillrun --locked --force
+```
+
+The repository helper runs that install and verifies the resulting binary:
 
 ```bash
 npm run skillrun:install-local
 ```
 
-By default this installs from `/Users/iiwish/self/skillrun` via:
-
-```bash
-cargo install --path /Users/iiwish/self/skillrun --locked --force
-```
-
 Use `SKILLRUN_CORE_PATH=/path/to/skillrun npm run skillrun:install-local` only
-when working from a different Core checkout. The verification command checks
-that `which skillrun` resolves to Cargo's bin directory, `skillrun --version`
-matches the local Core package version, and Cargo's install record points back
-to the same checkout:
+when intentionally validating an active Core checkout, for example
+`/Users/iiwish/self/skillrun` during local Core development. The verification
+command checks that `which skillrun` resolves to Cargo's bin directory and that
+`skillrun --version` is available. When `SKILLRUN_CORE_PATH` is set, it also
+checks that the installed version and Cargo install record match that checkout:
 
 ```bash
 which skillrun
 skillrun --version
 npm run skillrun:verify-local
+SKILLRUN_CORE_PATH=/Users/iiwish/self/skillrun npm run skillrun:verify-local
 ```
 
 The Tauri bridge still starts `skillrun` through an argument-array process call.
