@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
 import "./App.css";
+import {
+  refreshDashboardStatus,
+  type DashboardRefreshSnapshot,
+} from "./core/dashboardService";
 import { createTauriCommandExecutor } from "./core/runner";
 import { refreshSwitchboard } from "./core/switchboardService";
-import { ExposurePreview } from "./views/ExposurePreview";
-import { ImportFlow } from "./views/ImportFlow";
-import { MountManager } from "./views/MountManager";
-import { EnvelopeExplorer } from "./views/EnvelopeExplorer";
-import { Switchboard } from "./views/Switchboard";
 import {
   buildExposurePreviewState,
   loadExposurePreview,
@@ -42,6 +41,12 @@ import {
   type SwitchboardCapsule,
   type SwitchboardState,
 } from "./state/switchboard";
+import type { TrayStatus, TrayStatusKind } from "./state/trayStatus";
+import { ExposurePreview } from "./views/ExposurePreview";
+import { ImportFlow } from "./views/ImportFlow";
+import { MountManager } from "./views/MountManager";
+import { EnvelopeExplorer } from "./views/EnvelopeExplorer";
+import { Switchboard } from "./views/Switchboard";
 
 type DashboardView = "import" | "switchboard" | "exposure" | "mount" | "runs";
 
@@ -55,6 +60,12 @@ type PendingTask =
   | "mount.rollback"
   | "runs.refresh"
   | "runs.inspect";
+
+type RefreshState =
+  | { phase: "idle" }
+  | { phase: "loading"; lastSnapshot?: DashboardRefreshSnapshot }
+  | { phase: "ready"; snapshot: DashboardRefreshSnapshot }
+  | { phase: "failed"; message: string; lastSnapshot?: DashboardRefreshSnapshot };
 
 const views: Array<{ id: DashboardView; label: string; spineLabel: string }> = [
   { id: "import", label: "Import", spineLabel: "Import" },
@@ -119,6 +130,7 @@ function App() {
   const [packagePath, setPackagePath] = useState("");
   const [selectedCapsuleId, setSelectedCapsuleId] = useState<string>();
   const [pendingTask, setPendingTask] = useState<PendingTask>();
+  const [refreshState, setRefreshState] = useState<RefreshState>({ phase: "idle" });
   const [importState, setImportState] = useState<ImportFlowState>(initialImportState);
   const [switchboardState, setSwitchboardState] = useState<SwitchboardState>(initialSwitchboardState);
   const [switchboardError, setSwitchboardError] = useState<SwitchboardActionError>();
@@ -131,7 +143,33 @@ function App() {
   const [runsError, setRunsError] = useState<RunsError>();
   const [selectedRunId, setSelectedRunId] = useState<string>();
 
+  const statusSnapshot =
+    refreshState.phase === "ready"
+      ? refreshState.snapshot
+      : refreshState.phase === "loading" || refreshState.phase === "failed"
+        ? refreshState.lastSnapshot
+        : undefined;
   const selectedCapsule = switchboardState.capsules.find((capsule) => capsule.id === selectedCapsuleId);
+  const isRefreshingStatus = refreshState.phase === "loading";
+
+  async function handleRefreshStatus(): Promise<void> {
+    const lastSnapshot = statusSnapshot;
+    setRefreshState({ phase: "loading", lastSnapshot });
+
+    try {
+      const nextSnapshot = await refreshDashboardStatus({
+        executor,
+        lastKnown: lastSnapshot?.status,
+      });
+      setRefreshState({ phase: "ready", snapshot: nextSnapshot });
+    } catch (error) {
+      setRefreshState({
+        phase: "failed",
+        lastSnapshot,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   async function handleImport() {
     if (!packagePath) {
@@ -378,8 +416,8 @@ function App() {
             <p className="eyebrow">Local consumer control plane</p>
             <h2>{"Import -> review -> enable -> preview -> mount -> inspect runs"}</h2>
           </div>
-          <button type="button" onClick={() => void handleRefreshSwitchboard()}>
-            Refresh Dashboard
+          <button type="button" onClick={handleRefreshStatus} disabled={isRefreshingStatus}>
+            {isRefreshingStatus ? "Refreshing" : "Refresh Status"}
           </button>
         </header>
 
@@ -398,6 +436,14 @@ function App() {
         </section>
 
         <section className="status-grid" aria-label="Desktop alpha status">
+          <article>
+            <span className="label">Core</span>
+            <strong>{statusSnapshot?.status.label ?? "Not checked"}</strong>
+            <p>{statusDescription(statusSnapshot?.status)}</p>
+            {refreshState.phase === "failed" ? (
+              <p className="error-text" role="alert">{refreshState.message}</p>
+            ) : null}
+          </article>
           <article>
             <span className="label">Imported</span>
             <strong>{importState.capsule?.id ?? "No imported capsule selected"}</strong>
@@ -495,6 +541,28 @@ function App() {
             />
           ) : null}
         </section>
+
+        <section className="command-panel" aria-label="Core command trace" aria-live="polite">
+          <div className="section-heading">
+            <span className="label">Core command trace</span>
+            <strong>{statusSnapshot ? formatTimestamp(statusSnapshot.capturedAtMs) : "No refresh yet"}</strong>
+          </div>
+          {statusSnapshot ? (
+            <ul className="command-list">
+              {statusSnapshot.commands.map((command) => (
+                <li key={`${command.command}-${command.capturedAtMs}`}>
+                  <code>{command.displayCommand}</code>
+                  <span className={command.status === "ok" ? "pill success" : "pill error"}>
+                    {command.status === "ok" ? "ok" : command.errorKind}
+                  </span>
+                  {command.errorMessage ? <p>{command.errorMessage}</p> : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="empty-state">Refresh has not run any `skillrun` command yet.</p>
+          )}
+        </section>
       </section>
     </main>
   );
@@ -520,6 +588,32 @@ function toActionError(error: unknown, fallback: string): SwitchboardActionError
       : "unknown_core_error",
     message: error instanceof Error ? error.message : fallback,
   };
+}
+
+function statusDescription(status: TrayStatus | undefined): string {
+  if (!status) {
+    return "Click Refresh Status to query the local SkillRun Core through the Tauri runner.";
+  }
+
+  const descriptions: Record<TrayStatusKind, string> = {
+    core_missing: "Desktop could not start `skillrun`; install or expose the CLI on PATH.",
+    core_error: "A Core JSON command failed; inspect the command trace for the exact failing command.",
+    recent_failures: "Recent run history includes a failed or error run.",
+    mount_not_configured: "Claude Desktop mount plan reports pending configuration work.",
+    tools_exposed: "Core exposure JSON reports at least one exposed tool.",
+    capsules_disabled: "Core inventory has capsules, but none are currently exposed.",
+    no_capsules: "Core inventory is empty.",
+  };
+
+  return descriptions[status.kind];
+}
+
+function formatTimestamp(timestampMs: number): string {
+  if (timestampMs <= 0) {
+    return "not captured";
+  }
+
+  return new Date(timestampMs).toLocaleString();
 }
 
 export default App;

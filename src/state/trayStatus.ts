@@ -23,7 +23,7 @@ export type TrayCommandName =
   | "consumer runs list --json --limit 5";
 
 export type TrayCommandError = {
-  kind: CoreErrorKind;
+  kind: CoreErrorKind | "unknown_core_error";
   message: string;
 };
 

@@ -476,6 +476,29 @@ Desktop 必须使用诚实文案：
 - readiness ok 不是业务正确性保证。
 - SkillRun 的消费安全来自 Manifest-driven exposure、显式 enable、plan/apply/rollback、run evidence，而不是完整 sandbox。
 
+## Real Core Smoke Harness
+
+Desktop 仓库提供独立真实 Core smoke 命令：
+
+```bash
+npm run smoke:real-core
+```
+
+该命令使用临时 `SKILLRUN_HOME`、临时 `HOME` 和临时 `XDG_CONFIG_HOME`，默认不读取或写入用户真实 `~/.skillrun`。smoke 通过 Desktop 的 `runSkillrunJson` 跑真实 `skillrun` JSON surface，并执行最小闭环：
+
+```text
+host status --json
+  -> init --js
+  -> manifest
+  -> pack
+  -> import --json
+  -> consumer inventory --json
+  -> switchboard enable
+  -> consumer exposure --json
+```
+
+失败输出必须包含命令 trace，并区分缺少 CLI、Core 命令失败、JSON mismatch 或环境 blocker。
+
 ## Alpha Golden Path
 
 Desktop alpha 的最低验收链路：

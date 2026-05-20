@@ -48,6 +48,10 @@ input {
   padding: 0.55rem 0.7rem;
 }
 
+code {
+  overflow-wrap: anywhere;
+}
+
 .app-shell {
   min-height: 100vh;
   display: flex;
@@ -88,7 +92,8 @@ input {
 .view-frame h2,
 .view-frame h3,
 .view-frame h4,
-.view-frame h5 {
+.view-frame h5,
+.command-panel p {
   margin: 0;
 }
 
@@ -101,7 +106,9 @@ input {
 .status-grid p,
 .view-frame p,
 .label,
-.pending {
+.pending,
+.command-panel p,
+.empty-state {
   color: #69707d;
   font-size: 0.875rem;
 }
@@ -174,7 +181,7 @@ nav button:hover,
 
 .status-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
@@ -198,11 +205,20 @@ nav button:hover,
   margin: 0 0 0.75rem;
 }
 
-.view-frame {
+.error-text {
+  color: #9d2f2f;
+}
+
+.view-frame,
+.command-panel {
   border: 1px solid #d6dbe3;
   border-radius: 8px;
   background: #ffffff;
   padding: 1rem;
+}
+
+.command-panel {
+  margin-top: 0.75rem;
 }
 
 .view-frame section {
@@ -278,6 +294,65 @@ nav button:hover,
   gap: 1rem;
 }
 
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+}
+
+.section-heading strong {
+  color: #3a414c;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.command-list {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.command-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 0.75rem;
+  align-items: center;
+  border-top: 1px solid #edf0f4;
+  padding-top: 0.5rem;
+}
+
+.command-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.command-list p {
+  grid-column: 1 / -1;
+}
+
+.pill {
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.25rem 0.45rem;
+  text-transform: uppercase;
+}
+
+.pill.success {
+  background: #e3f4ea;
+  color: #16633b;
+}
+
+.pill.error {
+  background: #f9e4e4;
+  color: #9d2f2f;
+}
+
 [role="alert"] {
   color: #a2362d;
 }
@@ -305,18 +380,24 @@ nav button:hover,
     padding: 0.9rem;
   }
 
-  .topbar {
+  .topbar,
+  .section-heading {
     align-items: stretch;
     flex-direction: column;
   }
 
   nav,
   .spine,
-  .status-grid {
+  .status-grid,
+  .command-list li {
     grid-template-columns: 1fr;
   }
 
   .view-frame dl {
     grid-template-columns: 1fr;
+  }
+
+  .pill {
+    width: fit-content;
   }
 }
