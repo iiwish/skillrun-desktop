@@ -4,6 +4,7 @@ set -euo pipefail
 cargo_home="${CARGO_HOME:-$HOME/.cargo}"
 expected_bin="$cargo_home/bin/skillrun"
 skillrun_repo="${SKILLRUN_REPO:-https://github.com/iiwish/skillrun}"
+skillrun_ref="${SKILLRUN_CORE_REF:-}"
 expected_version=""
 
 if [[ -n "${SKILLRUN_CORE_PATH:-}" ]]; then
@@ -19,6 +20,8 @@ if [[ -n "${SKILLRUN_CORE_PATH:-}" ]]; then
     cargo metadata --manifest-path "$core_path/Cargo.toml" --no-deps --format-version 1 \
       | sed -n 's/.*"name":"skillrun","version":"\([^"]*\)".*/\1/p'
   )"
+elif [[ -n "${SKILLRUN_EXPECTED_VERSION:-}" ]]; then
+  expected_version="$SKILLRUN_EXPECTED_VERSION"
 fi
 
 actual_bin="$(command -v skillrun || true)"
@@ -63,4 +66,7 @@ if [[ -n "${SKILLRUN_CORE_PATH:-}" ]]; then
   echo "skillrun source: $core_path"
 elif [[ -n "$install_record" ]]; then
   echo "skillrun install record: ${install_record%%$'\n'*}"
+  if [[ -n "$skillrun_ref" ]]; then
+    echo "skillrun requested ref: $skillrun_ref"
+  fi
 fi
