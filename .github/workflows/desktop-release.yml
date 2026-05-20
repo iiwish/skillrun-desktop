@@ -106,7 +106,7 @@ jobs:
             args: "--target x86_64-apple-darwin"
           - name: Windows x64
             platform: windows-latest
-            args: ""
+            args: "--bundles nsis"
           - name: Linux x64
             platform: ubuntu-22.04
             args: ""
@@ -174,9 +174,28 @@ jobs:
           tagName: ${{ steps.release.outputs.tag }}
           releaseName: "SkillRun Desktop ${{ steps.release.outputs.tag }}"
           releaseBody: |
-            Alpha Desktop packages for ${{ steps.release.outputs.tag }}.
+            SkillRun Desktop ${{ steps.release.outputs.tag }} 是用于验证 Tauri 桌面端多平台打包链路的 alpha release。
 
-            Code signing and notarization are intentionally not required for alpha testing.
+            ## Alpha 范围
+
+            - 本 release 只用于早期 Desktop 安装包验证。
+            - alpha 主线保持为 import -> review -> enable -> preview -> mount -> inspect runs。
+            - marketplace、signed package trust、dependency installation、daemon behavior、artifact viewer、log viewer 和 authoring IDE workflow 均不在本次范围内。
+
+            ## 签名与 notarization
+
+            - macOS packages 未签名，且未 notarize。
+            - Windows 和 Linux packages 未签名。
+            - 安装或首次启动时可能出现操作系统安全提示。
+
+            ## 产物验证状态
+
+            | Platform | Artifact target | Validation status |
+            | --- | --- | --- |
+            | macOS arm64 | DMG / app bundle | 待本机安装和启动验证后再 publish。 |
+            | macOS x64 | DMG / app bundle | 已由 GitHub Actions 生成；本地硬件验证待补。 |
+            | Windows x64 | NSIS installer (.exe) | 已由 GitHub Actions 生成；人工安装和启动验证待补。 |
+            | Linux x64 | Linux package | 已由 GitHub Actions 生成；人工安装和启动验证待补。 |
           releaseDraft: true
           prerelease: true
           args: ${{ matrix.args }}
