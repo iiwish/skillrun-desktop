@@ -1,6 +1,6 @@
 name: Desktop CI
 
-on:
+"on":
   pull_request:
   push:
     branches:
@@ -55,7 +55,7 @@ jobs:
   core-smoke:
     name: Manual Core smoke
     runs-on: macos-latest
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_core_smoke }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_core_smoke == 'true' }}
     env:
       HOME: ${{ runner.temp }}/skillrun-desktop-ci-home
       SKILLRUN_HOME: ${{ runner.temp }}/skillrun-desktop-ci-home/.skillrun
