@@ -3,18 +3,21 @@ import { describe, expect, it } from "vitest";
 import App from "./App";
 
 describe("App alpha dashboard", () => {
-  it("renders the desktop alpha spine and safety boundary copy", () => {
+  it("renders the redesigned Chinese-first dashboard and safety boundary copy", () => {
     const html = renderToStaticMarkup(<App />);
 
-    expect(html).toContain("Import -&gt; review -&gt; enable -&gt; preview -&gt; mount -&gt; inspect runs");
-    expect(html).toContain("Import");
-    expect(html).toContain("Switchboard");
-    expect(html).toContain("Exposure");
-    expect(html).toContain("Mount");
-    expect(html).toContain("Runs");
-    expect(html).toContain("not trusted or sandboxed");
-    expect(html).toContain("Enabled is local exposure intent");
-    expect(html).toContain("Readiness is Core preflight status");
-    expect(html).toContain("Exposed tools are enabled and ready");
+    expect(html).toContain("本地 Skill Capsule 控制台");
+    expect(html).toContain("Capsule 管理");
+    expect(html).toContain("查看、筛选、启用或停用本机已登记的 Skill Capsule");
+    expect(html).toContain("搜索 Capsule");
+    expect(html).toContain("导入 .skr");
+    expect(html).toContain("Capsule 管理");
+    expect(html).toContain("客户端挂载");
+    expect(html).toContain("工具暴露");
+    expect(html).toContain("执行记录");
+    expect(html).toContain("设置");
+    expect(html).toContain("EN");
+    expect(html).toContain("还没有 Capsule");
+    expect(html).toContain("选择一个 Capsule 查看详情");
   });
 });
