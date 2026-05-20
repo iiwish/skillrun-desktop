@@ -175,6 +175,15 @@ Desktop alpha 可以对外试用的最低 gate：
 5. 文案不夸大安全：不把 enabled/exposed/readiness 说成 trust 或 sandbox。
 6. 托盘只做状态和入口，不做隐形 daemon。
 
+### Alpha Release Checklist
+
+发布 `desktop-v*` alpha 前必须完成：
+
+- [ ] 运行 release workflow 的 `Real Core smoke gate`，或在 `Desktop CI` 手动触发 `run_core_smoke=true`。
+- [ ] 如需锁定 Core 版本，在 `workflow_dispatch` 中填写 `skillrun_ref`，并用 `skillrun_expected_version` 校验 `skillrun --version`。
+- [ ] 确认 smoke 摘要包含 `host status`、`init`、`manifest`、`pack`、`import`、`inventory`、`switchboard enable`、`exposure`、`test`、`runs list`、`runs inspect`。
+- [ ] 只有 real Core smoke 成功后，才能继续生成 draft prerelease alpha artifacts。
+
 ## 下一步动作
 
 1. 初始化 Tauri 项目后，先建 `src/core/runner.ts`、`src/core/contracts/*` 和 `src/tray/*`，不要先画完整 UI。
