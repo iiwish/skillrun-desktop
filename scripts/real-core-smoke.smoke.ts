@@ -23,6 +23,11 @@ type SmokeTraceEntry = {
   status: "ok" | "failed";
 };
 
+type SmokeSummaryEntry = {
+  step: string;
+  detail: string;
+};
+
 type HostStatus = {
   command: "host status";
   schema_version: "host.status.v1";
@@ -114,6 +119,7 @@ describe("real Core smoke harness", () => {
     const fakeHome = join(root, "fake-user-home");
     const workspace = join(root, "workspace");
     const trace: SmokeTraceEntry[] = [];
+    const summary: SmokeSummaryEntry[] = [];
     const env = {
       ...process.env,
       HOME: fakeHome,
@@ -139,13 +145,20 @@ describe("real Core smoke harness", () => {
       await assertIsolatedHome(hostStatus.data.paths.skillrun_home, coreHome);
       assertIsolatedPath(hostStatus.data.paths.registry_path, coreHome);
       expect(resolve(hostStatus.data.paths.skillrun_home)).not.toBe(resolve(homedir(), ".skillrun"));
+      summary.push({
+        step: "host status",
+        detail: `schema=${hostStatus.data.schema_version}; isolated_home=${hostStatus.data.paths.skillrun_home}`,
+      });
 
       await runCommand(["init", capsuleId, "--js", "--output", workspace], env, trace);
       const capsulePath = join(workspace, capsuleId);
+      summary.push({ step: "init", detail: `capsule=${capsuleId}; workspace=${workspace}` });
       await runCommand(["manifest", "--cwd", capsulePath], env, trace);
+      summary.push({ step: "manifest", detail: `cwd=${capsulePath}; generated=true` });
       await runCommand(["pack", "--cwd", capsulePath], env, trace);
 
       const packagePath = await findSkrPackage(join(capsulePath, "dist"));
+      summary.push({ step: "pack", detail: `package=${packagePath}` });
       const imported = await runJson<ImportResult>(
         {
           args: ["import", packagePath, "--json"],
@@ -156,6 +169,10 @@ describe("real Core smoke harness", () => {
       );
       expect(imported.data.capsule).toMatchObject({ id: capsuleId, enabled: false });
       assertIsolatedPath(imported.data.capsule.path, coreHome);
+      summary.push({
+        step: "import",
+        detail: `capsule=${imported.data.capsule.id}; enabled=${imported.data.capsule.enabled}`,
+      });
 
       const inventory = await runJson<InventoryResult>(
         {
@@ -174,8 +191,14 @@ describe("real Core smoke harness", () => {
           }),
         ]),
       );
+      const inventoryCapsule = inventory.data.capsules.find((capsule) => capsule.id === capsuleId);
+      summary.push({
+        step: "inventory",
+        detail: `capsule=${capsuleId}; enabled=${inventoryCapsule?.enabled}; readiness_ok=${inventoryCapsule?.readiness.ok}`,
+      });
 
       await runCommand(["switchboard", "enable", capsuleId], env, trace);
+      summary.push({ step: "switchboard enable", detail: `capsule=${capsuleId}; enabled=true` });
 
       const exposure = await runJson<ExposureResult>(
         {
@@ -195,6 +218,11 @@ describe("real Core smoke harness", () => {
           }),
         ]),
       );
+      const exposedTools = exposure.data.tools.filter((tool) => tool.capsule_id === capsuleId && tool.exposed);
+      summary.push({
+        step: "exposure",
+        detail: `capsule=${capsuleId}; exposed_tools=${exposedTools.length}; readiness=${exposedTools[0]?.readiness_status ?? "missing"}`,
+      });
 
       const testRun = await runJson<TestRunResult>(
         {
@@ -206,6 +234,10 @@ describe("real Core smoke harness", () => {
       );
       expect(testRun.data.ok).toBe(true);
       expect(testRun.data.run_id).toMatch(/^run-/);
+      summary.push({
+        step: "test",
+        detail: `capsule=${capsuleId}; run_id=${testRun.data.run_id}`,
+      });
 
       const runsList = await runJson<RunsListResult>(
         {
@@ -225,6 +257,10 @@ describe("real Core smoke harness", () => {
           }),
         ]),
       );
+      summary.push({
+        step: "runs list",
+        detail: `capsule=${capsuleId}; runs=${runsList.data.runs.length}; found_run=${testRun.data.run_id}`,
+      });
 
       const runsInspect = await runJson<RunsInspectResult>(
         {
@@ -261,10 +297,14 @@ describe("real Core smoke harness", () => {
           stderr_included: false,
         },
       });
+      summary.push({
+        step: "runs inspect",
+        detail: `capsule=${runsInspect.data.run_ref.capsule_id}; run_id=${runsInspect.data.run_ref.run_id}; envelope=${runsInspect.data.envelope.status}`,
+      });
 
-      printTrace(trace, coreHome, fakeHome);
+      printSmokeOutput(summary, trace, coreHome, fakeHome);
     } catch (error) {
-      throw new Error(`${classifyFailure(error)}\n\n${formatTrace(trace, coreHome, fakeHome)}`, {
+      throw new Error(`${classifyFailure(error)}\n\n${formatSmokeOutput(summary, trace, coreHome, fakeHome)}`, {
         cause: error,
       });
     } finally {
@@ -414,8 +454,30 @@ function isMissingCliError(error: unknown): boolean {
   );
 }
 
-function printTrace(trace: SmokeTraceEntry[], coreHome: string, fakeHome: string): void {
-  console.log(formatTrace(trace, coreHome, fakeHome));
+function printSmokeOutput(
+  summary: SmokeSummaryEntry[],
+  trace: SmokeTraceEntry[],
+  coreHome: string,
+  fakeHome: string,
+): void {
+  console.log(formatSmokeOutput(summary, trace, coreHome, fakeHome));
+}
+
+function formatSmokeOutput(
+  summary: SmokeSummaryEntry[],
+  trace: SmokeTraceEntry[],
+  coreHome: string,
+  fakeHome: string,
+): string {
+  return `${formatSummary(summary)}\n\n${formatTrace(trace, coreHome, fakeHome)}`;
+}
+
+function formatSummary(summary: SmokeSummaryEntry[]): string {
+  const lines = [
+    "Real Core smoke summary:",
+    ...summary.map((entry) => `- ${entry.step}: ${entry.detail}`),
+  ];
+  return lines.join("\n");
 }
 
 function formatTrace(trace: SmokeTraceEntry[], coreHome: string, fakeHome: string): string {

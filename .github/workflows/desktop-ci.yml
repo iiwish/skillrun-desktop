@@ -12,6 +12,21 @@ name: Desktop CI
         required: false
         default: false
         type: boolean
+      skillrun_repo:
+        description: Git repository used to install the skillrun CLI for Core smoke
+        required: false
+        default: https://github.com/iiwish/skillrun
+        type: string
+      skillrun_ref:
+        description: Optional git revision for the skillrun CLI install
+        required: false
+        default: ""
+        type: string
+      skillrun_expected_version:
+        description: Optional expected substring from skillrun --version
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -53,13 +68,16 @@ jobs:
         run: cargo check
 
   core-smoke:
-    name: Manual Core smoke
+    name: Manual real Core smoke
     runs-on: macos-latest
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_core_smoke == 'true' }}
     env:
       HOME: ${{ github.workspace }}/.tmp/skillrun-desktop-ci-home
       SKILLRUN_HOME: ${{ github.workspace }}/.tmp/skillrun-desktop-ci-home/.skillrun
       XDG_CONFIG_HOME: ${{ github.workspace }}/.tmp/skillrun-desktop-ci-home/.config
+      SKILLRUN_REPO: ${{ inputs.skillrun_repo }}
+      SKILLRUN_CORE_REF: ${{ inputs.skillrun_ref }}
+      SKILLRUN_EXPECTED_VERSION: ${{ inputs.skillrun_expected_version }}
 
     steps:
       - name: Check out repository
@@ -73,12 +91,35 @@ jobs:
             echo "HOME=$HOME"
             echo "SKILLRUN_HOME=$SKILLRUN_HOME"
             echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME"
+            echo "SKILLRUN_REPO=$SKILLRUN_REPO"
+            echo "SKILLRUN_CORE_REF=${SKILLRUN_CORE_REF:-<default>}"
+            echo "SKILLRUN_EXPECTED_VERSION=${SKILLRUN_EXPECTED_VERSION:-<not constrained>}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify skillrun CLI is available
-        run: command -v skillrun
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
 
-      - name: Run Core smoke against isolated home
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build output
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install requested skillrun CLI
+        run: scripts/install-local-skillrun-cli.sh
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run real Core smoke through Desktop JSON runner
         run: |
-          skillrun doctor --json
-          skillrun consumer inventory --json
+          npm run smoke:real-core | tee "$RUNNER_TEMP/real-core-smoke.log"
+          {
+            echo "## Real Core smoke"
+            sed -n '/Real Core smoke summary:/,/Real Core smoke trace:/p' "$RUNNER_TEMP/real-core-smoke.log" | sed '$d'
+          } >> "$GITHUB_STEP_SUMMARY"
