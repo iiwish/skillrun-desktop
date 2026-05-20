@@ -173,7 +173,7 @@ Desktop alpha 的安装包由独立 GitHub Actions release workflow 生成，不
 
 release workflow 在打包前把 release tag 规范化为 semver，并同步写入 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml` 和 `src-tauri/tauri.conf.json`。因此 Desktop artifact 的版本号必须和 release tag 中的版本一致。
 
-release workflow 在任何 Tauri 打包前必须先运行 `Real Core smoke gate`：安装或定位指定 `skillrun` CLI，使用隔离 `SKILLRUN_HOME` 跑 `npm run smoke:real-core`，并在摘要中记录 `host status`、`init`、`manifest`、`pack`、`import`、`inventory`、`switchboard enable`、`exposure`。该 job 失败时，后续 build matrix 不会启动，也不能把 alpha release 标记为可用。
+release workflow 在任何 Tauri 打包前必须先运行 `Real Core smoke gate`：安装或定位指定 `skillrun` CLI，使用隔离 `SKILLRUN_HOME` 跑 `npm run smoke:real-core`，并在摘要中记录 `host status`、`init`、`manifest`、`pack`、`import`、`inventory`、`switchboard enable`、`exposure`、`test`、`runs list`、`runs inspect`。该 job 失败时，后续 build matrix 不会启动，也不能把 alpha release 标记为可用。
 
 alpha 内测阶段不把 code signing、macOS notarization 或 App Store 发布作为阻塞条件。产物以 draft prerelease 形式上传，后续正式分发再补签名和 notarization gate。
 
