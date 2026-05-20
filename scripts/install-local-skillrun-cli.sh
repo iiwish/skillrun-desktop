@@ -3,6 +3,14 @@ set -euo pipefail
 
 skillrun_repo="${SKILLRUN_REPO:-https://github.com/iiwish/skillrun}"
 skillrun_ref="${SKILLRUN_CORE_REF:-}"
+cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+cargo_bin="$cargo_home/bin"
+
+mkdir -p "$cargo_bin"
+export PATH="$cargo_bin:$PATH"
+if [[ -n "${GITHUB_PATH:-}" ]]; then
+  echo "$cargo_bin" >> "$GITHUB_PATH"
+fi
 
 if [[ -n "${SKILLRUN_CORE_PATH:-}" ]]; then
   core_path="$SKILLRUN_CORE_PATH"
