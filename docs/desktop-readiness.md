@@ -163,6 +163,18 @@ Tray status
 - multi-client mount apply。
 - official pack install/update semantics。
 
+## Alpha Release Packaging
+
+Desktop alpha 的安装包由独立 GitHub Actions release workflow 生成，不复用普通 PR CI。workflow 只通过 `workflow_dispatch` 或 `desktop-v*` / `v*` tag 触发，在对应系统 runner 上运行 Tauri build matrix：
+
+- macOS runner 生成 `.app` / `.dmg` bundle。
+- Windows runner 生成 Windows installer。
+- Linux runner 生成 Linux package。
+
+release workflow 在打包前把 release tag 规范化为 semver，并同步写入 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml` 和 `src-tauri/tauri.conf.json`。因此 Desktop artifact 的版本号必须和 release tag 中的版本一致。
+
+alpha 内测阶段不把 code signing、macOS notarization 或 App Store 发布作为阻塞条件。产物以 draft prerelease 形式上传，后续正式分发再补签名和 notarization gate。
+
 ## 设计原则
 
 1. Desktop 是 Core contract consumer，不是 Core replacement。
