@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import mountPlanFixture from "../core/fixtures/consumer-mount-plan.v1.json";
+import mountPlanPosixFixture from "../core/fixtures/consumer-mount-plan.posix.v1.json";
 import mountApplyFixture from "../core/fixtures/consumer-mount-apply.v1.json";
+import mountApplyPosixFixture from "../core/fixtures/consumer-mount-apply.posix.v1.json";
 import mountRollbackFixture from "../core/fixtures/consumer-mount-rollback.v1.json";
+import mountRollbackPosixFixture from "../core/fixtures/consumer-mount-rollback.posix.v1.json";
 import type {
   MountApplyContract,
   MountPlanContract,
@@ -18,6 +21,9 @@ import {
 const mountPlanContract = mountPlanFixture as MountPlanContract;
 const mountApplyContract = mountApplyFixture as MountApplyContract;
 const mountRollbackContract = mountRollbackFixture as MountRollbackContract;
+const mountPlanPosixContract = mountPlanPosixFixture as MountPlanContract;
+const mountApplyPosixContract = mountApplyPosixFixture as MountApplyContract;
+const mountRollbackPosixContract = mountRollbackPosixFixture as MountRollbackContract;
 
 describe("mount manager state", () => {
   it("loads a mount plan through Core and preserves warnings", async () => {
@@ -94,6 +100,52 @@ describe("mount manager state", () => {
       expect(result.state.applied).toBe(true);
       expect(result.state.rollbackBackupPath).toBe(mountApplyContract.backup?.path);
     }
+  });
+
+  it("preserves macOS config and backup paths with POSIX separators", async () => {
+    const state = buildMountManagerState({
+      plan: mountPlanPosixContract,
+      apply: mountApplyPosixContract,
+    });
+
+    expect(state.configPath).toBe(
+      "/Users/iiwish/Library/Application Support/Claude/claude_desktop_config.json",
+    );
+    expect(state.backupPath).toBe(
+      "/Users/iiwish/Library/Application Support/Claude/claude_desktop_config.json.skillrun.123.bak.json",
+    );
+    expect(state.rollbackBackupPath).toBe(
+      "/Users/iiwish/Library/Application Support/Claude/claude_desktop_config.json.skillrun.123.bak.json",
+    );
+
+    const calls: Parameters<CommandExecutor>[0][] = [];
+    const result = await rollbackMount({
+      state,
+      confirmed: true,
+      requestedBackupPath: "D:\\fake\\backup.json",
+      executor: async (request) => {
+        calls.push(request);
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify(mountRollbackPosixContract),
+          stderr: "",
+        };
+      },
+    });
+
+    expect(calls.map((call) => call.args)).toEqual([
+      [
+        "consumer",
+        "mount",
+        "rollback",
+        "--client",
+        "claude-desktop",
+        "--backup",
+        "/Users/iiwish/Library/Application Support/Claude/claude_desktop_config.json.skillrun.123.bak.json",
+        "--json",
+      ],
+    ]);
+    expect(result.status).toBe("ready");
   });
 
   it("keeps unsupported or non-Claude clients plan-only", () => {

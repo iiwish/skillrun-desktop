@@ -1,0 +1,29 @@
+{
+  "command": "consumer runs list",
+  "schema_version": "consumer.runs.list.v1",
+  "registry_path": "/Users/iiwish/.skillrun/registry.json",
+  "scope": {
+    "kind": "registry",
+    "capsule_id": null
+  },
+  "runs": [
+    {
+      "run_id": "run-001",
+      "run_ref": { "kind": "local_run", "capsule_id": "refund-helper", "run_id": "run-001" },
+      "capsule_id": "refund-helper",
+      "capsule_path": "/Users/iiwish/.skillrun/imports/refund-helper",
+      "mode": "run",
+      "status": "ok",
+      "ok": true,
+      "error_code": null,
+      "started_at": "2026-05-18T00:00:00Z",
+      "finished_at": "2026-05-18T00:00:01Z",
+      "duration_ms": 1000,
+      "manifest_sha256": "manifest-hash",
+      "skill_sha256": "skill-hash",
+      "action_sha256": "action-hash",
+      "artifact_count": 1,
+      "input_included": false
+    }
+  ]
+}

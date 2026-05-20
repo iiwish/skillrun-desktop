@@ -52,6 +52,34 @@ describe("runSkillrunJson", () => {
     expect(result.durationMs).toBe(0);
   });
 
+  it("preserves POSIX cwd and arguments when invoking skillrun", async () => {
+    const calls: Parameters<CommandExecutor>[0][] = [];
+    const executor: CommandExecutor = async (request) => {
+      calls.push(request);
+      return {
+        exitCode: 0,
+        stdout: JSON.stringify({ ok: true, schema_version: "import.v1" }),
+        stderr: "",
+      };
+    };
+
+    await runSkillrunJson({
+      args: ["import", "/Users/iiwish/Downloads/refund-helper.skr", "--json"],
+      cwd: "/Users/iiwish/code/skillrun-desktop",
+      expectedSchemaVersion: "import.v1",
+      executor,
+      now: fixedNow,
+    });
+
+    expect(calls).toEqual([
+      {
+        command: "skillrun",
+        args: ["import", "/Users/iiwish/Downloads/refund-helper.skr", "--json"],
+        cwd: "/Users/iiwish/code/skillrun-desktop",
+      },
+    ]);
+  });
+
   it("wraps executor failures as spawn failures", async () => {
     await expect(
       runSkillrunJson({

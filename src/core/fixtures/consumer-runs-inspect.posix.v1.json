@@ -1,0 +1,43 @@
+{
+  "command": "consumer runs inspect",
+  "schema_version": "consumer.runs.inspect.v1",
+  "registry_path": "/Users/iiwish/.skillrun/registry.json",
+  "ok": true,
+  "run_ref": {
+    "kind": "local_run",
+    "capsule_id": "refund-helper",
+    "run_id": "run-001"
+  },
+  "capsule": {
+    "id": "refund-helper"
+  },
+  "record": {
+    "status": "ok",
+    "mode": "run",
+    "duration_ms": 1000
+  },
+  "input": {
+    "included": false,
+    "available": true
+  },
+  "envelope": {
+    "included": true,
+    "status": "ok",
+    "value": {}
+  },
+  "artifacts": [
+    {
+      "name": "report",
+      "kind": "json",
+      "path": "/Users/iiwish/.skillrun/runs/refund-helper/run-001/report.json",
+      "available": true
+    }
+  ],
+  "logs": {
+    "stdout_available": false,
+    "stderr_available": false,
+    "stdout_included": false,
+    "stderr_included": false
+  },
+  "warnings": []
+}
