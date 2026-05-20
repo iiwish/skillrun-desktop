@@ -36,6 +36,15 @@ button {
   padding: 0.5rem 0.75rem;
 }
 
+button:disabled {
+  color: #8b93a1;
+  cursor: progress;
+}
+
+code {
+  overflow-wrap: anywhere;
+}
+
 .app-shell {
   min-height: 100vh;
   display: flex;
@@ -70,7 +79,8 @@ button {
 .brand p,
 .topbar h2,
 .topbar p,
-.status-grid p {
+.status-grid p,
+.command-panel p {
   margin: 0;
 }
 
@@ -81,7 +91,9 @@ button {
 .brand p,
 .eyebrow,
 .status-grid p,
-.label {
+.label,
+.command-panel p,
+.empty-state {
   color: #69707d;
   font-size: 0.875rem;
 }
@@ -137,6 +149,78 @@ nav a:hover {
   display: block;
   margin: 0.35rem 0;
   font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.error-text {
+  color: #9d2f2f;
+}
+
+.command-panel {
+  margin-top: 0.75rem;
+  border: 1px solid #d8dde5;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 1rem;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+}
+
+.section-heading strong {
+  color: #3a414c;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.command-list {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.command-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 0.75rem;
+  align-items: center;
+  border-top: 1px solid #edf0f4;
+  padding-top: 0.5rem;
+}
+
+.command-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.command-list p {
+  grid-column: 1 / -1;
+}
+
+.pill {
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.25rem 0.45rem;
+  text-transform: uppercase;
+}
+
+.pill.success {
+  background: #e3f4ea;
+  color: #16633b;
+}
+
+.pill.error {
+  background: #f9e4e4;
+  color: #9d2f2f;
 }
 
 @media (max-width: 720px) {
@@ -156,5 +240,13 @@ nav a:hover {
 
   nav a {
     text-align: center;
+  }
+
+  .command-list li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pill {
+    width: fit-content;
   }
 }
