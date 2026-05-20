@@ -181,7 +181,7 @@ Desktop alpha 可以对外试用的最低 gate：
 
 - [ ] 运行 release workflow 的 `Real Core smoke gate`，或在 `Desktop CI` 手动触发 `run_core_smoke=true`。
 - [ ] 如需锁定 Core 版本，在 `workflow_dispatch` 中填写 `skillrun_ref`，并用 `skillrun_expected_version` 校验 `skillrun --version`。
-- [ ] 确认 smoke 摘要包含 `host status`、`init`、`manifest`、`pack`、`import`、`inventory`、`switchboard enable`、`exposure`。
+- [ ] 确认 smoke 摘要包含 `host status`、`init`、`manifest`、`pack`、`import`、`inventory`、`switchboard enable`、`exposure`、`test`、`runs list`、`runs inspect`。
 - [ ] 只有 real Core smoke 成功后，才能继续生成 draft prerelease alpha artifacts。
 
 ## 下一步动作
