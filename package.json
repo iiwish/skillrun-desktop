@@ -12,6 +12,7 @@
     "tauri": "tauri",
     "version:desktop": "node scripts/sync-desktop-version.mjs",
     "version:desktop:check": "node scripts/sync-desktop-version.mjs --check",
+    "release:assets:check": "node scripts/verify-desktop-release-assets.mjs",
     "skillrun:install-local": "scripts/install-local-skillrun-cli.sh",
     "skillrun:verify-local": "scripts/verify-local-skillrun-cli.sh"
   },
