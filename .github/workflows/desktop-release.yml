@@ -199,3 +199,50 @@ jobs:
           releaseDraft: true
           prerelease: true
           args: ${{ matrix.args }}
+
+  asset-guard:
+    name: Verify release asset set
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Resolve release version
+        id: release
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            version="${{ inputs.version }}"
+            version="${version#desktop-v}"
+            version="${version#v}"
+            tag="desktop-v${version}"
+          else
+            tag="${GITHUB_REF_NAME}"
+            version="${tag#desktop-v}"
+            version="${version#v}"
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "${{ steps.release.outputs.tag }}" \
+            --json assets \
+            --jq '.assets' > "$RUNNER_TEMP/release-assets.json"
+
+      - name: Verify release assets
+        run: |
+          node scripts/verify-desktop-release-assets.mjs \
+            --version "${{ steps.release.outputs.version }}" \
+            --assets-json "$RUNNER_TEMP/release-assets.json"
