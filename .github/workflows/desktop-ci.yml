@@ -57,9 +57,9 @@ jobs:
     runs-on: macos-latest
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_core_smoke == 'true' }}
     env:
-      HOME: ${{ runner.temp }}/skillrun-desktop-ci-home
-      SKILLRUN_HOME: ${{ runner.temp }}/skillrun-desktop-ci-home/.skillrun
-      XDG_CONFIG_HOME: ${{ runner.temp }}/skillrun-desktop-ci-home/.config
+      HOME: ${{ github.workspace }}/.tmp/skillrun-desktop-ci-home
+      SKILLRUN_HOME: ${{ github.workspace }}/.tmp/skillrun-desktop-ci-home/.skillrun
+      XDG_CONFIG_HOME: ${{ github.workspace }}/.tmp/skillrun-desktop-ci-home/.config
 
     steps:
       - name: Check out repository
