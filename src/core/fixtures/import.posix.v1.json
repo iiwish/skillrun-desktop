@@ -1,0 +1,14 @@
+{
+  "command": "import",
+  "schema_version": "import.v1",
+  "ok": true,
+  "package_path": "/Users/iiwish/Downloads/refund-helper.skr",
+  "registry_path": "/Users/iiwish/.skillrun/registry.json",
+  "capsule": {
+    "id": "refund-helper",
+    "path": "/Users/iiwish/.skillrun/imports/refund-helper",
+    "source_type": "imported_skr",
+    "enabled": false
+  },
+  "warnings": []
+}

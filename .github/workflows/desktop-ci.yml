@@ -1,0 +1,84 @@
+name: Desktop CI
+
+"on":
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      run_core_smoke:
+        description: Run the real Core smoke job with an isolated CI home
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  desktop-validation:
+    name: Node, Vite, and Tauri checks
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build output
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run Node tests
+        run: npm test -- --run
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Check Tauri Rust crate
+        working-directory: src-tauri
+        run: cargo check
+
+  core-smoke:
+    name: Manual Core smoke
+    runs-on: macos-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_core_smoke == 'true' }}
+    env:
+      HOME: ${{ github.workspace }}/.tmp/skillrun-desktop-ci-home
+      SKILLRUN_HOME: ${{ github.workspace }}/.tmp/skillrun-desktop-ci-home/.skillrun
+      XDG_CONFIG_HOME: ${{ github.workspace }}/.tmp/skillrun-desktop-ci-home/.config
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Prepare isolated smoke home
+        run: |
+          mkdir -p "$SKILLRUN_HOME" "$XDG_CONFIG_HOME"
+          {
+            echo "Core smoke runs only through workflow_dispatch with run_core_smoke=true."
+            echo "HOME=$HOME"
+            echo "SKILLRUN_HOME=$SKILLRUN_HOME"
+            echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify skillrun CLI is available
+        run: command -v skillrun
+
+      - name: Run Core smoke against isolated home
+        run: |
+          skillrun doctor --json
+          skillrun consumer inventory --json

@@ -1,0 +1,14 @@
+{
+  "command": "consumer exposure",
+  "schema_version": "consumer.exposure.v1",
+  "registry_path": "/Users/iiwish/.skillrun/registry.json",
+  "tools": [
+    {
+      "capsule_id": "refund-helper",
+      "tool_name": "refund_helper",
+      "enabled": false,
+      "exposed": false,
+      "readiness_status": "ok"
+    }
+  ]
+}

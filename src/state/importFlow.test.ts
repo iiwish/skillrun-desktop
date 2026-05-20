@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runImportFlow } from "./importFlow";
 import importFixture from "../core/fixtures/import.v1.json";
+import importPosixFixture from "../core/fixtures/import.posix.v1.json";
 import type { CommandExecutor } from "../core/runner";
 
 describe("import flow", () => {
@@ -53,6 +54,35 @@ describe("import flow", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].args).not.toContain("enable");
     expect(calls[0].args).not.toContain("mount");
+  });
+
+  it("imports a POSIX .skr path and preserves the imported capsule path", async () => {
+    const calls: Parameters<CommandExecutor>[0][] = [];
+    const executor: CommandExecutor = async (request) => {
+      calls.push(request);
+      return {
+        exitCode: 0,
+        stdout: JSON.stringify(importPosixFixture),
+        stderr: "",
+      };
+    };
+
+    const state = await runImportFlow({
+      packagePath: "/Users/iiwish/Downloads/refund-helper.skr",
+      executor,
+      cwd: "/Users/iiwish/code/skillrun-desktop",
+      now: () => 100,
+    });
+
+    expect(calls).toEqual([
+      {
+        command: "skillrun",
+        args: ["import", "/Users/iiwish/Downloads/refund-helper.skr", "--json"],
+        cwd: "/Users/iiwish/code/skillrun-desktop",
+      },
+    ]);
+    expect(state.status).toBe("review_ready");
+    expect(state.capsule?.path).toBe("/Users/iiwish/.skillrun/imports/refund-helper");
   });
 
   it("returns an error state for non-.skr paths before calling Core", async () => {
