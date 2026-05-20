@@ -14,12 +14,18 @@ if [[ -n "${SKILLRUN_CORE_PATH:-}" ]]; then
 
   cargo install --path "$core_path" --locked --force
 else
-  install_args=(install --git "$skillrun_repo" --locked --force)
+  base_install_args=(install --git "$skillrun_repo" --locked --force)
   if [[ -n "$skillrun_ref" ]]; then
-    install_args+=(--rev "$skillrun_ref")
+    if ! cargo "${base_install_args[@]}" --rev "$skillrun_ref"; then
+      echo "cargo install --rev '$skillrun_ref' failed; retrying as branch/tag ref" >&2
+      if ! cargo "${base_install_args[@]}" --branch "$skillrun_ref"; then
+        echo "cargo install --branch '$skillrun_ref' failed; retrying as tag ref" >&2
+        cargo "${base_install_args[@]}" --tag "$skillrun_ref"
+      fi
+    fi
+  else
+    cargo "${base_install_args[@]}"
   fi
-
-  cargo "${install_args[@]}"
   export SKILLRUN_REQUIRE_GIT_SOURCE=1
 fi
 
