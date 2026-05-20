@@ -1,0 +1,107 @@
+name: Desktop Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Desktop semver to release, for example 0.1.0"
+        required: true
+        type: string
+  push:
+    tags:
+      - "desktop-v*"
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS arm64
+            platform: macos-latest
+            args: "--target aarch64-apple-darwin"
+          - name: macOS x64
+            platform: macos-latest
+            args: "--target x86_64-apple-darwin"
+          - name: Windows x64
+            platform: windows-latest
+            args: ""
+          - name: Linux x64
+            platform: ubuntu-22.04
+            args: ""
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux bundle dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Resolve release version
+        id: release
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            version="${{ inputs.version }}"
+            version="${version#desktop-v}"
+            version="${version#v}"
+            tag="desktop-v${version}"
+          else
+            tag="${GITHUB_REF_NAME}"
+            version="${tag#desktop-v}"
+            version="${version#v}"
+          fi
+
+          echo "DESKTOP_RELEASE_VERSION=${version}" >> "$GITHUB_ENV"
+          echo "DESKTOP_RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Synchronize Desktop versions
+        shell: bash
+        run: |
+          node scripts/sync-desktop-version.mjs --version "${{ steps.release.outputs.version }}"
+          node scripts/sync-desktop-version.mjs --version "${{ steps.release.outputs.version }}" --check
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ startsWith(matrix.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Cache Rust artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and upload Tauri release artifacts
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ steps.release.outputs.tag }}
+          releaseName: "SkillRun Desktop ${{ steps.release.outputs.tag }}"
+          releaseBody: |
+            Alpha Desktop packages for ${{ steps.release.outputs.tag }}.
+
+            Code signing and notarization are intentionally not required for alpha testing.
+          releaseDraft: true
+          prerelease: true
+          args: ${{ matrix.args }}
