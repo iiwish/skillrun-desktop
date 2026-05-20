@@ -45,6 +45,7 @@ type ImportResult = {
   capsule: {
     id: string;
     enabled: boolean;
+    path: string;
   };
 };
 
@@ -69,6 +70,44 @@ type ExposureResult = {
     exposed: boolean;
     readiness_status: string;
   }>;
+};
+
+type TestRunResult = {
+  ok: true;
+  run_id: string;
+};
+
+type RunsListResult = {
+  command: "consumer runs list";
+  schema_version: "consumer.runs.list.v1";
+  runs: Array<{
+    run_id: string;
+    capsule_id: string;
+    status: string;
+    input_included: boolean;
+  }>;
+};
+
+type RunsInspectResult = {
+  command: "consumer runs inspect";
+  schema_version: "consumer.runs.inspect.v1";
+  ok: true;
+  run_ref: {
+    capsule_id: string;
+    run_id: string;
+  };
+  input: {
+    included: boolean;
+    available: boolean;
+  };
+  envelope: {
+    included: boolean;
+    status: string;
+  };
+  logs: {
+    stdout_included: boolean;
+    stderr_included: boolean;
+  };
 };
 
 const capsuleId = "desktop-smoke";
@@ -129,6 +168,7 @@ describe("real Core smoke harness", () => {
         trace,
       );
       expect(imported.data.capsule).toMatchObject({ id: capsuleId, enabled: false });
+      assertIsolatedPath(imported.data.capsule.path, coreHome);
       summary.push({
         step: "import",
         detail: `capsule=${imported.data.capsule.id}; enabled=${imported.data.capsule.enabled}`,
@@ -182,6 +222,84 @@ describe("real Core smoke harness", () => {
       summary.push({
         step: "exposure",
         detail: `capsule=${capsuleId}; exposed_tools=${exposedTools.length}; readiness=${exposedTools[0]?.readiness_status ?? "missing"}`,
+      });
+
+      const testRun = await runJson<TestRunResult>(
+        {
+          args: ["test", "--cwd", imported.data.capsule.path],
+          expectedSchemaVersion: undefined,
+          executor,
+        },
+        trace,
+      );
+      expect(testRun.data.ok).toBe(true);
+      expect(testRun.data.run_id).toMatch(/^run-/);
+      summary.push({
+        step: "test",
+        detail: `capsule=${capsuleId}; run_id=${testRun.data.run_id}`,
+      });
+
+      const runsList = await runJson<RunsListResult>(
+        {
+          args: ["consumer", "runs", "list", "--json", "--capsule", capsuleId, "--limit", "5"],
+          expectedSchemaVersion: "consumer.runs.list.v1",
+          executor,
+        },
+        trace,
+      );
+      expect(runsList.data.runs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            run_id: testRun.data.run_id,
+            capsule_id: capsuleId,
+            status: "succeeded",
+            input_included: false,
+          }),
+        ]),
+      );
+      summary.push({
+        step: "runs list",
+        detail: `capsule=${capsuleId}; runs=${runsList.data.runs.length}; found_run=${testRun.data.run_id}`,
+      });
+
+      const runsInspect = await runJson<RunsInspectResult>(
+        {
+          args: [
+            "consumer",
+            "runs",
+            "inspect",
+            testRun.data.run_id,
+            "--json",
+            "--capsule",
+            capsuleId,
+          ],
+          expectedSchemaVersion: "consumer.runs.inspect.v1",
+          executor,
+        },
+        trace,
+      );
+      expect(runsInspect.data).toMatchObject({
+        ok: true,
+        run_ref: {
+          capsule_id: capsuleId,
+          run_id: testRun.data.run_id,
+        },
+        input: {
+          included: false,
+          available: true,
+        },
+        envelope: {
+          included: true,
+          status: "ok",
+        },
+        logs: {
+          stdout_included: false,
+          stderr_included: false,
+        },
+      });
+      summary.push({
+        step: "runs inspect",
+        detail: `capsule=${runsInspect.data.run_ref.capsule_id}; run_id=${runsInspect.data.run_ref.run_id}; envelope=${runsInspect.data.envelope.status}`,
       });
 
       printSmokeOutput(summary, trace, coreHome, fakeHome);
