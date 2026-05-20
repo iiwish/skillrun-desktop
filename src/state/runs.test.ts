@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import runsListFixture from "../core/fixtures/consumer-runs-list.v1.json";
 import runsInspectFixture from "../core/fixtures/consumer-runs-inspect.v1.json";
+import runsInspectPosixFixture from "../core/fixtures/consumer-runs-inspect.posix.v1.json";
 import type { CommandExecutor } from "../core/runner";
 import {
   buildRunDetailState,
@@ -114,6 +115,21 @@ describe("runs state", () => {
     expect(serialized).not.toContain("do-not-show-artifact");
     expect(serialized).not.toContain("do-not-show-stdout");
     expect(serialized).not.toContain("do-not-show-stderr");
+  });
+
+  it("preserves POSIX artifact paths reported by Core", () => {
+    const state = buildRunDetailState({
+      inspect: runsInspectPosixFixture as RunsInspectContract,
+    });
+
+    expect(state.artifacts).toEqual([
+      {
+        name: "report",
+        kind: "json",
+        path: "/Users/iiwish/.skillrun/runs/refund-helper/run-001/report.json",
+        available: true,
+      },
+    ]);
   });
 
   it("surfaces inspect ok=false error code and matches", async () => {
