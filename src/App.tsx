@@ -95,35 +95,45 @@ type ViewDefinition = {
   icon: LucideIcon;
   step: string;
   label: string;
+  navLabel: string;
   description: string;
 };
 
 const copy = {
   zh: {
     appName: "SkillRun Desktop",
-    appMeta: "本地 Skill Capsule 控制台",
+    appMeta: "本地 Capsule 工作台",
     alpha: "Alpha",
     language: "语言",
     cn: "中",
     en: "EN",
-    surface: "消费者控制台",
-    title: "导入、启用、挂载并审查本地 Skill Capsule",
+    surface: "主导航",
+    title: "管理本机 Skill Capsule",
     subtitle: "Desktop 只消费 Core 的稳定 JSON surface。所有状态变化都回到 `skillrun` 命令，UI 不读取 `.skillrun` 内部目录。",
-    navCapsules: "Capsules",
-    navClients: "Clients",
-    navTools: "Tools",
-    navRuns: "Runs",
-    navSettings: "Settings",
+    navCapsules: "Capsule",
+    navClients: "客户端",
+    navTools: "暴露",
+    navRuns: "记录",
+    navSettings: "设置",
     capsulesTitle: "Capsule 管理",
-    capsulesSubtitle: "查看、筛选、启用或停用本机已登记的 Skill Capsule。",
+    capsulesSubtitle: "默认工作台。扫描本机已登记 Capsule，复核就绪性与暴露意图。",
     clientsTitle: "客户端挂载",
-    clientsSubtitle: "管理 Claude Desktop 等 MCP client 的 SkillRun Router 配置。",
+    clientsSubtitle: "复核 Claude Desktop 等 MCP client 的 Router 挂载计划。",
     toolsTitle: "工具暴露",
-    toolsSubtitle: "查看当前通过 Router 暴露给 agent 的 tools 和 resources。",
+    toolsSubtitle: "查看 Core 报告给 Router 的 tools 和 resources。",
     runsTitle: "执行记录",
-    runsSubtitle: "审查最近 run evidence、失败原因和 artifact metadata。",
+    runsSubtitle: "审查最近 run evidence、失败原因和 artifact metadata 摘要。",
     settingsTitle: "设置",
     settingsSubtitle: "语言、Core 路径和本机诊断信息。",
+    workspaceOverview: "工作台概览",
+    registered: "已登记",
+    ready: "就绪",
+    attention: "需处理",
+    disabled: "未启用",
+    selected: "已选择",
+    selectionHint: "左侧列表选择一个 Capsule，右侧会显示 readiness、runtime 和暴露操作。",
+    noFilteredCapsulesTitle: "没有匹配的 Capsule",
+    noFilteredCapsulesBody: "调整搜索或筛选条件，或刷新本地 registry。",
     importAction: "导入 .skr",
     searchCapsules: "搜索 Capsule",
     filterAll: "全部",
@@ -253,29 +263,38 @@ const copy = {
   },
   en: {
     appName: "SkillRun Desktop",
-    appMeta: "Local Skill Capsule console",
+    appMeta: "Local Capsule workspace",
     alpha: "Alpha",
     language: "Language",
     cn: "中",
     en: "EN",
-    surface: "Consumer console",
-    title: "Import, enable, mount, and inspect local Skill Capsules",
+    surface: "Primary navigation",
+    title: "Manage local Skill Capsules",
     subtitle: "Desktop only consumes stable Core JSON surfaces. Every state change is backed by a `skillrun` command; the UI never reads `.skillrun` internals.",
     navCapsules: "Capsules",
     navClients: "Clients",
-    navTools: "Tools",
+    navTools: "Exposure",
     navRuns: "Runs",
     navSettings: "Settings",
     capsulesTitle: "Capsule management",
-    capsulesSubtitle: "View, filter, enable, or disable local Skill Capsules.",
+    capsulesSubtitle: "Default workspace for scanning registered Capsules, readiness, and exposure intent.",
     clientsTitle: "Client mounts",
-    clientsSubtitle: "Manage SkillRun Router configuration for Claude Desktop and other MCP clients.",
+    clientsSubtitle: "Review Router mount plans for Claude Desktop and other MCP clients.",
     toolsTitle: "Tool exposure",
-    toolsSubtitle: "Inspect tools and resources currently exposed to agents through Router.",
+    toolsSubtitle: "Inspect Core-reported tools and resources for Router exposure.",
     runsTitle: "Run evidence",
-    runsSubtitle: "Review recent runs, failures, and artifact metadata.",
+    runsSubtitle: "Review recent run evidence, failures, and artifact metadata summaries.",
     settingsTitle: "Settings",
     settingsSubtitle: "Language, Core path, and local diagnostics.",
+    workspaceOverview: "Workspace overview",
+    registered: "Registered",
+    ready: "Ready",
+    attention: "Needs attention",
+    disabled: "Disabled",
+    selected: "Selected",
+    selectionHint: "Select a capsule from the list to inspect readiness, runtime, and exposure actions here.",
+    noFilteredCapsulesTitle: "No matching capsules",
+    noFilteredCapsulesBody: "Adjust the search or filters, or refresh the local registry.",
     importAction: "Import .skr",
     searchCapsules: "Search capsules",
     filterAll: "All",
@@ -775,6 +794,7 @@ function App() {
           <span className="brand-mark" aria-hidden="true">SR</span>
           <div>
             <h1>SkillRun</h1>
+            <p>{t.surface}</p>
           </div>
         </div>
 
@@ -784,11 +804,12 @@ function App() {
               key={view.id}
               type="button"
               className={activeView === view.id ? "nav-item active" : "nav-item"}
+              aria-label={view.label}
               onClick={() => setActiveView(view.id)}
             >
               <view.icon aria-hidden="true" />
               <span>
-                <strong>{view.label}</strong>
+                <strong>{view.navLabel}</strong>
                 <small>{view.description}</small>
               </span>
             </button>
@@ -985,9 +1006,30 @@ function CapsulesPage({
   onEnable: (capsule: SwitchboardCapsule) => void;
   onDisable: (capsule: SwitchboardCapsule) => void;
 }) {
+  const summary = {
+    total: allCapsules.length,
+    enabled: allCapsules.filter((capsule) => capsule.enabled).length,
+    ready: allCapsules.filter((capsule) => capsule.readinessOk).length,
+    attention: allCapsules.filter((capsule) => !capsule.readinessOk).length,
+  };
+
   return (
     <section className="capsules-page">
       <section className="capsule-list-panel" aria-label={t.capsulesTitle}>
+        <header className="workspace-overview">
+          <div>
+            <p className="eyebrow">{t.workspaceOverview}</p>
+            <h3>{t.capsulesTitle}</h3>
+            <p>{t.capsulesSubtitle}</p>
+          </div>
+          <div className="overview-metrics" aria-label={t.workspaceOverview}>
+            <SummaryStat label={t.registered} value={summary.total} />
+            <SummaryStat label={t.enabled} value={summary.enabled} />
+            <SummaryStat label={t.ready} value={summary.ready} />
+            <SummaryStat label={t.attention} value={summary.attention} tone={summary.attention > 0 ? "warning" : "neutral"} />
+          </div>
+        </header>
+
         <div className="list-toolbar">
           <label className="search-field">
             <Search aria-hidden="true" />
@@ -1026,6 +1068,12 @@ function CapsulesPage({
             <p>{t.emptyCapsulesBody}</p>
             <Button icon={FilePlus2} onClick={onImport}>{t.importAction}</Button>
           </div>
+        ) : capsules.length === 0 ? (
+          <div className="empty-action compact-empty">
+            <EmptyState icon={Search} title={t.noFilteredCapsulesTitle} />
+            <p>{t.noFilteredCapsulesBody}</p>
+            <Button variant="secondary" icon={RefreshCw} onClick={onRefresh}>{t.switchboardRefresh}</Button>
+          </div>
         ) : (
           <div className="capsule-table" role="table" aria-label={t.capsulesTitle}>
             <div className="capsule-table-head" role="row">
@@ -1052,7 +1100,7 @@ function CapsulesPage({
                 </span>
                 <span>
                   <Badge tone={capsule.enabled ? "success" : "neutral"}>
-                    {capsule.enabled ? t.enabled : t.disable}
+                    {capsule.enabled ? t.enabled : t.disabled}
                   </Badge>
                 </span>
                 <span className="muted">{capsule.sourceType}</span>
@@ -1141,7 +1189,10 @@ function CapsuleInspector({
           </section>
         </>
       ) : (
-        <EmptyState icon={Boxes} title={t.noSelection} />
+        <div className="inspector-empty">
+          <EmptyState icon={Boxes} title={t.noSelection} />
+          <p>{t.selectionHint}</p>
+        </div>
       )}
     </aside>
   );
@@ -1603,6 +1654,23 @@ function Metric({
   );
 }
 
+function SummaryStat({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  tone?: "neutral" | "warning";
+}) {
+  return (
+    <div className={`summary-stat ${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
 function Badge({
   children,
   tone = "neutral",
@@ -1658,11 +1726,11 @@ function DescriptionList({ items }: { items: Array<[string, ReactNode]> }) {
 
 function viewDefinitions(t: typeof copy[Locale]): ViewDefinition[] {
   return [
-    { id: "capsules", icon: Boxes, step: t.capsules, label: t.capsulesTitle, description: t.capsulesSubtitle },
-    { id: "clients", icon: Link2, step: t.client, label: t.clientsTitle, description: t.clientsSubtitle },
-    { id: "tools", icon: Globe2, step: t.tools, label: t.toolsTitle, description: t.toolsSubtitle },
-    { id: "runs", icon: History, step: t.runList, label: t.runsTitle, description: t.runsSubtitle },
-    { id: "settings", icon: Settings, step: t.language, label: t.settingsTitle, description: t.settingsSubtitle },
+    { id: "capsules", icon: Boxes, step: t.capsules, label: t.capsulesTitle, navLabel: t.navCapsules, description: t.capsulesSubtitle },
+    { id: "clients", icon: Link2, step: t.client, label: t.clientsTitle, navLabel: t.navClients, description: t.clientsSubtitle },
+    { id: "tools", icon: Globe2, step: t.tools, label: t.toolsTitle, navLabel: t.navTools, description: t.toolsSubtitle },
+    { id: "runs", icon: History, step: t.runList, label: t.runsTitle, navLabel: t.navRuns, description: t.runsSubtitle },
+    { id: "settings", icon: Settings, step: t.language, label: t.settingsTitle, navLabel: t.navSettings, description: t.settingsSubtitle },
   ];
 }
 

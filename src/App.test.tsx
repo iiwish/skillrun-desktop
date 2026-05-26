@@ -6,9 +6,10 @@ describe("App alpha dashboard", () => {
   it("renders the redesigned Chinese-first dashboard and safety boundary copy", () => {
     const html = renderToStaticMarkup(<App />);
 
-    expect(html).toContain("本地 Skill Capsule 控制台");
+    expect(html).toContain("本地 Capsule 工作台");
     expect(html).toContain("Capsule 管理");
-    expect(html).toContain("查看、筛选、启用或停用本机已登记的 Skill Capsule");
+    expect(html).toContain("扫描本机已登记 Capsule");
+    expect(html).toContain("工作台概览");
     expect(html).toContain("搜索 Capsule");
     expect(html).toContain("导入 .skr");
     expect(html).toContain("Capsule 管理");
