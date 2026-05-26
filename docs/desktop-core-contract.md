@@ -442,6 +442,39 @@ Inspect：
 - 不直接打开 stdout/stderr log。
 - 不直接打开 artifacts。
 
+## 7. Team Library Future Surface
+
+**状态**：Waiting_For_Core_Surface
+
+Team Library 需要等待 Core 实现 team catalog JSON surface。Desktop 当前只能规划页面，不得先行实现 catalog install/update 语义。
+
+### Proposed Commands
+
+```text
+skillrun team catalog inspect <catalog> --json
+skillrun team catalog install plan <catalog> <item-id> --json
+skillrun team catalog install apply <catalog> <item-id> --json
+```
+
+### UI Rules
+
+- `inspect` 只用于展示 catalog 和 item summary。
+- `install plan` 用于展示 import / replace / conflict / warning。
+- `install apply` 必须由用户确认后触发。
+- apply 成功后跳转到 Capsule 页面，由现有 Switchboard / Exposure / Mount / Runs 页面继续后续路径。
+- `kind = "skillrun.skr"` 才可能进入 install / update。
+- `agent.skill` 和 `mcp.server` item 只能作为 display-only item，直到 Core 明确支持。
+
+### Forbidden
+
+- 不直接读取 `.skillrun/` 私有目录。
+- 不自行下载 `.skr`。
+- 不自行解包 `.skr`。
+- 不直接解析 catalog 后调用 `skillrun import` 绕过 Core plan/apply。
+- 不对 plain Agent Skill 或 MCP server item 执行本地命令。
+- 不把 checksum 展示为 trust proof。
+- 不自动 enable、mount、安装依赖或启动 MCP server。
+
 ## Error Handling
 
 Desktop 必须按以下顺序处理失败：

@@ -164,6 +164,25 @@ Tray status
 - action authoring IDE。
 - Manifest editor。
 
+## Phase G: Team Library Planning
+
+目标：在 Core team catalog surface 实现前，先冻结 Desktop 的团队能力库页面边界。
+
+必须完成：
+
+- 页面计划：见 `team-library-page-plan.md`。
+- 信息架构：Team Library 是团队 catalog 浏览 / 计划入口，不替代 Capsule 管理。
+- 状态流：inspect -> review item -> install plan -> guarded apply -> Capsule page。
+- 边界：Desktop 不直接解析 catalog 来安装，不下载 `.skr`，不解包 `.skr`，不实现 trust 判断。
+- 依赖：等待 Core 实现 `team catalog inspect/plan/apply --json` 后，再新增 DTO fixture 和页面实现。
+
+验收标准：
+
+- 页面计划明确 Linear 风格的列表 / inspector 工作面，而不是 marketplace 卡片墙。
+- 每个 UI action 都能追溯到未来 Core JSON surface。
+- 对 plain Agent Skill 和 MCP server item 只展示，不执行或安装。
+- 安装成功后仍回到现有 enable / exposure / mount / runs 主线。
+
 ## Release Gate
 
 Desktop alpha 可以对外试用的最低 gate：

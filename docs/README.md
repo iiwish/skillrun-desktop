@@ -9,6 +9,7 @@
 2. `desktop-core-contract.md`：冻结 Desktop alpha 可以调用的 Core CLI JSON surfaces，以及禁止依赖的内部路径。
 3. `desktop-tray-design.md`：定义 tray-first 产品形态、托盘状态、菜单和 Router 边界。
 4. `desktop-alpha-roadmap.md`：把 alpha 拆成可执行阶段和验收 gate。
+5. `team-library-page-plan.md`：规划 Team Library 页面、Core catalog surface 依赖、状态流和 UI 禁区。
 
 ## 核心原则
 
