@@ -133,6 +133,20 @@ describe("runSkillrunJson", () => {
     ).rejects.toBeInstanceOf(CoreOkFalseError);
   });
 
+  it("can allow ok=false responses for diagnostic status contracts", async () => {
+    const result = await runSkillrunJson<{ ok: false; schema_version: string }>({
+      args: ["consumer", "runs", "index", "status", "--json"],
+      expectedSchemaVersion: "consumer.runs.index.status.v1",
+      allowOkFalse: true,
+      executor: executorWith(
+        JSON.stringify({ ok: false, schema_version: "consumer.runs.index.status.v1" }),
+      ),
+      now: fixedNow,
+    });
+
+    expect(result.data.ok).toBe(false);
+  });
+
   it("rejects stale snapshots when freshness metadata is provided", async () => {
     await expect(
       runSkillrunJson({

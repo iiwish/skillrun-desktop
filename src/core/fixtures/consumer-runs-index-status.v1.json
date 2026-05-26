@@ -1,0 +1,19 @@
+{
+  "command": "consumer runs index status",
+  "schema_version": "consumer.runs.index.status.v1",
+  "ok": true,
+  "registry_path": "C:/Users/iiwish/.skillrun/registry.json",
+  "index_path": "C:/Users/iiwish/.skillrun/runs-index.json",
+  "index": {
+    "exists": true,
+    "readable": true,
+    "supported_schema": true,
+    "schema_version": "consumer.runs.index.v1",
+    "generated_at": "2026-05-26T09:00:00Z",
+    "runs_indexed": 1,
+    "stale": false,
+    "registry_modified_after_generated_at": false,
+    "evidence_modified_after_generated_at": false
+  },
+  "warnings": []
+}

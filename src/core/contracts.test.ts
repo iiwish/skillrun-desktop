@@ -9,6 +9,8 @@ import {
   parseMountPlanContract,
   parseMountRollbackContract,
   parseRouterDryRunContract,
+  parseRunsIndexRebuildContract,
+  parseRunsIndexStatusContract,
   parseRunsInspectContract,
   parseRunsListContract,
   type DesktopCoreContract,
@@ -23,6 +25,8 @@ import mountPlanFixture from "./fixtures/consumer-mount-plan.v1.json";
 import mountPlanPosixFixture from "./fixtures/consumer-mount-plan.posix.v1.json";
 import mountRollbackFixture from "./fixtures/consumer-mount-rollback.v1.json";
 import mountRollbackPosixFixture from "./fixtures/consumer-mount-rollback.posix.v1.json";
+import runsIndexRebuildFixture from "./fixtures/consumer-runs-index-rebuild.v1.json";
+import runsIndexStatusFixture from "./fixtures/consumer-runs-index-status.v1.json";
 import runsInspectFixture from "./fixtures/consumer-runs-inspect.v1.json";
 import runsInspectPosixFixture from "./fixtures/consumer-runs-inspect.posix.v1.json";
 import runsListFixture from "./fixtures/consumer-runs-list.v1.json";
@@ -103,6 +107,18 @@ const parserCases: Array<{
     fixture: runsListFixture,
     posixFixture: runsListPosixFixture,
     schemaVersion: "consumer.runs.list.v1",
+  },
+  {
+    name: "runs index rebuild",
+    parser: parseRunsIndexRebuildContract,
+    fixture: runsIndexRebuildFixture,
+    schemaVersion: "consumer.runs.index.v1",
+  },
+  {
+    name: "runs index status",
+    parser: parseRunsIndexStatusContract,
+    fixture: runsIndexStatusFixture,
+    schemaVersion: "consumer.runs.index.status.v1",
   },
   {
     name: "runs inspect",

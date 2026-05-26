@@ -1,20 +1,31 @@
 import { describe, expect, it } from "vitest";
+import runsIndexRebuildFixture from "../core/fixtures/consumer-runs-index-rebuild.v1.json";
+import runsIndexStatusFixture from "../core/fixtures/consumer-runs-index-status.v1.json";
 import runsListFixture from "../core/fixtures/consumer-runs-list.v1.json";
 import runsInspectFixture from "../core/fixtures/consumer-runs-inspect.v1.json";
 import runsInspectPosixFixture from "../core/fixtures/consumer-runs-inspect.posix.v1.json";
 import type { CommandExecutor } from "../core/runner";
 import {
   buildRunDetailState,
+  loadRunsIndexStatus,
   inspectRun,
   loadRunsList,
+  rebuildRunsIndexState,
 } from "./runs";
 import type { RunsInspectContract } from "../core/contracts";
 
 describe("runs state", () => {
-  it("loads runs list through Core with capsule and limit filters", async () => {
+  it("loads runs list through Core with source and summary filters", async () => {
     const calls: Parameters<CommandExecutor>[0][] = [];
     const result = await loadRunsList({
       capsuleId: "refund-helper",
+      source: "index",
+      status: "failed",
+      mode: "run",
+      ok: false,
+      errorCode: "timeout",
+      since: "2026-05-18T00:00:00Z",
+      until: "2026-05-19T00:00:00Z",
       limit: 5,
       executor: runsExecutor(calls, { list: runsListWithRun() }),
       cwd: "D:\\data\\skillrun-desktop",
@@ -22,12 +33,64 @@ describe("runs state", () => {
     });
 
     expect(calls.map((call) => call.args)).toEqual([
-      ["consumer", "runs", "list", "--json", "--capsule", "refund-helper", "--limit", "5"],
+      [
+        "consumer",
+        "runs",
+        "list",
+        "--json",
+        "--capsule",
+        "refund-helper",
+        "--source",
+        "index",
+        "--status",
+        "failed",
+        "--mode",
+        "run",
+        "--ok",
+        "false",
+        "--error-code",
+        "timeout",
+        "--since",
+        "2026-05-18T00:00:00Z",
+        "--until",
+        "2026-05-19T00:00:00Z",
+        "--limit",
+        "5",
+      ],
     ]);
     expect(result.status).toBe("ready");
     if (result.status === "ready") {
+      expect(result.state.source.kind).toBe("index");
+      expect(result.state.scope.errorCode).toBe("timeout");
       expect(result.state.runs[0].runId).toBe("run-001");
       expect(result.state.runs[0].inputIncluded).toBe(false);
+    }
+  });
+
+  it("loads and rebuilds the local runs index through Core", async () => {
+    const calls: Parameters<CommandExecutor>[0][] = [];
+    const executor = runsExecutor(calls, {
+      indexStatus: runsIndexStatusFixture,
+      indexRebuild: runsIndexRebuildFixture,
+    });
+
+    const status = await loadRunsIndexStatus({ executor, now: () => 100 });
+    const rebuild = await rebuildRunsIndexState({ executor, now: () => 100 });
+
+    expect(calls.map((call) => call.args)).toEqual([
+      ["consumer", "runs", "index", "status", "--json"],
+      ["consumer", "runs", "index", "rebuild", "--json"],
+    ]);
+    expect(status.status).toBe("ready");
+    if (status.status === "ready") {
+      expect(status.state.ok).toBe(true);
+      expect(status.state.index.runsIndexed).toBe(1);
+      expect(status.state.index.stale).toBe(false);
+    }
+    expect(rebuild.status).toBe("ready");
+    if (rebuild.status === "ready") {
+      expect(rebuild.state.runsIndexed).toBe(1);
+      expect(rebuild.state.capsulesScanned).toBe(1);
     }
   });
 
@@ -168,6 +231,23 @@ describe("runs state", () => {
 function runsListWithRun() {
   return {
     ...runsListFixture,
+    source: {
+      kind: "index",
+      index_path: "C:/Users/iiwish/.skillrun/runs-index.json",
+      generated_at: "2026-05-18T00:00:00Z",
+      stale: false,
+    },
+    scope: {
+      kind: "capsule",
+      capsule_id: "refund-helper",
+      source: "index",
+      status: "failed",
+      mode: "run",
+      ok: false,
+      error_code: "timeout",
+      since: "2026-05-18T00:00:00Z",
+      until: "2026-05-19T00:00:00Z",
+    },
     runs: [
       {
         run_id: "run-001",
@@ -193,13 +273,22 @@ function runsListWithRun() {
 
 function runsExecutor(
   calls: Parameters<CommandExecutor>[0][],
-  contracts: { list?: unknown; inspect?: unknown },
+  contracts: { list?: unknown; inspect?: unknown; indexStatus?: unknown; indexRebuild?: unknown },
 ): CommandExecutor {
   return async (request) => {
     calls.push(request);
     const args = request.args.join(" ");
-    if (args === "consumer runs list --json --capsule refund-helper --limit 5") {
+    if (
+      args ===
+      "consumer runs list --json --capsule refund-helper --source index --status failed --mode run --ok false --error-code timeout --since 2026-05-18T00:00:00Z --until 2026-05-19T00:00:00Z --limit 5"
+    ) {
       return { exitCode: 0, stdout: JSON.stringify(contracts.list), stderr: "" };
+    }
+    if (args === "consumer runs index status --json") {
+      return { exitCode: 0, stdout: JSON.stringify(contracts.indexStatus), stderr: "" };
+    }
+    if (args === "consumer runs index rebuild --json") {
+      return { exitCode: 0, stdout: JSON.stringify(contracts.indexRebuild), stderr: "" };
     }
     if (args === "consumer runs inspect run-001 --json --capsule refund-helper") {
       return { exitCode: 0, stdout: JSON.stringify(contracts.inspect), stderr: "" };
