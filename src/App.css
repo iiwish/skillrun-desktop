@@ -146,6 +146,10 @@ code {
   line-height: 1.12;
 }
 
+.brand p {
+  margin-top: 0.05rem;
+}
+
 .brand p,
 .topbar p,
 .compact-heading p,
@@ -411,6 +415,81 @@ code {
   overflow: hidden;
 }
 
+.workspace-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.74fr);
+  gap: 0.9rem;
+  align-items: end;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0.78rem 0.82rem;
+}
+
+.workspace-overview h3,
+.workspace-overview p,
+.summary-stat span,
+.summary-stat strong {
+  margin: 0;
+}
+
+.workspace-overview h3 {
+  font-size: 0.98rem;
+  line-height: 1.22;
+}
+
+.workspace-overview > div:first-child {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.workspace-overview > div:first-child p:last-child {
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.summary-stat {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-subtle);
+  padding: 0.52rem 0.6rem;
+}
+
+.summary-stat span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 660;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-stat strong {
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.summary-stat.warning {
+  border-color: hsl(39 62% 78%);
+  background: var(--warning-soft);
+}
+
+.summary-stat.warning strong {
+  color: var(--warning);
+}
+
 .list-toolbar {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) auto auto;
@@ -553,6 +632,10 @@ code {
   padding: 2rem;
 }
 
+.compact-empty {
+  padding: 1.2rem;
+}
+
 .empty-state {
   display: grid;
   justify-items: center;
@@ -572,6 +655,18 @@ code {
   width: 22px;
   height: 22px;
   color: var(--faint);
+}
+
+.inspector-empty {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.inspector-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.81rem;
+  line-height: 1.45;
 }
 
 .status-chip,
@@ -972,6 +1067,10 @@ code {
     grid-template-columns: 1fr;
   }
 
+  .workspace-overview {
+    grid-template-columns: 1fr;
+  }
+
   .inspector {
     max-width: none;
   }
@@ -1027,13 +1126,16 @@ code {
     width: 100%;
   }
 
-  .side-nav,
   .list-toolbar,
   .mini-metrics,
   .input-row,
   .compact-table > div,
   .description-list > div {
     grid-template-columns: 1fr;
+  }
+
+  .overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .capsule-table {
