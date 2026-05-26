@@ -263,6 +263,9 @@ const copy = {
     backup: "备份",
     warnings: "警告",
     dryRun: "Router dry-run",
+    routerStatus: "Router 状态",
+    routerReady: "Router snapshot 可用",
+    routerIssue: "Router 需要处理",
     transport: "传输",
     protocol: "协议",
     capsules: "Capsules",
@@ -447,6 +450,9 @@ const copy = {
     backup: "Backup",
     warnings: "Warnings",
     dryRun: "Router dry-run",
+    routerStatus: "Router status",
+    routerReady: "Router snapshot ready",
+    routerIssue: "Router needs attention",
     transport: "Transport",
     protocol: "Protocol",
     capsules: "Capsules",
@@ -507,6 +513,13 @@ const initialExposureState: ExposurePreviewState = buildExposurePreviewState({
     router: { capsules: 0 },
     tools: [],
     resources: [],
+  },
+  routerStatus: {
+    ok: true,
+    router: { snapshot: true, capsules: 0 },
+    tools: [],
+    resources: [],
+    error: null,
   },
 });
 
@@ -1531,6 +1544,20 @@ function ExposurePanel({
         <Metric icon={Boxes} label={t.capsules} value={String(state.dryRun.capsuleCount)} detail={`${state.dryRun.toolCount} ${t.tools}`} compact />
         <Metric icon={Archive} label={t.resources} value={String(state.dryRun.resourceCount)} detail={t.dryRun} compact />
       </div>
+
+      <section className={`index-status-strip ${state.routerStatus.ok ? "success" : "danger"}`} aria-label={t.routerStatus}>
+        <div>
+          <h4>{state.routerStatus.ok ? t.routerReady : t.routerIssue}</h4>
+          <p>{state.routerStatus.errorMessage ?? t.exposureSafety}</p>
+        </div>
+        <DescriptionList
+          items={[
+            [t.capsules, String(state.routerStatus.capsuleCount)],
+            [t.tools, String(state.routerStatus.toolCount)],
+            [t.resources, String(state.routerStatus.resourceCount)],
+          ]}
+        />
+      </section>
 
       <section className="subsection">
         <h4>{t.tools}</h4>

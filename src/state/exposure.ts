@@ -3,7 +3,7 @@ import {
   fetchExposurePreview,
   type ExposurePreviewOptions,
 } from "../core/exposureService";
-import type { ConsumerExposureContract, RouterDryRunContract } from "../core/contracts";
+import type { ConsumerExposureContract, RouterDryRunContract, RouterStatusContract } from "../core/contracts";
 
 export type ExposureTool = {
   capsuleId: string;
@@ -30,6 +30,14 @@ export type ExposurePreviewState = {
     toolCount: number;
     resourceCount: number;
   };
+  routerStatus: {
+    ok: boolean;
+    capsuleCount: number;
+    toolCount: number;
+    resourceCount: number;
+    errorCode?: string;
+    errorMessage?: string;
+  };
   resources: RouterResourceMetadata[];
   safetyCopy: string;
 };
@@ -51,6 +59,7 @@ export type ExposurePreviewResult =
 
 export type BuildExposurePreviewInput = {
   exposure: Pick<ConsumerExposureContract, "tools">;
+  routerStatus: Pick<RouterStatusContract, "ok" | "router" | "tools" | "resources" | "error">;
   dryRun: Pick<RouterDryRunContract, "mcp" | "router" | "tools" | "resources">;
 };
 
@@ -96,8 +105,21 @@ export function buildExposurePreviewState(
       toolCount: input.dryRun.tools.length,
       resourceCount: input.dryRun.resources.length,
     },
+    routerStatus: readRouterStatus(input.routerStatus),
     resources: input.dryRun.resources.map(readResourceMetadata),
     safetyCopy: EXPOSURE_SAFETY_COPY,
+  };
+}
+
+function readRouterStatus(input: BuildExposurePreviewInput["routerStatus"]): ExposurePreviewState["routerStatus"] {
+  const error = asRecord(input.error);
+  return {
+    ok: input.ok === true,
+    capsuleCount: readNumber(asRecord(input.router), "capsules"),
+    toolCount: input.tools.length,
+    resourceCount: input.resources.length,
+    errorCode: readOptionalString(error, "code"),
+    errorMessage: readOptionalString(error, "message"),
   };
 }
 
@@ -152,6 +174,11 @@ function readString(
 ): string {
   const value = record[field];
   return typeof value === "string" ? value : fallback;
+}
+
+function readOptionalString(record: Record<string, unknown>, field: string): string | undefined {
+  const value = record[field];
+  return typeof value === "string" ? value : undefined;
 }
 
 function readNumber(record: Record<string, unknown>, field: string, fallback = 0): number {

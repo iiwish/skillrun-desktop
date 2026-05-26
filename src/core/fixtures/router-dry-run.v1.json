@@ -1,5 +1,5 @@
 {
-  "command": "router serve --mcp",
+  "command": "router serve --mcp --dry-run",
   "schema_version": "router.mcp.v1",
   "mcp": {
     "dry_run": true,

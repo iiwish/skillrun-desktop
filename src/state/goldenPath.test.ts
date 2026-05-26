@@ -5,6 +5,7 @@ import inventoryFixture from "../core/fixtures/consumer-inventory.v1.json";
 import mountApplyFixture from "../core/fixtures/consumer-mount-apply.v1.json";
 import mountPlanFixture from "../core/fixtures/consumer-mount-plan.v1.json";
 import routerDryRunFixture from "../core/fixtures/router-dry-run.v1.json";
+import routerStatusFixture from "../core/fixtures/router-status.v1.json";
 import runsInspectFixture from "../core/fixtures/consumer-runs-inspect.v1.json";
 import runsListFixture from "../core/fixtures/consumer-runs-list.v1.json";
 import type { CommandExecutor } from "../core/runner";
@@ -39,6 +40,7 @@ describe("desktop alpha golden path", () => {
       ["consumer", "inventory", "--json"],
       ["consumer", "exposure", "--json"],
       ["consumer", "exposure", "--json"],
+      ["router", "status", "--json"],
       ["router", "serve", "--mcp", "--dry-run"],
       ["consumer", "mount", "plan", "--client", "claude-desktop", "--json"],
       ["consumer", "mount", "apply", "--client", "claude-desktop", "--json"],
@@ -104,6 +106,23 @@ function goldenPathExecutor(): CommandExecutor {
           {
             capsule_id: "refund-helper",
             name: "refund_helper",
+          },
+        ],
+      });
+    }
+    if (args === "router status --json") {
+      return json({
+        ...routerStatusFixture,
+        router: {
+          ...routerStatusFixture.router,
+          capsules: 1,
+        },
+        tools: [
+          {
+            capsule_id: "refund-helper",
+            capsule_path: "D:/skillrun/imports/refund-helper",
+            name: "refund_helper",
+            manifest_sha256: "manifest-hash",
           },
         ],
       });

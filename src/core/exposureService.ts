@@ -1,8 +1,10 @@
 import {
   parseConsumerExposureContract,
   parseRouterDryRunContract,
+  parseRouterStatusContract,
   type ConsumerExposureContract,
   type RouterDryRunContract,
+  type RouterStatusContract,
 } from "./contracts";
 import type { CoreRunnerError } from "./errors";
 import {
@@ -19,8 +21,10 @@ export type ExposurePreviewOptions = {
 
 export type ExposurePreviewSnapshot = {
   exposure: ConsumerExposureContract;
+  routerStatus: RouterStatusContract;
   dryRun: RouterDryRunContract;
   exposureRunner: CoreRunnerResult<unknown>;
+  statusRunner: CoreRunnerResult<unknown>;
   dryRunRunner: CoreRunnerResult<unknown>;
 };
 
@@ -35,6 +39,15 @@ export async function fetchExposurePreview(
     now: options.now,
   });
 
+  const statusRunner = await runSkillrunJson({
+    args: ["router", "status", "--json"],
+    cwd: options.cwd,
+    executor: options.executor,
+    expectedSchemaVersion: "router.status.v1",
+    allowOkFalse: true,
+    now: options.now,
+  });
+
   const dryRunRunner = await runSkillrunJson({
     args: ["router", "serve", "--mcp", "--dry-run"],
     cwd: options.cwd,
@@ -45,8 +58,10 @@ export async function fetchExposurePreview(
 
   return {
     exposure: parseConsumerExposureContract(exposureRunner.data),
+    routerStatus: parseRouterStatusContract(statusRunner.data),
     dryRun: parseRouterDryRunContract(dryRunRunner.data),
     exposureRunner,
+    statusRunner,
     dryRunRunner,
   };
 }

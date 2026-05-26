@@ -40,12 +40,22 @@ export type ConsumerExposureContract = {
 };
 
 export type RouterDryRunContract = {
-  command: "router serve --mcp";
+  command: "router serve --mcp --dry-run";
   schema_version: "router.mcp.v1";
   mcp: Record<string, unknown>;
   router: Record<string, unknown>;
   tools: unknown[];
   resources: unknown[];
+};
+
+export type RouterStatusContract = {
+  command: "router status";
+  schema_version: "router.status.v1";
+  ok: boolean;
+  router: Record<string, unknown>;
+  tools: unknown[];
+  resources: unknown[];
+  error: Record<string, unknown> | null;
 };
 
 export type MountPlanContract = {
@@ -132,6 +142,7 @@ export type DesktopCoreContract =
   | ConsumerInventoryContract
   | ConsumerExposureContract
   | RouterDryRunContract
+  | RouterStatusContract
   | MountPlanContract
   | MountApplyContract
   | MountRollbackContract
@@ -207,7 +218,7 @@ export function parseConsumerExposureContract(input: unknown): ConsumerExposureC
 }
 
 export function parseRouterDryRunContract(input: unknown): RouterDryRunContract {
-  const data = baseContract(input, "router.mcp.v1", "router serve --mcp");
+  const data = baseContract(input, "router.mcp.v1", "router serve --mcp --dry-run");
   const mcp = requireRecord(data, "mcp");
   requireLiteral(mcp, "dry_run", true);
   requireString(mcp, "transport");
@@ -218,6 +229,20 @@ export function parseRouterDryRunContract(input: unknown): RouterDryRunContract 
   requireArray(data, "tools");
   requireArray(data, "resources");
   return data as RouterDryRunContract;
+}
+
+export function parseRouterStatusContract(input: unknown): RouterStatusContract {
+  const data = baseContract(input, "router.status.v1", "router status");
+  requireBoolean(data, "ok");
+  const router = requireRecord(data, "router");
+  requireBoolean(router, "snapshot");
+  requireNumber(router, "capsules");
+  requireArray(data, "tools");
+  requireArray(data, "resources");
+  if (data.error !== null) {
+    requireRecord(data, "error");
+  }
+  return data as RouterStatusContract;
 }
 
 export function parseMountPlanContract(input: unknown): MountPlanContract {
