@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
   Archive,
   Boxes,
   CheckCircle2,
-  CircleAlert,
   FilePlus2,
   Globe2,
   HardDriveDownload,
@@ -26,6 +25,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import "./App.css";
+import {
+  Alert,
+  Badge,
+  Button,
+  DescriptionList,
+  EmptyState,
+  InlineStatus,
+  Metric,
+  SummaryStat,
+} from "./components/ui";
 import {
   refreshDashboardStatus,
   type DashboardRefreshSnapshot,
@@ -1899,81 +1908,6 @@ function RunsPanel({
   );
 }
 
-function Button({
-  children,
-  icon: Icon,
-  variant = "primary",
-  loading = false,
-  ...props
-}: {
-  children: ReactNode;
-  icon?: LucideIcon;
-  variant?: "primary" | "secondary" | "ghost";
-  loading?: boolean;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  const ButtonIcon = loading ? Loader2 : Icon;
-  return (
-    <button {...props} className={`button ${variant} ${props.className ?? ""}`}>
-      {ButtonIcon ? <ButtonIcon aria-hidden="true" className={loading ? "spin" : ""} /> : null}
-      <span>{children}</span>
-    </button>
-  );
-}
-
-function Metric({
-  icon: Icon,
-  label,
-  value,
-  detail,
-  compact = false,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  detail: string;
-  compact?: boolean;
-}) {
-  return (
-    <article className={compact ? "metric compact" : "metric"}>
-      <div className="metric-icon">
-        <Icon aria-hidden="true" />
-      </div>
-      <div>
-        <span>{label}</span>
-        <strong>{value}</strong>
-        <p>{detail}</p>
-      </div>
-    </article>
-  );
-}
-
-function SummaryStat({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: number;
-  tone?: "neutral" | "warning";
-}) {
-  return (
-    <div className={`summary-stat ${tone}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function Badge({
-  children,
-  tone = "neutral",
-}: {
-  children: ReactNode;
-  tone?: "neutral" | "success" | "warning" | "danger";
-}) {
-  return <span className={`badge ${tone}`}>{children}</span>;
-}
-
 function summarizeIndexStatus(
   t: typeof copy[Locale],
   state?: RunsIndexStatusState,
@@ -2007,49 +1941,6 @@ function summarizeIndexStatus(
     detail: state.warnings[0] ?? state.indexPath,
     tone: "danger",
   };
-}
-
-function Alert({ title, children }: { title?: string; children: ReactNode }) {
-  return (
-    <div className="alert" role="alert">
-      <CircleAlert aria-hidden="true" />
-      <div>
-        {title ? <strong>{title}</strong> : null}
-        <p>{children}</p>
-      </div>
-    </div>
-  );
-}
-
-function InlineStatus({ children }: { children: ReactNode }) {
-  return (
-    <div className="inline-status">
-      <Loader2 aria-hidden="true" className="spin" />
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function EmptyState({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
-  return (
-    <div className="empty-state">
-      <Icon aria-hidden="true" />
-      <p>{title}</p>
-    </div>
-  );
-}
-
-function DescriptionList({ items }: { items: Array<[string, ReactNode]> }) {
-  return (
-    <dl className="description-list">
-      {items.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
 }
 
 function viewDefinitions(t: typeof copy[Locale]): ViewDefinition[] {
