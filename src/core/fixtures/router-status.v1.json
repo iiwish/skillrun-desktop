@@ -1,0 +1,12 @@
+{
+  "command": "router status",
+  "schema_version": "router.status.v1",
+  "ok": true,
+  "router": {
+    "snapshot": true,
+    "capsules": 0
+  },
+  "tools": [],
+  "resources": [],
+  "error": null
+}

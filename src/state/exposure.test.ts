@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import exposureFixture from "../core/fixtures/consumer-exposure.v1.json";
 import routerDryRunFixture from "../core/fixtures/router-dry-run.v1.json";
+import routerStatusFixture from "../core/fixtures/router-status.v1.json";
 import type { CommandExecutor } from "../core/runner";
 import {
   buildExposurePreviewState,
@@ -13,6 +14,7 @@ describe("exposure preview", () => {
     const result = await loadExposurePreview({
       executor: exposureExecutor(calls, {
         exposure: exposureFixture,
+        routerStatus: routerStatusFixture,
         dryRun: routerDryRunFixture,
       }),
       cwd: "D:\\data\\skillrun-desktop",
@@ -21,6 +23,7 @@ describe("exposure preview", () => {
 
     expect(calls.map((call) => call.args)).toEqual([
       ["consumer", "exposure", "--json"],
+      ["router", "status", "--json"],
       ["router", "serve", "--mcp", "--dry-run"],
     ]);
     expect(calls.some((call) => call.args.join(" ") === "router serve --mcp")).toBe(false);
@@ -58,6 +61,7 @@ describe("exposure preview", () => {
           },
         ],
       },
+      routerStatus: routerStatusFixture,
       dryRun: routerDryRunFixture,
     });
 
@@ -81,6 +85,7 @@ describe("exposure preview", () => {
           },
         ],
       },
+      routerStatus: routerStatusFixture,
       dryRun: routerDryRunFixture,
     });
 
@@ -91,6 +96,11 @@ describe("exposure preview", () => {
   it("maps router resources as metadata only", () => {
     const state = buildExposurePreviewState({
       exposure: exposureFixture,
+      routerStatus: {
+        ...routerStatusFixture,
+        ok: false,
+        error: { code: "duplicate-tool-name", message: "duplicate MCP tool name refund" },
+      },
       dryRun: {
         ...routerDryRunFixture,
         resources: [
@@ -112,6 +122,8 @@ describe("exposure preview", () => {
         mimeType: "application/json",
       },
     ]);
+    expect(state.routerStatus.ok).toBe(false);
+    expect(state.routerStatus.errorCode).toBe("duplicate-tool-name");
     expect(JSON.stringify(state.resources)).not.toContain("hidden content");
     expect(JSON.stringify(state.resources)).not.toContain("should_not");
   });
@@ -137,13 +149,16 @@ describe("exposure preview", () => {
 
 function exposureExecutor(
   calls: Parameters<CommandExecutor>[0][],
-  contracts: { exposure: unknown; dryRun: unknown },
+  contracts: { exposure: unknown; routerStatus: unknown; dryRun: unknown },
 ): CommandExecutor {
   return async (request) => {
     calls.push(request);
     const args = request.args.join(" ");
     if (args === "consumer exposure --json") {
       return { exitCode: 0, stdout: JSON.stringify(contracts.exposure), stderr: "" };
+    }
+    if (args === "router status --json") {
+      return { exitCode: 0, stdout: JSON.stringify(contracts.routerStatus), stderr: "" };
     }
     if (args === "router serve --mcp --dry-run") {
       return { exitCode: 0, stdout: JSON.stringify(contracts.dryRun), stderr: "" };

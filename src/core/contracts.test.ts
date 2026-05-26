@@ -9,6 +9,7 @@ import {
   parseMountPlanContract,
   parseMountRollbackContract,
   parseRouterDryRunContract,
+  parseRouterStatusContract,
   parseRunsIndexRebuildContract,
   parseRunsIndexStatusContract,
   parseRunsInspectContract,
@@ -36,6 +37,7 @@ import hostStatusPosixFixture from "./fixtures/host-status.posix.v1.json";
 import importFixture from "./fixtures/import.v1.json";
 import importPosixFixture from "./fixtures/import.posix.v1.json";
 import routerDryRunFixture from "./fixtures/router-dry-run.v1.json";
+import routerStatusFixture from "./fixtures/router-status.v1.json";
 
 type ContractParser = (input: unknown) => DesktopCoreContract;
 
@@ -79,6 +81,12 @@ const parserCases: Array<{
     parser: parseRouterDryRunContract,
     fixture: routerDryRunFixture,
     schemaVersion: "router.mcp.v1",
+  },
+  {
+    name: "router status",
+    parser: parseRouterStatusContract,
+    fixture: routerStatusFixture,
+    schemaVersion: "router.status.v1",
   },
   {
     name: "mount plan",
