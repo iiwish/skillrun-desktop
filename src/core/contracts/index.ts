@@ -40,7 +40,7 @@ export type ConsumerExposureContract = {
 };
 
 export type RouterDryRunContract = {
-  command: "router serve --mcp --dry-run";
+  command: "router serve --mcp";
   schema_version: "router.mcp.v1";
   mcp: Record<string, unknown>;
   router: Record<string, unknown>;
@@ -218,7 +218,7 @@ export function parseConsumerExposureContract(input: unknown): ConsumerExposureC
 }
 
 export function parseRouterDryRunContract(input: unknown): RouterDryRunContract {
-  const data = baseContract(input, "router.mcp.v1", "router serve --mcp --dry-run");
+  const data = baseContract(input, "router.mcp.v1", "router serve --mcp");
   const mcp = requireRecord(data, "mcp");
   requireLiteral(mcp, "dry_run", true);
   requireString(mcp, "transport");

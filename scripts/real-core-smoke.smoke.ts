@@ -72,6 +72,45 @@ type ExposureResult = {
   }>;
 };
 
+type RouterStatusResult = {
+  command: "router status";
+  schema_version: "router.status.v1";
+  ok: true;
+  router: {
+    snapshot: boolean;
+    capsules: number;
+  };
+  tools: Array<{
+    capsule_id: string;
+    name: string;
+    manifest_sha256: string;
+  }>;
+  resources: Array<{
+    capsule_id: string;
+    uri_prefix: string;
+  }>;
+  error: null;
+};
+
+type RouterDryRunResult = {
+  command: "router serve --mcp";
+  schema_version: "router.mcp.v1";
+  mcp: {
+    dry_run: boolean;
+    protocol: string;
+    transport: string;
+  };
+  router: {
+    snapshot: boolean;
+    capsules: number;
+  };
+  tools: Array<{
+    capsule_id: string;
+    name: string;
+  }>;
+  resources: unknown[];
+};
+
 type TestRunResult = {
   ok: true;
   run_id: string;
@@ -80,12 +119,48 @@ type TestRunResult = {
 type RunsListResult = {
   command: "consumer runs list";
   schema_version: "consumer.runs.list.v1";
+  source?: {
+    kind: "scan" | "index";
+    index_path: string | null;
+    generated_at: string | null;
+    stale: boolean | null;
+  };
+  scope: {
+    source?: "scan" | "index";
+  };
   runs: Array<{
     run_id: string;
     capsule_id: string;
     status: string;
     input_included: boolean;
   }>;
+};
+
+type RunsIndexRebuildResult = {
+  command: "consumer runs index rebuild";
+  schema_version: "consumer.runs.index.v1";
+  ok: true;
+  index_path: string;
+  generated_at: string;
+  capsules_scanned: number;
+  runs_indexed: number;
+};
+
+type RunsIndexStatusResult = {
+  command: "consumer runs index status";
+  schema_version: "consumer.runs.index.status.v1";
+  ok: true;
+  index_path: string;
+  index: {
+    exists: boolean;
+    readable: boolean;
+    supported_schema: boolean;
+    schema_version: string;
+    generated_at: string;
+    runs_indexed: number;
+    stale: boolean;
+  };
+  warnings: unknown[];
 };
 
 type RunsInspectResult = {
@@ -224,6 +299,68 @@ describe("real Core smoke harness", () => {
         detail: `capsule=${capsuleId}; exposed_tools=${exposedTools.length}; readiness=${exposedTools[0]?.readiness_status ?? "missing"}`,
       });
 
+      const routerStatus = await runJson<RouterStatusResult>(
+        {
+          args: ["router", "status", "--json"],
+          expectedSchemaVersion: "router.status.v1",
+          executor,
+        },
+        trace,
+      );
+      expect(routerStatus.data).toMatchObject({
+        ok: true,
+        router: {
+          snapshot: true,
+          capsules: 1,
+        },
+        error: null,
+      });
+      expect(routerStatus.data.tools).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            capsule_id: capsuleId,
+            name: capsuleId,
+          }),
+        ]),
+      );
+      summary.push({
+        step: "router status",
+        detail: `capsules=${routerStatus.data.router.capsules}; tools=${routerStatus.data.tools.length}; resources=${routerStatus.data.resources.length}`,
+      });
+
+      const routerDryRun = await runJson<RouterDryRunResult>(
+        {
+          args: ["router", "serve", "--mcp", "--dry-run"],
+          expectedSchemaVersion: "router.mcp.v1",
+          executor,
+        },
+        trace,
+      );
+      expect(routerDryRun.data.command).toBe("router serve --mcp");
+      expect(routerDryRun.data).toMatchObject({
+        mcp: {
+          dry_run: true,
+          protocol: "model-context-protocol",
+          transport: "stdio",
+        },
+        router: {
+          snapshot: true,
+          capsules: 1,
+        },
+      });
+      expect(routerDryRun.data.tools).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            capsule_id: capsuleId,
+            name: capsuleId,
+          }),
+        ]),
+      );
+      summary.push({
+        step: "router dry-run",
+        detail: `transport=${routerDryRun.data.mcp.transport}; tools=${routerDryRun.data.tools.length}; resources=${routerDryRun.data.resources.length}`,
+      });
+
       const testRun = await runJson<TestRunResult>(
         {
           args: ["test", "--cwd", imported.data.capsule.path],
@@ -241,7 +378,18 @@ describe("real Core smoke harness", () => {
 
       const runsList = await runJson<RunsListResult>(
         {
-          args: ["consumer", "runs", "list", "--json", "--capsule", capsuleId, "--limit", "5"],
+          args: [
+            "consumer",
+            "runs",
+            "list",
+            "--json",
+            "--capsule",
+            capsuleId,
+            "--source",
+            "scan",
+            "--limit",
+            "5",
+          ],
           expectedSchemaVersion: "consumer.runs.list.v1",
           executor,
         },
@@ -257,9 +405,90 @@ describe("real Core smoke harness", () => {
           }),
         ]),
       );
+      expect(runsList.data.scope.source).toBe("scan");
+      expect(runsList.data.source?.kind ?? "scan").toBe("scan");
       summary.push({
-        step: "runs list",
+        step: "runs list scan",
         detail: `capsule=${capsuleId}; runs=${runsList.data.runs.length}; found_run=${testRun.data.run_id}`,
+      });
+
+      const indexRebuild = await runJson<RunsIndexRebuildResult>(
+        {
+          args: ["consumer", "runs", "index", "rebuild", "--json"],
+          expectedSchemaVersion: "consumer.runs.index.v1",
+          executor,
+        },
+        trace,
+      );
+      expect(indexRebuild.data).toMatchObject({
+        ok: true,
+        capsules_scanned: 1,
+      });
+      expect(indexRebuild.data.runs_indexed).toBeGreaterThanOrEqual(1);
+      assertIsolatedPath(indexRebuild.data.index_path, coreHome);
+      summary.push({
+        step: "runs index rebuild",
+        detail: `index=${indexRebuild.data.index_path}; runs_indexed=${indexRebuild.data.runs_indexed}`,
+      });
+
+      const indexStatus = await runJson<RunsIndexStatusResult>(
+        {
+          args: ["consumer", "runs", "index", "status", "--json"],
+          expectedSchemaVersion: "consumer.runs.index.status.v1",
+          executor,
+        },
+        trace,
+      );
+      expect(indexStatus.data).toMatchObject({
+        ok: true,
+        index: {
+          exists: true,
+          readable: true,
+          supported_schema: true,
+          schema_version: "consumer.runs.index.v1",
+          stale: false,
+        },
+      });
+      expect(indexStatus.data.index.runs_indexed).toBeGreaterThanOrEqual(1);
+      assertIsolatedPath(indexStatus.data.index_path, coreHome);
+      summary.push({
+        step: "runs index status",
+        detail: `stale=${indexStatus.data.index.stale}; runs_indexed=${indexStatus.data.index.runs_indexed}`,
+      });
+
+      const indexedRunsList = await runJson<RunsListResult>(
+        {
+          args: [
+            "consumer",
+            "runs",
+            "list",
+            "--json",
+            "--capsule",
+            capsuleId,
+            "--source",
+            "index",
+            "--limit",
+            "5",
+          ],
+          expectedSchemaVersion: "consumer.runs.list.v1",
+          executor,
+        },
+        trace,
+      );
+      expect(indexedRunsList.data.scope.source).toBe("index");
+      expect(indexedRunsList.data.source?.kind).toBe("index");
+      expect(indexedRunsList.data.runs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            run_id: testRun.data.run_id,
+            capsule_id: capsuleId,
+            input_included: false,
+          }),
+        ]),
+      );
+      summary.push({
+        step: "runs list index",
+        detail: `capsule=${capsuleId}; runs=${indexedRunsList.data.runs.length}; source=${indexedRunsList.data.source?.kind}`,
       });
 
       const runsInspect = await runJson<RunsInspectResult>(
