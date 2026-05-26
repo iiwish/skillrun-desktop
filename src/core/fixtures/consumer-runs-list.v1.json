@@ -2,9 +2,22 @@
   "command": "consumer runs list",
   "schema_version": "consumer.runs.list.v1",
   "registry_path": "C:/Users/iiwish/.skillrun/registry.json",
+  "source": {
+    "kind": "scan",
+    "index_path": null,
+    "generated_at": null,
+    "stale": null
+  },
   "scope": {
     "kind": "registry",
-    "capsule_id": null
+    "capsule_id": null,
+    "source": "scan",
+    "status": null,
+    "mode": null,
+    "ok": null,
+    "error_code": null,
+    "since": null,
+    "until": null
   },
   "runs": []
 }

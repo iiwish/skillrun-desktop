@@ -85,8 +85,30 @@ export type RunsListContract = {
   command: "consumer runs list";
   schema_version: "consumer.runs.list.v1";
   registry_path: string;
+  source?: Record<string, unknown>;
   scope: Record<string, unknown>;
   runs: unknown[];
+};
+
+export type RunsIndexRebuildContract = {
+  command: "consumer runs index rebuild";
+  schema_version: "consumer.runs.index.v1";
+  ok: true;
+  registry_path: string;
+  index_path: string;
+  generated_at: string;
+  capsules_scanned: number;
+  runs_indexed: number;
+};
+
+export type RunsIndexStatusContract = {
+  command: "consumer runs index status";
+  schema_version: "consumer.runs.index.status.v1";
+  ok: boolean;
+  registry_path: string;
+  index_path: string;
+  index: Record<string, unknown>;
+  warnings: unknown[];
 };
 
 export type RunsInspectContract = {
@@ -114,6 +136,8 @@ export type DesktopCoreContract =
   | MountApplyContract
   | MountRollbackContract
   | RunsListContract
+  | RunsIndexRebuildContract
+  | RunsIndexStatusContract
   | RunsInspectContract;
 
 const contractCommand: CoreCommandRequest = {
@@ -235,10 +259,34 @@ export function parseMountRollbackContract(input: unknown): MountRollbackContrac
 export function parseRunsListContract(input: unknown): RunsListContract {
   const data = baseContract(input, "consumer.runs.list.v1", "consumer runs list");
   requireString(data, "registry_path");
+  if ("source" in data && data.source !== null) {
+    requireRecord(data, "source");
+  }
   const scope = requireRecord(data, "scope");
   requireString(scope, "kind");
   requireArray(data, "runs");
   return data as RunsListContract;
+}
+
+export function parseRunsIndexRebuildContract(input: unknown): RunsIndexRebuildContract {
+  const data = baseContract(input, "consumer.runs.index.v1", "consumer runs index rebuild");
+  requireLiteral(data, "ok", true);
+  requireString(data, "registry_path");
+  requireString(data, "index_path");
+  requireString(data, "generated_at");
+  requireNumber(data, "capsules_scanned");
+  requireNumber(data, "runs_indexed");
+  return data as RunsIndexRebuildContract;
+}
+
+export function parseRunsIndexStatusContract(input: unknown): RunsIndexStatusContract {
+  const data = baseContract(input, "consumer.runs.index.status.v1", "consumer runs index status");
+  requireBoolean(data, "ok");
+  requireString(data, "registry_path");
+  requireString(data, "index_path");
+  requireRecord(data, "index");
+  requireArray(data, "warnings");
+  return data as RunsIndexStatusContract;
 }
 
 export function parseRunsInspectContract(input: unknown): RunsInspectContract {

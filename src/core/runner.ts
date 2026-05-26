@@ -21,6 +21,7 @@ export type RunSkillrunJsonOptions = {
   cwd?: string;
   executor: CommandExecutor;
   expectedSchemaVersion?: string;
+  allowOkFalse?: boolean;
   maxAgeMs?: number;
   now?: () => number;
 };
@@ -74,7 +75,9 @@ export async function runSkillrunJson<TData = unknown>(
 
   const data = parseStdoutJson(command, output.stdout, durationMs);
   assertObjectContract(command, data, durationMs);
-  rejectOkFalse(command, data, durationMs);
+  if (!options.allowOkFalse) {
+    rejectOkFalse(command, data, durationMs);
+  }
   assertSchemaVersion(command, data, options.expectedSchemaVersion, durationMs);
   assertFreshness(command, data, options.maxAgeMs, now(), durationMs);
 

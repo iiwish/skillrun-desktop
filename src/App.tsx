@@ -54,7 +54,11 @@ import {
 import {
   RUNS_SAFETY_COPY,
   inspectRun,
+  loadRunsIndexStatus,
   loadRunsList,
+  rebuildRunsIndexState,
+  type RunsIndexRebuildState,
+  type RunsIndexStatusState,
   type RunDetailState,
   type RunsError,
   type RunsListState,
@@ -72,6 +76,18 @@ import type { TrayStatusKind } from "./state/trayStatus";
 type DashboardView = "capsules" | "clients" | "tools" | "runs" | "settings";
 type Locale = "zh" | "en";
 type CapsuleFilter = "all" | "enabled" | "issues";
+type RunsOkFilter = "any" | "true" | "false";
+type RunsSourceFilter = "scan" | "index";
+type RunsFilters = {
+  capsuleId: string;
+  status: string;
+  mode: string;
+  ok: RunsOkFilter;
+  errorCode: string;
+  since: string;
+  until: string;
+  limit: string;
+};
 
 type PendingTask =
   | "import"
@@ -82,7 +98,9 @@ type PendingTask =
   | "mount.apply"
   | "mount.rollback"
   | "runs.refresh"
-  | "runs.inspect";
+  | "runs.inspect"
+  | "runs.index.status"
+  | "runs.index.rebuild";
 
 type RefreshState =
   | { phase: "idle" }
@@ -123,6 +141,29 @@ const copy = {
     toolsSubtitle: "查看 Core 报告给 Router 的 tools 和 resources。",
     runsTitle: "执行记录",
     runsSubtitle: "审查最近 run evidence、失败原因和 artifact metadata 摘要。",
+    runsExplorer: "Evidence Explorer",
+    sourceScan: "实时扫描",
+    sourceIndex: "本地索引",
+    indexStatus: "索引状态",
+    indexReady: "索引可用",
+    indexStale: "索引可能过期",
+    indexUnavailable: "索引不可用",
+    checkIndex: "检查索引",
+    rebuildIndex: "重建索引",
+    indexGenerated: "生成时间",
+    runsIndexed: "已索引记录",
+    activeFilters: "筛选条件",
+    capsuleFilter: "Capsule ID",
+    statusFilter: "状态",
+    modeFilter: "模式",
+    okFilter: "结果",
+    errorCodeFilter: "错误码",
+    sinceFilter: "开始时间",
+    untilFilter: "结束时间",
+    limitFilter: "数量",
+    any: "不限",
+    onlyOk: "只看成功",
+    onlyFailed: "只看失败",
     settingsTitle: "设置",
     settingsSubtitle: "语言、Core 路径和本机诊断信息。",
     workspaceOverview: "工作台概览",
@@ -284,6 +325,29 @@ const copy = {
     toolsSubtitle: "Inspect Core-reported tools and resources for Router exposure.",
     runsTitle: "Run evidence",
     runsSubtitle: "Review recent run evidence, failures, and artifact metadata summaries.",
+    runsExplorer: "Evidence Explorer",
+    sourceScan: "Live scan",
+    sourceIndex: "Local index",
+    indexStatus: "Index status",
+    indexReady: "Index ready",
+    indexStale: "Index may be stale",
+    indexUnavailable: "Index unavailable",
+    checkIndex: "Check index",
+    rebuildIndex: "Rebuild index",
+    indexGenerated: "Generated",
+    runsIndexed: "Runs indexed",
+    activeFilters: "Filters",
+    capsuleFilter: "Capsule ID",
+    statusFilter: "Status",
+    modeFilter: "Mode",
+    okFilter: "Result",
+    errorCodeFilter: "Error code",
+    sinceFilter: "Since",
+    untilFilter: "Until",
+    limitFilter: "Limit",
+    any: "Any",
+    onlyOk: "OK only",
+    onlyFailed: "Failed only",
     settingsTitle: "Settings",
     settingsSubtitle: "Language, Core path, and local diagnostics.",
     workspaceOverview: "Workspace overview",
@@ -468,9 +532,21 @@ const initialMountState: MountManagerState = {
 
 const initialRunsListState: RunsListState = {
   status: "ready",
-  scope: { kind: "all" },
+  source: { kind: "scan", stale: null },
+  scope: { kind: "all", source: "scan" },
   runs: [],
   safetyCopy: RUNS_SAFETY_COPY,
+};
+
+const initialRunsFilters: RunsFilters = {
+  capsuleId: "",
+  status: "",
+  mode: "",
+  ok: "any",
+  errorCode: "",
+  since: "",
+  until: "",
+  limit: "10",
 };
 
 function App() {
@@ -497,6 +573,10 @@ function App() {
   const [mountError, setMountError] = useState<MountManagerError>();
   const [runsListState, setRunsListState] = useState<RunsListState>(initialRunsListState);
   const [runDetailState, setRunDetailState] = useState<RunDetailState>();
+  const [runsSource, setRunsSource] = useState<RunsSourceFilter>("scan");
+  const [runsFilters, setRunsFilters] = useState<RunsFilters>(initialRunsFilters);
+  const [runsIndexStatus, setRunsIndexStatus] = useState<RunsIndexStatusState>();
+  const [runsIndexRebuild, setRunsIndexRebuild] = useState<RunsIndexRebuildState>();
   const [runsError, setRunsError] = useState<RunsError>();
   const [selectedRunId, setSelectedRunId] = useState<string>();
 
@@ -751,10 +831,19 @@ function App() {
   async function handleRunsRefresh() {
     setPendingTask("runs.refresh");
     setRunsError(undefined);
+    const capsuleId = runsFilters.capsuleId.trim() || selectedCapsuleId;
+    const limit = Number.parseInt(runsFilters.limit, 10);
 
     const result = await loadRunsList({
-      capsuleId: selectedCapsuleId,
-      limit: 10,
+      capsuleId,
+      source: runsSource,
+      status: optionalFilter(runsFilters.status),
+      mode: optionalFilter(runsFilters.mode),
+      ok: okFilterValue(runsFilters.ok),
+      errorCode: optionalFilter(runsFilters.errorCode),
+      since: optionalFilter(runsFilters.since),
+      until: optionalFilter(runsFilters.until),
+      limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
       executor,
     });
 
@@ -766,6 +855,33 @@ function App() {
       setRunsError(result.error);
     }
     setPendingTask(undefined);
+  }
+
+  async function handleRunsIndexStatus() {
+    setPendingTask("runs.index.status");
+    setRunsError(undefined);
+
+    const result = await loadRunsIndexStatus({ executor });
+    if (result.status === "ready") {
+      setRunsIndexStatus(result.state);
+    } else {
+      setRunsError(result.error);
+    }
+    setPendingTask(undefined);
+  }
+
+  async function handleRunsIndexRebuild() {
+    setPendingTask("runs.index.rebuild");
+    setRunsError(undefined);
+
+    const result = await rebuildRunsIndexState({ executor });
+    if (result.status === "ready") {
+      setRunsIndexRebuild(result.state);
+      void handleRunsIndexStatus();
+    } else {
+      setRunsError(result.error);
+      setPendingTask(undefined);
+    }
   }
 
   async function handleRunInspect(runId: string, capsuleId: string) {
@@ -924,11 +1040,20 @@ function App() {
             <RunsPanel
               t={t}
               locale={locale}
+              source={runsSource}
+              filters={runsFilters}
               listState={runsListState}
               detailState={runDetailState}
+              indexStatus={runsIndexStatus}
+              indexRebuild={runsIndexRebuild}
               error={runsError}
               selectedRunId={selectedRunId}
+              pendingTask={pendingTask}
+              onSourceChange={setRunsSource}
+              onFiltersChange={setRunsFilters}
               onRefresh={() => void handleRunsRefresh()}
+              onIndexStatus={() => void handleRunsIndexStatus()}
+              onIndexRebuild={() => void handleRunsIndexRebuild()}
               onInspect={(runId, capsuleId) => void handleRunInspect(runId, capsuleId)}
             />
           </section>
@@ -1508,30 +1633,171 @@ function MountPanel({
 function RunsPanel({
   t,
   locale,
+  source,
+  filters,
   listState,
   detailState,
+  indexStatus,
+  indexRebuild,
   error,
   selectedRunId,
+  pendingTask,
+  onSourceChange,
+  onFiltersChange,
   onRefresh,
+  onIndexStatus,
+  onIndexRebuild,
   onInspect,
 }: {
   t: typeof copy[Locale];
   locale: Locale;
+  source: RunsSourceFilter;
+  filters: RunsFilters;
   listState: RunsListState;
   detailState?: RunDetailState;
+  indexStatus?: RunsIndexStatusState;
+  indexRebuild?: RunsIndexRebuildState;
   error?: RunsError;
   selectedRunId?: string;
+  pendingTask?: PendingTask;
+  onSourceChange: (source: RunsSourceFilter) => void;
+  onFiltersChange: (filters: RunsFilters) => void;
   onRefresh: () => void;
+  onIndexStatus: () => void;
+  onIndexRebuild: () => void;
   onInspect: (runId: string, capsuleId: string) => void;
 }) {
+  const indexSummary = summarizeIndexStatus(t, indexStatus);
+  const activeSource = listState.source.kind === "unknown" ? source : listState.source.kind;
+
   return (
     <section className="panel-body">
-      <div className="toolbar">
-        <p className="safety-copy">{t.runsSafety}</p>
-        <Button variant="secondary" icon={RefreshCw} onClick={onRefresh}>
-          {t.refreshRuns}
-        </Button>
+      <div className="runs-toolbar">
+        <div>
+          <p className="safety-copy">{t.runsSafety}</p>
+          <div className="source-toggle" role="group" aria-label={t.source}>
+            {([
+              ["scan", t.sourceScan],
+              ["index", t.sourceIndex],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={source === value ? "active" : ""}
+                onClick={() => onSourceChange(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="button-group">
+          <Button variant="secondary" icon={RefreshCw} onClick={onIndexStatus} loading={pendingTask === "runs.index.status"}>
+            {t.checkIndex}
+          </Button>
+          <Button variant="secondary" icon={RotateCcw} onClick={onIndexRebuild} loading={pendingTask === "runs.index.rebuild"}>
+            {t.rebuildIndex}
+          </Button>
+          <Button variant="secondary" icon={RefreshCw} onClick={onRefresh} loading={pendingTask === "runs.refresh"}>
+            {t.refreshRuns}
+          </Button>
+        </div>
       </div>
+
+      <section className={`index-status-strip ${indexSummary.tone}`} aria-label={t.indexStatus}>
+        <div>
+          <h4>{indexSummary.title}</h4>
+          <p>{indexSummary.detail}</p>
+        </div>
+        <DescriptionList
+          items={[
+            [t.source, activeSource],
+            [t.indexGenerated, indexStatus?.index.generatedAt ?? listState.source.generatedAt ?? t.unknown],
+            [t.runsIndexed, indexStatus?.index.runsIndexed !== undefined ? String(indexStatus.index.runsIndexed) : t.unknown],
+          ]}
+        />
+      </section>
+
+      <section className="runs-filters" aria-label={t.activeFilters}>
+        <label>
+          <span>{t.capsuleFilter}</span>
+          <input
+            value={filters.capsuleId}
+            onChange={(event) => onFiltersChange({ ...filters, capsuleId: event.target.value })}
+            placeholder="refund-helper"
+          />
+        </label>
+        <label>
+          <span>{t.statusFilter}</span>
+          <input
+            value={filters.status}
+            onChange={(event) => onFiltersChange({ ...filters, status: event.target.value })}
+            placeholder="ok / failed"
+          />
+        </label>
+        <label>
+          <span>{t.modeFilter}</span>
+          <input
+            value={filters.mode}
+            onChange={(event) => onFiltersChange({ ...filters, mode: event.target.value })}
+            placeholder="run / test"
+          />
+        </label>
+        <label>
+          <span>{t.okFilter}</span>
+          <select
+            value={filters.ok}
+            onChange={(event) => onFiltersChange({ ...filters, ok: event.target.value as RunsOkFilter })}
+          >
+            <option value="any">{t.any}</option>
+            <option value="true">{t.onlyOk}</option>
+            <option value="false">{t.onlyFailed}</option>
+          </select>
+        </label>
+        <label>
+          <span>{t.errorCodeFilter}</span>
+          <input
+            value={filters.errorCode}
+            onChange={(event) => onFiltersChange({ ...filters, errorCode: event.target.value })}
+            placeholder="timeout"
+          />
+        </label>
+        <label>
+          <span>{t.sinceFilter}</span>
+          <input
+            value={filters.since}
+            onChange={(event) => onFiltersChange({ ...filters, since: event.target.value })}
+            placeholder="2026-05-26T00:00:00Z"
+          />
+        </label>
+        <label>
+          <span>{t.untilFilter}</span>
+          <input
+            value={filters.until}
+            onChange={(event) => onFiltersChange({ ...filters, until: event.target.value })}
+            placeholder="2026-05-27T00:00:00Z"
+          />
+        </label>
+        <label>
+          <span>{t.limitFilter}</span>
+          <input
+            value={filters.limit}
+            inputMode="numeric"
+            onChange={(event) => onFiltersChange({ ...filters, limit: event.target.value })}
+            placeholder="10"
+          />
+        </label>
+      </section>
+
+      {indexRebuild ? (
+        <div className="index-rebuild-note" role="status">
+          {t.rebuildIndex}: {indexRebuild.runsIndexed} {t.runsIndexed}
+        </div>
+      ) : null}
+
+      {indexStatus?.warnings.length ? (
+        <Alert title={t.warnings}>{indexStatus.warnings.join(" · ")}</Alert>
+      ) : null}
       {error ? <Alert>{error.message}</Alert> : null}
 
       <div className="runs-layout">
@@ -1681,6 +1947,41 @@ function Badge({
   return <span className={`badge ${tone}`}>{children}</span>;
 }
 
+function summarizeIndexStatus(
+  t: typeof copy[Locale],
+  state?: RunsIndexStatusState,
+): { title: string; detail: string; tone: "neutral" | "success" | "warning" | "danger" } {
+  if (!state) {
+    return {
+      title: t.indexStatus,
+      detail: t.statusHint,
+      tone: "neutral",
+    };
+  }
+
+  if (state.ok) {
+    return {
+      title: t.indexReady,
+      detail: `${state.indexPath}`,
+      tone: "success",
+    };
+  }
+
+  if (state.index.stale) {
+    return {
+      title: t.indexStale,
+      detail: state.warnings[0] ?? t.rebuildIndex,
+      tone: "warning",
+    };
+  }
+
+  return {
+    title: t.indexUnavailable,
+    detail: state.warnings[0] ?? state.indexPath,
+    tone: "danger",
+  };
+}
+
 function Alert({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <div className="alert" role="alert">
@@ -1747,6 +2048,21 @@ function mountPendingAction(task: PendingTask | undefined): "plan" | "apply" | "
   return undefined;
 }
 
+function optionalFilter(value: string): string | undefined {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function okFilterValue(value: RunsOkFilter): boolean | undefined {
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return undefined;
+}
+
 function toActionError(error: unknown, fallback: string): SwitchboardActionError {
   return {
     kind: typeof error === "object" && error !== null && "kind" in error
@@ -1767,6 +2083,8 @@ function pendingTaskLabel(task: PendingTask, locale: Locale): string {
     "mount.rollback": { zh: "回滚挂载", en: "Roll back mount" },
     "runs.refresh": { zh: "刷新记录", en: "Refresh runs" },
     "runs.inspect": { zh: "读取证据", en: "Inspect evidence" },
+    "runs.index.status": { zh: "检查索引", en: "Check index" },
+    "runs.index.rebuild": { zh: "重建索引", en: "Rebuild index" },
   };
 
   return labels[task][locale];

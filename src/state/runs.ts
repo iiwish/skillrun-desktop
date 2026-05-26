@@ -1,11 +1,21 @@
 import {
   coreErrorKind,
   fetchRunInspect,
+  fetchRunsIndexStatus,
   fetchRunsList,
+  rebuildRunsIndex,
+  type RunsIndexOptions,
   type RunsInspectOptions,
   type RunsListOptions,
 } from "../core/runsService";
-import type { RunsInspectContract, RunsListContract } from "../core/contracts";
+import type {
+  RunsIndexRebuildContract,
+  RunsIndexStatusContract,
+  RunsInspectContract,
+  RunsListContract,
+} from "../core/contracts";
+
+export type RunsSourceKind = "scan" | "index" | "unknown";
 
 export type RunSummary = {
   runId: string;
@@ -26,11 +36,54 @@ export type RunSummary = {
 
 export type RunsListState = {
   status: "ready";
+  source: {
+    kind: RunsSourceKind;
+    indexPath?: string;
+    generatedAt?: string;
+    stale: boolean | null;
+  };
   scope: {
     kind: string;
     capsuleId?: string;
+    source?: string;
+    status?: string;
+    mode?: string;
+    ok?: boolean;
+    errorCode?: string;
+    since?: string;
+    until?: string;
   };
   runs: RunSummary[];
+  safetyCopy: string;
+};
+
+export type RunsIndexStatusState = {
+  status: "ready";
+  ok: boolean;
+  registryPath: string;
+  indexPath: string;
+  index: {
+    exists: boolean;
+    readable: boolean;
+    supportedSchema: boolean;
+    schemaVersion?: string;
+    generatedAt?: string;
+    runsIndexed?: number;
+    stale: boolean | null;
+    registryModifiedAfterGeneratedAt: boolean | null;
+    evidenceModifiedAfterGeneratedAt: boolean | null;
+  };
+  warnings: string[];
+  safetyCopy: string;
+};
+
+export type RunsIndexRebuildState = {
+  status: "ready";
+  registryPath: string;
+  indexPath: string;
+  generatedAt: string;
+  capsulesScanned: number;
+  runsIndexed: number;
   safetyCopy: string;
 };
 
@@ -99,6 +152,26 @@ export type RunsListResult =
       error: RunsError;
     };
 
+export type RunsIndexStatusResult =
+  | {
+      status: "ready";
+      state: RunsIndexStatusState;
+    }
+  | {
+      status: "error";
+      error: RunsError;
+    };
+
+export type RunsIndexRebuildResult =
+  | {
+      status: "ready";
+      state: RunsIndexRebuildState;
+    }
+  | {
+      status: "error";
+      error: RunsError;
+    };
+
 export type RunDetailResult =
   | {
       status: "ready";
@@ -110,7 +183,15 @@ export type RunDetailResult =
     };
 
 export type BuildRunsListInput = {
-  list: Pick<RunsListContract, "scope" | "runs">;
+  list: Pick<RunsListContract, "source" | "scope" | "runs">;
+};
+
+export type BuildRunsIndexStatusInput = {
+  status: RunsIndexStatusContract;
+};
+
+export type BuildRunsIndexRebuildInput = {
+  rebuild: RunsIndexRebuildContract;
 };
 
 export type BuildRunDetailInput = {
@@ -132,6 +213,30 @@ export async function loadRunsList(options: RunsListOptions): Promise<RunsListRe
   }
 }
 
+export async function loadRunsIndexStatus(options: RunsIndexOptions): Promise<RunsIndexStatusResult> {
+  try {
+    const result = await fetchRunsIndexStatus(options);
+    return {
+      status: "ready",
+      state: buildRunsIndexStatusState({ status: result.contract }),
+    };
+  } catch (error) {
+    return runsErrorResult(error, "Runs index status failed.");
+  }
+}
+
+export async function rebuildRunsIndexState(options: RunsIndexOptions): Promise<RunsIndexRebuildResult> {
+  try {
+    const result = await rebuildRunsIndex(options);
+    return {
+      status: "ready",
+      state: buildRunsIndexRebuildState({ rebuild: result.contract }),
+    };
+  } catch (error) {
+    return runsErrorResult(error, "Runs index rebuild failed.");
+  }
+}
+
 export async function inspectRun(options: RunsInspectOptions): Promise<RunDetailResult> {
   try {
     const result = await fetchRunInspect(options);
@@ -146,13 +251,62 @@ export async function inspectRun(options: RunsInspectOptions): Promise<RunDetail
 
 export function buildRunsListState(input: BuildRunsListInput): RunsListState {
   const scope = asRecord(input.list.scope);
+  const source = asRecord(input.list.source);
   return {
     status: "ready",
+    source: {
+      kind: readRunsSourceKind(source, readString(scope, "source", "scan")),
+      indexPath: readOptionalString(source, "index_path"),
+      generatedAt: readOptionalString(source, "generated_at"),
+      stale: readOptionalBoolean(source, "stale"),
+    },
     scope: {
       kind: readString(scope, "kind"),
       capsuleId: readOptionalString(scope, "capsule_id"),
+      source: readOptionalString(scope, "source"),
+      status: readOptionalString(scope, "status"),
+      mode: readOptionalString(scope, "mode"),
+      ok: readOptionalBoolean(scope, "ok") ?? undefined,
+      errorCode: readOptionalString(scope, "error_code"),
+      since: readOptionalString(scope, "since"),
+      until: readOptionalString(scope, "until"),
     },
     runs: input.list.runs.map(readRunSummary),
+    safetyCopy: RUNS_SAFETY_COPY,
+  };
+}
+
+export function buildRunsIndexStatusState(input: BuildRunsIndexStatusInput): RunsIndexStatusState {
+  const index = asRecord(input.status.index);
+  return {
+    status: "ready",
+    ok: input.status.ok,
+    registryPath: input.status.registry_path,
+    indexPath: input.status.index_path,
+    index: {
+      exists: index.exists === true,
+      readable: index.readable === true,
+      supportedSchema: index.supported_schema === true,
+      schemaVersion: readOptionalString(index, "schema_version"),
+      generatedAt: readOptionalString(index, "generated_at"),
+      runsIndexed: readOptionalNumber(index, "runs_indexed"),
+      stale: readOptionalBoolean(index, "stale"),
+      registryModifiedAfterGeneratedAt: readOptionalBoolean(index, "registry_modified_after_generated_at"),
+      evidenceModifiedAfterGeneratedAt: readOptionalBoolean(index, "evidence_modified_after_generated_at"),
+    },
+    warnings: input.status.warnings.map(readWarning),
+    safetyCopy: RUNS_SAFETY_COPY,
+  };
+}
+
+export function buildRunsIndexRebuildState(input: BuildRunsIndexRebuildInput): RunsIndexRebuildState {
+  return {
+    status: "ready",
+    registryPath: input.rebuild.registry_path,
+    indexPath: input.rebuild.index_path,
+    generatedAt: input.rebuild.generated_at,
+    capsulesScanned: input.rebuild.capsules_scanned,
+    runsIndexed: input.rebuild.runs_indexed,
     safetyCopy: RUNS_SAFETY_COPY,
   };
 }
@@ -235,6 +389,11 @@ function readWarning(input: unknown): string {
   return message ? `${code}: ${message}` : code;
 }
 
+function readRunsSourceKind(source: Record<string, unknown>, fallback: string): RunsSourceKind {
+  const value = readString(source, "kind", fallback);
+  return value === "scan" || value === "index" ? value : "unknown";
+}
+
 function summarizeValue(input: unknown): RunDetailState["envelope"]["valueSummary"] {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
     return {
@@ -299,6 +458,11 @@ function readString(record: Record<string, unknown>, field: string, fallback = "
 function readOptionalString(record: Record<string, unknown>, field: string): string | undefined {
   const value = record[field];
   return typeof value === "string" ? value : undefined;
+}
+
+function readOptionalBoolean(record: Record<string, unknown>, field: string): boolean | null {
+  const value = record[field];
+  return typeof value === "boolean" ? value : null;
 }
 
 function readNumber(record: Record<string, unknown>, field: string): number {
