@@ -1,6 +1,6 @@
 # SkillRun Desktop Team Library Page Plan
 
-**状态**：Inspect_Read_Only_Implementation
+**状态**：Inspect_And_Plan_Read_Only_Implementation
 **日期**：2026-05-27
 **依赖**：`skillrun` Core `team catalog inspect` 已落地；`install plan/apply` 的 Desktop UI 仍待后续 PR
 
@@ -248,6 +248,8 @@ UI 行为：
 - 增加 plan 按钮和 inspector plan panel。
 - conflict / warning / replace confirmation 先可视化。
 - 不调用 apply。
+
+状态：已完成。
 
 ### PR 4: Guarded Apply
 

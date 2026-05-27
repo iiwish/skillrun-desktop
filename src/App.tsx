@@ -75,10 +75,12 @@ import {
 } from "./state/runs";
 import {
   TEAM_LIBRARY_SAFETY_COPY,
+  loadTeamLibraryInstallPlan,
   loadTeamLibraryInspect,
   type TeamCatalogItem,
   type TeamLibraryError,
   type TeamLibraryItemState,
+  type TeamLibraryPlanState,
   type TeamLibraryState,
 } from "./state/teamLibrary";
 import {
@@ -111,6 +113,7 @@ type RunsFilters = {
 type PendingTask =
   | "import"
   | "teamLibrary.inspect"
+  | "teamLibrary.plan"
   | "switchboard.refresh"
   | "switchboard.action"
   | "exposure.refresh"
@@ -225,6 +228,17 @@ const copy = {
     permissions: "权限摘要",
     trustNote: "团队说明",
     tags: "标签",
+    installPlan: "检查安装计划",
+    planResult: "安装计划",
+    planAction: "计划动作",
+    planImport: "导入到本机 registry",
+    planReplace: "替换已导入 Capsule",
+    requiresConfirmation: "需要确认",
+    registry: "Registry",
+    registrySource: "登记来源",
+    currentPath: "当前路径",
+    noPlan: "尚未检查安装计划",
+    planSafety: "安装计划只是 Core 预览。Desktop 不会下载、解包、导入、启用、挂载或应用这个结果。",
     filterInstallable: "可安装",
     filterInstalled: "已安装",
     filterBlocked: "已阻止",
@@ -450,6 +464,17 @@ const copy = {
     permissions: "Permissions",
     trustNote: "Team note",
     tags: "Tags",
+    installPlan: "Check install plan",
+    planResult: "Install plan",
+    planAction: "Planned action",
+    planImport: "Import to local registry",
+    planReplace: "Replace imported Capsule",
+    requiresConfirmation: "Requires confirmation",
+    registry: "Registry",
+    registrySource: "Registry source",
+    currentPath: "Current path",
+    noPlan: "No install plan checked",
+    planSafety: "Install plan is a Core preview only. Desktop does not download, unpack, import, enable, mount, or apply this result.",
     filterInstallable: "Installable",
     filterInstalled: "Installed",
     filterBlocked: "Blocked",
@@ -677,7 +702,9 @@ function App() {
   const [teamLibraryQuery, setTeamLibraryQuery] = useState("");
   const [teamLibraryFilter, setTeamLibraryFilter] = useState<TeamLibraryFilter>("all");
   const [teamLibraryState, setTeamLibraryState] = useState<TeamLibraryState>();
+  const [teamLibraryPlan, setTeamLibraryPlan] = useState<TeamLibraryPlanState>();
   const [teamLibraryError, setTeamLibraryError] = useState<TeamLibraryError>();
+  const [teamLibraryPlanError, setTeamLibraryPlanError] = useState<TeamLibraryError>();
   const [selectedTeamItemId, setSelectedTeamItemId] = useState<string>();
   const [pendingTask, setPendingTask] = useState<PendingTask>();
   const [refreshState, setRefreshState] = useState<RefreshState>({ phase: "idle" });
@@ -705,6 +732,7 @@ function App() {
         : undefined;
   const selectedCapsule = switchboardState.capsules.find((capsule) => capsule.id === selectedCapsuleId);
   const selectedTeamItem = teamLibraryState?.items.find((item) => item.id === selectedTeamItemId);
+  const selectedTeamItemPlan = teamLibraryPlan?.itemId === selectedTeamItemId ? teamLibraryPlan : undefined;
   const isRefreshingStatus = refreshState.phase === "loading";
   const activeDefinition = views.find((view) => view.id === activeView) ?? views[0];
   const pendingLabel = pendingTask ? pendingTaskLabel(pendingTask, locale) : undefined;
@@ -851,8 +879,39 @@ function App() {
     if (result.status === "ready") {
       setTeamLibraryState(result.state);
       setSelectedTeamItemId(result.state.items[0]?.id);
+      setTeamLibraryPlan(undefined);
+      setTeamLibraryPlanError(undefined);
     } else {
       setTeamLibraryError(result.error);
+    }
+    setPendingTask(undefined);
+  }
+
+  function handleSelectTeamItem(itemId: string) {
+    setSelectedTeamItemId(itemId);
+    setTeamLibraryPlan(undefined);
+    setTeamLibraryPlanError(undefined);
+  }
+
+  async function handleTeamLibraryPlan(item: TeamCatalogItem) {
+    const source = teamLibraryState?.catalogSource ?? catalogPath.trim();
+    if (!source || !item.installable) {
+      return;
+    }
+
+    setPendingTask("teamLibrary.plan");
+    setTeamLibraryPlanError(undefined);
+
+    const result = await loadTeamLibraryInstallPlan({
+      catalogPath: source,
+      itemId: item.id,
+      executor,
+    });
+
+    if (result.status === "ready") {
+      setTeamLibraryPlan(result.state);
+    } else {
+      setTeamLibraryPlanError(result.error);
     }
     setPendingTask(undefined);
   }
@@ -1200,10 +1259,13 @@ function App() {
               items={filteredTeamItems}
               selectedItem={selectedTeamItem}
               selectedItemId={selectedTeamItemId}
+              selectedPlan={selectedTeamItemPlan}
               query={teamLibraryQuery}
               filter={teamLibraryFilter}
               error={teamLibraryError}
+              planError={teamLibraryPlanError}
               pending={pendingTask === "teamLibrary.inspect"}
+              pendingPlan={pendingTask === "teamLibrary.plan"}
               inputRef={catalogPathInputRef}
               onCatalogPathChange={(path) => {
                 setCatalogPath(path);
@@ -1213,7 +1275,8 @@ function App() {
               onInspect={() => void handleTeamLibraryInspect()}
               onQueryChange={setTeamLibraryQuery}
               onFilterChange={setTeamLibraryFilter}
-              onSelectItem={setSelectedTeamItemId}
+              onSelectItem={handleSelectTeamItem}
+              onPlan={(item) => void handleTeamLibraryPlan(item)}
             />
           </section>
         ) : null}
@@ -1311,10 +1374,13 @@ function TeamLibraryPanel({
   items,
   selectedItem,
   selectedItemId,
+  selectedPlan,
   query,
   filter,
   error,
+  planError,
   pending,
+  pendingPlan,
   inputRef,
   onCatalogPathChange,
   onSelectCatalog,
@@ -1322,6 +1388,7 @@ function TeamLibraryPanel({
   onQueryChange,
   onFilterChange,
   onSelectItem,
+  onPlan,
 }: {
   t: typeof copy[Locale];
   catalogPath: string;
@@ -1330,10 +1397,13 @@ function TeamLibraryPanel({
   items: TeamCatalogItem[];
   selectedItem?: TeamCatalogItem;
   selectedItemId?: string;
+  selectedPlan?: TeamLibraryPlanState;
   query: string;
   filter: TeamLibraryFilter;
   error?: TeamLibraryError;
+  planError?: TeamLibraryError;
   pending: boolean;
+  pendingPlan: boolean;
   inputRef?: RefObject<HTMLInputElement | null>;
   onCatalogPathChange: (path: string) => void;
   onSelectCatalog: () => void;
@@ -1341,6 +1411,7 @@ function TeamLibraryPanel({
   onQueryChange: (query: string) => void;
   onFilterChange: (filter: TeamLibraryFilter) => void;
   onSelectItem: (itemId: string) => void;
+  onPlan: (item: TeamCatalogItem) => void;
 }) {
   return (
     <section className="panel-body">
@@ -1487,7 +1558,14 @@ function TeamLibraryPanel({
               )}
             </section>
 
-            <TeamItemInspector t={t} item={selectedItem} />
+            <TeamItemInspector
+              t={t}
+              item={selectedItem}
+              plan={selectedPlan}
+              planError={planError}
+              pendingPlan={pendingPlan}
+              onPlan={onPlan}
+            />
           </section>
         </>
       )}
@@ -1495,7 +1573,21 @@ function TeamLibraryPanel({
   );
 }
 
-function TeamItemInspector({ t, item }: { t: typeof copy[Locale]; item?: TeamCatalogItem }) {
+function TeamItemInspector({
+  t,
+  item,
+  plan,
+  planError,
+  pendingPlan,
+  onPlan,
+}: {
+  t: typeof copy[Locale];
+  item?: TeamCatalogItem;
+  plan?: TeamLibraryPlanState;
+  planError?: TeamLibraryError;
+  pendingPlan: boolean;
+  onPlan: (item: TeamCatalogItem) => void;
+}) {
   return (
     <aside className="inspector team-item-inspector" aria-label={t.itemDetails}>
       <header className="compact-heading">
@@ -1554,15 +1646,19 @@ function TeamItemInspector({ t, item }: { t: typeof copy[Locale]; item?: TeamCat
               </ul>
             </section>
           ) : null}
-          <Button variant="secondary" icon={Play} disabled>
-            {item.state === "display_only"
-              ? t.displayOnly
-              : item.state === "blocked"
-                ? t.blocked
-                : t.teamLibraryPlanLater}
+          <Button
+            variant="secondary"
+            icon={Play}
+            disabled={!item.installable || pendingPlan}
+            loading={pendingPlan}
+            onClick={() => onPlan(item)}
+          >
+            {item.installable ? t.installPlan : item.state === "display_only" ? t.displayOnly : t.blocked}
           </Button>
           {item.state === "display_only" ? <p className="form-hint">{t.teamLibraryDisplayOnlyReason}</p> : null}
           {item.state === "blocked" ? <p className="form-hint">{t.teamLibraryBlockedReason}</p> : null}
+          {planError ? <Alert>{planError.message}</Alert> : null}
+          <TeamInstallPlanPanel t={t} plan={plan} />
         </>
       ) : (
         <div className="inspector-empty">
@@ -1571,6 +1667,50 @@ function TeamItemInspector({ t, item }: { t: typeof copy[Locale]; item?: TeamCat
         </div>
       )}
     </aside>
+  );
+}
+
+function TeamInstallPlanPanel({
+  t,
+  plan,
+}: {
+  t: typeof copy[Locale];
+  plan?: TeamLibraryPlanState;
+}) {
+  if (!plan) {
+    return (
+      <section className="subsection">
+        <h4>{t.planResult}</h4>
+        <p className="muted">{t.noPlan}</p>
+      </section>
+    );
+  }
+
+  const primaryAction = plan.actions[0];
+  return (
+    <section className="subsection plan-result-panel">
+      <h4>{t.planResult}</h4>
+      <p className="safety-copy">{t.planSafety}</p>
+      <DescriptionList
+        items={[
+          [t.planAction, primaryAction?.replace ? t.planReplace : t.planImport],
+          [t.requiresConfirmation, primaryAction ? String(primaryAction.requiresConfirmation) : t.unknown],
+          [t.registrySource, plan.registry.sourceType ?? t.none],
+          [t.enabled, plan.registry.enabled === null ? t.unknown : String(plan.registry.enabled)],
+          [t.currentPath, plan.registry.path ?? t.none],
+          [t.checksum, plan.sha256],
+        ]}
+      />
+      {plan.warnings.length > 0 ? (
+        <ul className="plain-list">
+          {plan.warnings.map((warning) => (
+            <li key={`${warning.code}:${warning.message}`}>
+              <code>{warning.code}</code> {warning.message}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 
@@ -2453,6 +2593,7 @@ function pendingTaskLabel(task: PendingTask, locale: Locale): string {
   const labels: Record<PendingTask, { zh: string; en: string }> = {
     import: { zh: "导入 .skr", en: "Import .skr" },
     "teamLibrary.inspect": { zh: "检查团队 catalog", en: "Inspect team catalog" },
+    "teamLibrary.plan": { zh: "检查安装计划", en: "Check install plan" },
     "switchboard.refresh": { zh: "刷新 Capsule", en: "Refresh capsules" },
     "switchboard.action": { zh: "更新暴露意图", en: "Update exposure intent" },
     "exposure.refresh": { zh: "刷新暴露预览", en: "Refresh exposure preview" },

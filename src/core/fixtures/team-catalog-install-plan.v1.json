@@ -1,0 +1,33 @@
+{
+  "command": "team catalog install plan",
+  "schema_version": "team.catalog.install_plan.v1",
+  "ok": true,
+  "catalog_id": "acme.internal",
+  "item": {
+    "id": "refund",
+    "kind": "skillrun.skr",
+    "version": "0.1.0",
+    "source_type": "https",
+    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
+  "registry": {
+    "installed": false,
+    "source_type": null,
+    "enabled": null,
+    "path": null
+  },
+  "actions": [
+    {
+      "type": "import",
+      "replace": false,
+      "requires_confirmation": false
+    }
+  ],
+  "warnings": [
+    {
+      "code": "trust.not_proven",
+      "message": "sha256 verifies integrity, not publisher identity."
+    }
+  ],
+  "error": null
+}

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildTeamLibraryState } from "./teamLibrary";
-import type { TeamCatalogInspectContract } from "../core/contracts";
+import { buildTeamLibraryPlanState, buildTeamLibraryState } from "./teamLibrary";
+import type {
+  TeamCatalogInstallPlanContract,
+  TeamCatalogInspectContract,
+} from "../core/contracts";
+import teamCatalogInstallPlanFixture from "../core/fixtures/team-catalog-install-plan.v1.json";
 import teamCatalogInspectFixture from "../core/fixtures/team-catalog-inspect.v1.json";
 
 describe("team library state", () => {
@@ -32,5 +36,29 @@ describe("team library state", () => {
       state: "blocked",
       installed: true,
     });
+  });
+
+  it("maps install plan contract without applying it", () => {
+    const state = buildTeamLibraryPlanState({
+      plan: teamCatalogInstallPlanFixture as TeamCatalogInstallPlanContract,
+    });
+
+    expect(state).toMatchObject({
+      catalogId: "acme.internal",
+      itemId: "refund",
+      sourceType: "https",
+      registry: {
+        installed: false,
+        enabled: null,
+      },
+    });
+    expect(state.actions).toEqual([
+      {
+        type: "import",
+        replace: false,
+        requiresConfirmation: false,
+      },
+    ]);
+    expect(state.safetyCopy).toContain("preview only");
   });
 });

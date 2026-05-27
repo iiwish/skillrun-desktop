@@ -145,6 +145,18 @@ export type TeamCatalogInspectContract = {
   error: null;
 };
 
+export type TeamCatalogInstallPlanContract = {
+  command: "team catalog install plan";
+  schema_version: "team.catalog.install_plan.v1";
+  ok: true;
+  catalog_id: string;
+  item: Record<string, unknown>;
+  registry: Record<string, unknown>;
+  actions: unknown[];
+  warnings: unknown[];
+  error: null;
+};
+
 export type DesktopCoreContract =
   | HostStatusContract
   | ImportContract
@@ -159,7 +171,8 @@ export type DesktopCoreContract =
   | RunsIndexRebuildContract
   | RunsIndexStatusContract
   | RunsInspectContract
-  | TeamCatalogInspectContract;
+  | TeamCatalogInspectContract
+  | TeamCatalogInstallPlanContract;
 
 const contractCommand: CoreCommandRequest = {
   command: "skillrun",
@@ -378,6 +391,34 @@ export function parseTeamCatalogInspectContract(input: unknown): TeamCatalogInsp
     throw mismatch("error", "Expected null.");
   }
   return data as TeamCatalogInspectContract;
+}
+
+export function parseTeamCatalogInstallPlanContract(input: unknown): TeamCatalogInstallPlanContract {
+  const data = baseContract(input, "team.catalog.install_plan.v1", "team catalog install plan");
+  requireLiteral(data, "ok", true);
+  requireString(data, "catalog_id");
+  const item = requireRecord(data, "item");
+  requireString(item, "id");
+  requireLiteral(item, "kind", "skillrun.skr");
+  requireString(item, "version");
+  const sourceType = requireString(item, "source_type");
+  if (!["file", "https"].includes(sourceType)) {
+    throw mismatch("item.source_type", "Expected file or https.");
+  }
+  requireString(item, "sha256");
+  const registry = requireRecord(data, "registry");
+  requireBoolean(registry, "installed");
+  for (const action of requireArray(data, "actions")) {
+    const record = asRecord(action, "actions[]");
+    requireLiteral(record, "type", "import");
+    requireBoolean(record, "replace");
+    requireBoolean(record, "requires_confirmation");
+  }
+  requireArray(data, "warnings");
+  if (data.error !== null) {
+    throw mismatch("error", "Expected null.");
+  }
+  return data as TeamCatalogInstallPlanContract;
 }
 
 function baseContract(

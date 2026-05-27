@@ -1,5 +1,7 @@
 import {
+  parseTeamCatalogInstallPlanContract,
   parseTeamCatalogInspectContract,
+  type TeamCatalogInstallPlanContract,
   type TeamCatalogInspectContract,
 } from "./contracts";
 import type { CoreRunnerError } from "./errors";
@@ -21,6 +23,15 @@ export type TeamCatalogInspectResult = {
   runner: CoreRunnerResult<unknown>;
 };
 
+export type TeamCatalogInstallPlanOptions = TeamCatalogInspectOptions & {
+  itemId: string;
+};
+
+export type TeamCatalogInstallPlanResult = {
+  contract: TeamCatalogInstallPlanContract;
+  runner: CoreRunnerResult<unknown>;
+};
+
 export async function fetchTeamCatalogInspect(
   options: TeamCatalogInspectOptions,
 ): Promise<TeamCatalogInspectResult> {
@@ -34,6 +45,23 @@ export async function fetchTeamCatalogInspect(
 
   return {
     contract: parseTeamCatalogInspectContract(runner.data),
+    runner,
+  };
+}
+
+export async function fetchTeamCatalogInstallPlan(
+  options: TeamCatalogInstallPlanOptions,
+): Promise<TeamCatalogInstallPlanResult> {
+  const runner = await runSkillrunJson({
+    args: ["team", "catalog", "install", "plan", options.catalogPath, options.itemId, "--json"],
+    cwd: options.cwd,
+    executor: options.executor,
+    expectedSchemaVersion: "team.catalog.install_plan.v1",
+    now: options.now,
+  });
+
+  return {
+    contract: parseTeamCatalogInstallPlanContract(runner.data),
     runner,
   };
 }
