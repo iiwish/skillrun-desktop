@@ -939,6 +939,43 @@ code {
   line-height: 1.45;
 }
 
+.apply-confirm-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-subtle);
+  padding: 0.72rem;
+}
+
+.apply-confirm-strip h4,
+.apply-confirm-strip p,
+.apply-result-panel h4 {
+  margin: 0;
+}
+
+.apply-confirm-strip p {
+  margin-top: 0.16rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.42;
+}
+
+.apply-result-panel {
+  display: grid;
+  gap: 0.62rem;
+  border: 1px solid hsl(145 42% 82%);
+  border-radius: var(--radius);
+  background: var(--success-soft);
+  padding: 0.72rem;
+}
+
+.nested-subsection {
+  padding-top: 0.62rem;
+}
+
 .path-form {
   display: grid;
   gap: 0.42rem;
@@ -1362,6 +1399,7 @@ code {
 
   .list-toolbar,
   .team-library-toolbar,
+  .apply-confirm-strip,
   .mini-metrics,
   .team-library-metrics,
   .input-row,

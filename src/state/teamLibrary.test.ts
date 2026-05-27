@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { buildTeamLibraryPlanState, buildTeamLibraryState } from "./teamLibrary";
+import {
+  buildTeamLibraryApplyState,
+  buildTeamLibraryPlanState,
+  buildTeamLibraryState,
+} from "./teamLibrary";
 import type {
+  TeamCatalogInstallApplyContract,
   TeamCatalogInstallPlanContract,
   TeamCatalogInspectContract,
 } from "../core/contracts";
+import teamCatalogInstallApplyFixture from "../core/fixtures/team-catalog-install-apply.v1.json";
 import teamCatalogInstallPlanFixture from "../core/fixtures/team-catalog-install-plan.v1.json";
 import teamCatalogInspectFixture from "../core/fixtures/team-catalog-inspect.v1.json";
 
@@ -60,5 +66,28 @@ describe("team library state", () => {
       },
     ]);
     expect(state.safetyCopy).toContain("preview only");
+  });
+
+  it("maps install apply contract without enabling or mounting", () => {
+    const state = buildTeamLibraryApplyState({
+      apply: teamCatalogInstallApplyFixture as TeamCatalogInstallApplyContract,
+    });
+
+    expect(state).toMatchObject({
+      catalogId: "acme.internal",
+      itemId: "refund",
+      download: {
+        sourceType: "file",
+        sha256Verified: true,
+      },
+      imported: {
+        id: "refund",
+        sourceType: "imported_skr",
+        enabled: false,
+        replaced: false,
+      },
+    });
+    expect(state.nextSteps).toHaveLength(3);
+    expect(state.safetyCopy).toContain("does not enable");
   });
 });

@@ -1,11 +1,14 @@
 import {
   coreErrorKind,
+  fetchTeamCatalogInstallApply,
   fetchTeamCatalogInstallPlan,
   fetchTeamCatalogInspect,
+  type TeamCatalogInstallApplyOptions,
   type TeamCatalogInstallPlanOptions,
   type TeamCatalogInspectOptions,
 } from "../core/teamLibraryService";
 import type {
+  TeamCatalogInstallApplyContract,
   TeamCatalogInstallPlanContract,
   TeamCatalogInspectContract,
 } from "../core/contracts";
@@ -91,6 +94,29 @@ export type TeamLibraryPlanState = {
   safetyCopy: string;
 };
 
+export type TeamLibraryApplyState = {
+  status: "ready";
+  catalogId: string;
+  itemId: string;
+  download: {
+    sourceType: TeamCatalogSourceType;
+    packagePath: string;
+    sha256: string;
+    sha256Verified: boolean;
+  };
+  imported: {
+    schemaVersion: string;
+    id: string;
+    path: string;
+    sourceType: string;
+    enabled: boolean;
+    replaced: boolean;
+  };
+  nextSteps: string[];
+  warnings: TeamCatalogWarning[];
+  safetyCopy: string;
+};
+
 export type TeamLibraryError = {
   kind: string;
   message: string;
@@ -115,11 +141,18 @@ export type BuildTeamLibraryPlanInput = {
   plan: TeamCatalogInstallPlanContract;
 };
 
+export type BuildTeamLibraryApplyInput = {
+  apply: TeamCatalogInstallApplyContract;
+};
+
 export const TEAM_LIBRARY_SAFETY_COPY =
-  "Team Library only shows Core inspect results. It does not download, unpack, install, enable, mount, run, or mark catalog items trusted.";
+  "Team Library only works through Core inspect, plan, and confirmed apply. It does not download, unpack, import, enable, mount, run, or mark catalog items trusted on its own.";
 
 export const TEAM_LIBRARY_PLAN_SAFETY_COPY =
   "Install plan is a Core preview only. Desktop does not download, unpack, import, enable, mount, or apply anything from this result.";
+
+export const TEAM_LIBRARY_APPLY_SAFETY_COPY =
+  "Install apply calls Core after explicit confirmation. It imports the package only; it does not enable, mount, install dependencies, run, or mark the item trusted.";
 
 export async function loadTeamLibraryInspect(
   options: TeamCatalogInspectOptions,
@@ -173,6 +206,35 @@ export async function loadTeamLibraryInstallPlan(
   }
 }
 
+export async function applyTeamLibraryInstall(
+  options: TeamCatalogInstallApplyOptions,
+): Promise<
+  | {
+      status: "ready";
+      state: TeamLibraryApplyState;
+    }
+  | {
+      status: "error";
+      error: TeamLibraryError;
+    }
+> {
+  try {
+    const result = await fetchTeamCatalogInstallApply(options);
+    return {
+      status: "ready",
+      state: buildTeamLibraryApplyState({ apply: result.contract }),
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      error: {
+        kind: coreErrorKind(error),
+        message: error instanceof Error ? error.message : "Team catalog install apply failed.",
+      },
+    };
+  }
+}
+
 export function buildTeamLibraryState(input: BuildTeamLibraryInput): TeamLibraryState {
   const catalog = input.inspect.catalog;
   const items = input.inspect.items.map((item) => buildTeamCatalogItem(asRecord(item)));
@@ -218,6 +280,33 @@ export function buildTeamLibraryPlanState(input: BuildTeamLibraryPlanInput): Tea
     actions: readPlanActions(input.plan.actions),
     warnings: readWarnings(input.plan.warnings),
     safetyCopy: TEAM_LIBRARY_PLAN_SAFETY_COPY,
+  };
+}
+
+export function buildTeamLibraryApplyState(input: BuildTeamLibraryApplyInput): TeamLibraryApplyState {
+  const download = input.apply.download;
+  const importResult = input.apply.import;
+  return {
+    status: "ready",
+    catalogId: input.apply.catalog_id,
+    itemId: input.apply.item_id,
+    download: {
+      sourceType: readSourceType(download, "source_type", "file"),
+      packagePath: readString(download, "package_path", ""),
+      sha256: readString(download, "sha256", ""),
+      sha256Verified: readBoolean(download, "sha256_verified", false),
+    },
+    imported: {
+      schemaVersion: readString(importResult, "schema_version", "import.v1"),
+      id: readString(importResult, "id", ""),
+      path: readString(importResult, "path", ""),
+      sourceType: readString(importResult, "source_type", ""),
+      enabled: readBoolean(importResult, "enabled", false),
+      replaced: readBoolean(importResult, "replaced", false),
+    },
+    nextSteps: readStringArray(input.apply.next_steps),
+    warnings: readWarnings(input.apply.warnings),
+    safetyCopy: TEAM_LIBRARY_APPLY_SAFETY_COPY,
   };
 }
 

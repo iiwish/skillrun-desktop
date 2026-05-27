@@ -75,9 +75,11 @@ import {
 } from "./state/runs";
 import {
   TEAM_LIBRARY_SAFETY_COPY,
+  applyTeamLibraryInstall,
   loadTeamLibraryInstallPlan,
   loadTeamLibraryInspect,
   type TeamCatalogItem,
+  type TeamLibraryApplyState,
   type TeamLibraryError,
   type TeamLibraryItemState,
   type TeamLibraryPlanState,
@@ -114,6 +116,7 @@ type PendingTask =
   | "import"
   | "teamLibrary.inspect"
   | "teamLibrary.plan"
+  | "teamLibrary.apply"
   | "switchboard.refresh"
   | "switchboard.action"
   | "exposure.refresh"
@@ -160,7 +163,7 @@ const copy = {
     capsulesTitle: "Capsule 管理",
     capsulesSubtitle: "默认工作台。扫描本机已登记 Capsule，复核就绪性与暴露意图。",
     teamLibraryTitle: "团队能力库",
-    teamLibrarySubtitle: "浏览团队 catalog 中的 `.skr`、Agent Skill 和 MCP server 条目。当前只做 Core inspect，不安装、不下载、不挂载。",
+    teamLibrarySubtitle: "浏览团队 catalog 中的 `.skr`、Agent Skill 和 MCP server 条目。安装必须先检查计划并二次确认。",
     clientsTitle: "客户端挂载",
     clientsSubtitle: "复核 Claude Desktop 等 MCP client 的 Router 挂载计划。",
     toolsTitle: "工具暴露",
@@ -204,7 +207,7 @@ const copy = {
     noFilteredItemsTitle: "没有匹配的条目",
     noFilteredItemsBody: "调整搜索或筛选条件，或重新检查 catalog。",
     noCatalogTitle: "还没有载入 catalog",
-    noCatalogBody: "选择或粘贴团队 catalog JSON 路径后，Desktop 只调用 Core inspect 读取摘要。",
+    noCatalogBody: "选择或粘贴团队 catalog JSON 路径后，Desktop 先调用 Core inspect 读取摘要。",
     importAction: "导入 .skr",
     inspectCatalog: "检查 catalog",
     chooseCatalog: "选择 catalog",
@@ -239,10 +242,17 @@ const copy = {
     currentPath: "当前路径",
     noPlan: "尚未检查安装计划",
     planSafety: "安装计划只是 Core 预览。Desktop 不会下载、解包、导入、启用、挂载或应用这个结果。",
+    installApply: "执行安装",
+    applyTeamInstall: "安装到 registry",
+    applyTeamUpdate: "更新已导入 Capsule",
+    applyResult: "安装结果",
+    applySafety: "执行安装只会调用 Core apply 导入 `.skr`。不会启用、挂载、安装依赖、运行或标记可信。",
+    sha256Verified: "sha256 已校验",
+    nextSteps: "下一步",
     filterInstallable: "可安装",
     filterInstalled: "已安装",
     filterBlocked: "已阻止",
-    teamLibrarySafety: "Team Library 只展示团队 catalog 和 Core inspect 结果；不会下载、解包、安装、启用、挂载、运行，也不会把条目标记为可信。",
+    teamLibrarySafety: "Team Library 只通过 Core inspect / plan / apply 工作；不会自行下载、解包、导入、启用、挂载、运行，也不会把条目标记为可信。",
     searchCapsules: "搜索 Capsule",
     searchCatalogItems: "搜索团队条目",
     filterAll: "全部",
@@ -373,6 +383,8 @@ const copy = {
     runsSafety: "Run evidence 只通过 Core JSON surface 读取。默认不展示完整输入、日志正文或 artifact 内容。",
     confirmEnable: (id: string) =>
       `确认允许 ${id} 暴露给 Router？\n\nenabled 只是本地暴露意图，不代表可信、安装依赖或沙箱。`,
+    confirmTeamInstall: (id: string, action: string) =>
+      `确认${action} ${id}？\n\nDesktop 会调用 Core team catalog install apply。它不会自动启用、挂载、安装依赖、运行或标记可信。`,
     promptPackage: "输入本地 .skr 包路径",
     confirmMountExtra: "Core 将更新 MCP client 配置。这不会安装依赖，也不会把工具标记为可信。",
     confirmRollbackExtra: (backupPath: string) => `回滚只使用 Core 返回的备份路径：${backupPath}`,
@@ -396,7 +408,7 @@ const copy = {
     capsulesTitle: "Capsule management",
     capsulesSubtitle: "Default workspace for scanning registered Capsules, readiness, and exposure intent.",
     teamLibraryTitle: "Team Library",
-    teamLibrarySubtitle: "Browse team catalog entries for `.skr`, Agent Skills, and MCP servers. This phase only runs Core inspect; it does not install, download, or mount.",
+    teamLibrarySubtitle: "Browse team catalog entries for `.skr`, Agent Skills, and MCP servers. Installing requires a checked plan and explicit confirmation.",
     clientsTitle: "Client mounts",
     clientsSubtitle: "Review Router mount plans for Claude Desktop and other MCP clients.",
     toolsTitle: "Tool exposure",
@@ -440,7 +452,7 @@ const copy = {
     noFilteredItemsTitle: "No matching items",
     noFilteredItemsBody: "Adjust search or filters, or inspect the catalog again.",
     noCatalogTitle: "No catalog loaded",
-    noCatalogBody: "Choose or paste a team catalog JSON path. Desktop only calls Core inspect for the summary.",
+    noCatalogBody: "Choose or paste a team catalog JSON path. Desktop first calls Core inspect for the summary.",
     importAction: "Import .skr",
     inspectCatalog: "Inspect catalog",
     chooseCatalog: "Choose catalog",
@@ -475,6 +487,13 @@ const copy = {
     currentPath: "Current path",
     noPlan: "No install plan checked",
     planSafety: "Install plan is a Core preview only. Desktop does not download, unpack, import, enable, mount, or apply this result.",
+    installApply: "Apply install",
+    applyTeamInstall: "Install to registry",
+    applyTeamUpdate: "Update imported Capsule",
+    applyResult: "Install result",
+    applySafety: "Apply install only calls Core apply to import the `.skr`. It does not enable, mount, install dependencies, run, or mark it trusted.",
+    sha256Verified: "sha256 verified",
+    nextSteps: "Next steps",
     filterInstallable: "Installable",
     filterInstalled: "Installed",
     filterBlocked: "Blocked",
@@ -609,6 +628,8 @@ const copy = {
     runsSafety: RUNS_SAFETY_COPY,
     confirmEnable: (id: string) =>
       `Allow ${id} to be exposed by Router?\n\nEnabled means local exposure intent only; it does not install dependencies, establish trust, or sandbox the capsule.`,
+    confirmTeamInstall: (id: string, action: string) =>
+      `Confirm ${action} for ${id}?\n\nDesktop will call Core team catalog install apply. It will not enable, mount, install dependencies, run, or mark it trusted.`,
     promptPackage: "Enter a local .skr package path",
     confirmMountExtra: "Core will update the MCP client config. This does not install dependencies or mark exposed tools trusted.",
     confirmRollbackExtra: (backupPath: string) => `Rollback uses the Core-returned backup path only: ${backupPath}`,
@@ -703,8 +724,10 @@ function App() {
   const [teamLibraryFilter, setTeamLibraryFilter] = useState<TeamLibraryFilter>("all");
   const [teamLibraryState, setTeamLibraryState] = useState<TeamLibraryState>();
   const [teamLibraryPlan, setTeamLibraryPlan] = useState<TeamLibraryPlanState>();
+  const [teamLibraryApply, setTeamLibraryApply] = useState<TeamLibraryApplyState>();
   const [teamLibraryError, setTeamLibraryError] = useState<TeamLibraryError>();
   const [teamLibraryPlanError, setTeamLibraryPlanError] = useState<TeamLibraryError>();
+  const [teamLibraryApplyError, setTeamLibraryApplyError] = useState<TeamLibraryError>();
   const [selectedTeamItemId, setSelectedTeamItemId] = useState<string>();
   const [pendingTask, setPendingTask] = useState<PendingTask>();
   const [refreshState, setRefreshState] = useState<RefreshState>({ phase: "idle" });
@@ -733,6 +756,7 @@ function App() {
   const selectedCapsule = switchboardState.capsules.find((capsule) => capsule.id === selectedCapsuleId);
   const selectedTeamItem = teamLibraryState?.items.find((item) => item.id === selectedTeamItemId);
   const selectedTeamItemPlan = teamLibraryPlan?.itemId === selectedTeamItemId ? teamLibraryPlan : undefined;
+  const selectedTeamItemApply = teamLibraryApply?.itemId === selectedTeamItemId ? teamLibraryApply : undefined;
   const isRefreshingStatus = refreshState.phase === "loading";
   const activeDefinition = views.find((view) => view.id === activeView) ?? views[0];
   const pendingLabel = pendingTask ? pendingTaskLabel(pendingTask, locale) : undefined;
@@ -880,7 +904,9 @@ function App() {
       setTeamLibraryState(result.state);
       setSelectedTeamItemId(result.state.items[0]?.id);
       setTeamLibraryPlan(undefined);
+      setTeamLibraryApply(undefined);
       setTeamLibraryPlanError(undefined);
+      setTeamLibraryApplyError(undefined);
     } else {
       setTeamLibraryError(result.error);
     }
@@ -890,7 +916,9 @@ function App() {
   function handleSelectTeamItem(itemId: string) {
     setSelectedTeamItemId(itemId);
     setTeamLibraryPlan(undefined);
+    setTeamLibraryApply(undefined);
     setTeamLibraryPlanError(undefined);
+    setTeamLibraryApplyError(undefined);
   }
 
   async function handleTeamLibraryPlan(item: TeamCatalogItem) {
@@ -901,6 +929,8 @@ function App() {
 
     setPendingTask("teamLibrary.plan");
     setTeamLibraryPlanError(undefined);
+    setTeamLibraryApply(undefined);
+    setTeamLibraryApplyError(undefined);
 
     const result = await loadTeamLibraryInstallPlan({
       catalogPath: source,
@@ -914,6 +944,47 @@ function App() {
       setTeamLibraryPlanError(result.error);
     }
     setPendingTask(undefined);
+  }
+
+  async function handleTeamLibraryApply(item: TeamCatalogItem, plan: TeamLibraryPlanState) {
+    const source = teamLibraryState?.catalogSource ?? catalogPath.trim();
+    if (!source || !item.installable || plan.itemId !== item.id) {
+      return;
+    }
+
+    const primaryAction = plan.actions[0];
+    const actionLabel = primaryAction?.replace ? t.applyTeamUpdate : t.applyTeamInstall;
+    const confirmed = window.confirm(t.confirmTeamInstall(item.id, actionLabel));
+    if (!confirmed) {
+      return;
+    }
+
+    setPendingTask("teamLibrary.apply");
+    setTeamLibraryApplyError(undefined);
+
+    const result = await applyTeamLibraryInstall({
+      catalogPath: source,
+      itemId: item.id,
+      executor,
+    });
+
+    if (result.status === "ready") {
+      setTeamLibraryApply(result.state);
+      setSelectedCapsuleId(result.state.imported.id);
+      setActiveView("capsules");
+      setPendingTask(undefined);
+      void handleRefreshSwitchboard(result.state.imported.id);
+      void loadExposurePreview({ executor }).then((preview) => {
+        if (preview.status === "ready") {
+          setExposureState(preview.state);
+        } else {
+          setExposureError(preview.error);
+        }
+      });
+    } else {
+      setTeamLibraryApplyError(result.error);
+      setPendingTask(undefined);
+    }
   }
 
   async function handleRefreshSwitchboard(nextSelectedCapsuleId = selectedCapsuleId) {
@@ -1260,12 +1331,15 @@ function App() {
               selectedItem={selectedTeamItem}
               selectedItemId={selectedTeamItemId}
               selectedPlan={selectedTeamItemPlan}
+              selectedApply={selectedTeamItemApply}
               query={teamLibraryQuery}
               filter={teamLibraryFilter}
               error={teamLibraryError}
               planError={teamLibraryPlanError}
+              applyError={teamLibraryApplyError}
               pending={pendingTask === "teamLibrary.inspect"}
               pendingPlan={pendingTask === "teamLibrary.plan"}
+              pendingApply={pendingTask === "teamLibrary.apply"}
               inputRef={catalogPathInputRef}
               onCatalogPathChange={(path) => {
                 setCatalogPath(path);
@@ -1277,6 +1351,7 @@ function App() {
               onFilterChange={setTeamLibraryFilter}
               onSelectItem={handleSelectTeamItem}
               onPlan={(item) => void handleTeamLibraryPlan(item)}
+              onApply={(item, plan) => void handleTeamLibraryApply(item, plan)}
             />
           </section>
         ) : null}
@@ -1375,12 +1450,15 @@ function TeamLibraryPanel({
   selectedItem,
   selectedItemId,
   selectedPlan,
+  selectedApply,
   query,
   filter,
   error,
   planError,
+  applyError,
   pending,
   pendingPlan,
+  pendingApply,
   inputRef,
   onCatalogPathChange,
   onSelectCatalog,
@@ -1389,6 +1467,7 @@ function TeamLibraryPanel({
   onFilterChange,
   onSelectItem,
   onPlan,
+  onApply,
 }: {
   t: typeof copy[Locale];
   catalogPath: string;
@@ -1398,12 +1477,15 @@ function TeamLibraryPanel({
   selectedItem?: TeamCatalogItem;
   selectedItemId?: string;
   selectedPlan?: TeamLibraryPlanState;
+  selectedApply?: TeamLibraryApplyState;
   query: string;
   filter: TeamLibraryFilter;
   error?: TeamLibraryError;
   planError?: TeamLibraryError;
+  applyError?: TeamLibraryError;
   pending: boolean;
   pendingPlan: boolean;
+  pendingApply: boolean;
   inputRef?: RefObject<HTMLInputElement | null>;
   onCatalogPathChange: (path: string) => void;
   onSelectCatalog: () => void;
@@ -1412,6 +1494,7 @@ function TeamLibraryPanel({
   onFilterChange: (filter: TeamLibraryFilter) => void;
   onSelectItem: (itemId: string) => void;
   onPlan: (item: TeamCatalogItem) => void;
+  onApply: (item: TeamCatalogItem, plan: TeamLibraryPlanState) => void;
 }) {
   return (
     <section className="panel-body">
@@ -1562,9 +1645,13 @@ function TeamLibraryPanel({
               t={t}
               item={selectedItem}
               plan={selectedPlan}
+              apply={selectedApply}
               planError={planError}
+              applyError={applyError}
               pendingPlan={pendingPlan}
+              pendingApply={pendingApply}
               onPlan={onPlan}
+              onApply={onApply}
             />
           </section>
         </>
@@ -1577,16 +1664,24 @@ function TeamItemInspector({
   t,
   item,
   plan,
+  apply,
   planError,
+  applyError,
   pendingPlan,
+  pendingApply,
   onPlan,
+  onApply,
 }: {
   t: typeof copy[Locale];
   item?: TeamCatalogItem;
   plan?: TeamLibraryPlanState;
+  apply?: TeamLibraryApplyState;
   planError?: TeamLibraryError;
+  applyError?: TeamLibraryError;
   pendingPlan: boolean;
+  pendingApply: boolean;
   onPlan: (item: TeamCatalogItem) => void;
+  onApply: (item: TeamCatalogItem, plan: TeamLibraryPlanState) => void;
 }) {
   return (
     <aside className="inspector team-item-inspector" aria-label={t.itemDetails}>
@@ -1658,7 +1753,15 @@ function TeamItemInspector({
           {item.state === "display_only" ? <p className="form-hint">{t.teamLibraryDisplayOnlyReason}</p> : null}
           {item.state === "blocked" ? <p className="form-hint">{t.teamLibraryBlockedReason}</p> : null}
           {planError ? <Alert>{planError.message}</Alert> : null}
-          <TeamInstallPlanPanel t={t} plan={plan} />
+          {applyError ? <Alert>{applyError.message}</Alert> : null}
+          <TeamInstallPlanPanel
+            t={t}
+            item={item}
+            plan={plan}
+            apply={apply}
+            pendingApply={pendingApply}
+            onApply={onApply}
+          />
         </>
       ) : (
         <div className="inspector-empty">
@@ -1672,10 +1775,18 @@ function TeamItemInspector({
 
 function TeamInstallPlanPanel({
   t,
+  item,
   plan,
+  apply,
+  pendingApply,
+  onApply,
 }: {
   t: typeof copy[Locale];
+  item: TeamCatalogItem;
   plan?: TeamLibraryPlanState;
+  apply?: TeamLibraryApplyState;
+  pendingApply: boolean;
+  onApply: (item: TeamCatalogItem, plan: TeamLibraryPlanState) => void;
 }) {
   if (!plan) {
     return (
@@ -1687,6 +1798,7 @@ function TeamInstallPlanPanel({
   }
 
   const primaryAction = plan.actions[0];
+  const applyLabel = primaryAction?.replace ? t.applyTeamUpdate : t.applyTeamInstall;
   return (
     <section className="subsection plan-result-panel">
       <h4>{t.planResult}</h4>
@@ -1709,6 +1821,38 @@ function TeamInstallPlanPanel({
             </li>
           ))}
         </ul>
+      ) : null}
+      <div className="apply-confirm-strip">
+        <div>
+          <h4>{t.installApply}</h4>
+          <p>{t.applySafety}</p>
+        </div>
+        <Button icon={CheckCircle2} loading={pendingApply} disabled={pendingApply || !primaryAction} onClick={() => onApply(item, plan)}>
+          {applyLabel}
+        </Button>
+      </div>
+      {apply ? (
+        <section className="apply-result-panel">
+          <h4>{t.applyResult}</h4>
+          <DescriptionList
+            items={[
+              [t.imported, apply.imported.id],
+              [t.currentPath, apply.imported.path],
+              [t.sha256Verified, apply.download.sha256Verified ? t.true : t.false],
+              [t.enabled, apply.imported.enabled ? t.true : t.false],
+            ]}
+          />
+          {apply.nextSteps.length > 0 ? (
+            <div className="subsection nested-subsection">
+              <h4>{t.nextSteps}</h4>
+              <ul className="plain-list">
+                {apply.nextSteps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </section>
       ) : null}
     </section>
   );
@@ -2594,6 +2738,7 @@ function pendingTaskLabel(task: PendingTask, locale: Locale): string {
     import: { zh: "导入 .skr", en: "Import .skr" },
     "teamLibrary.inspect": { zh: "检查团队 catalog", en: "Inspect team catalog" },
     "teamLibrary.plan": { zh: "检查安装计划", en: "Check install plan" },
+    "teamLibrary.apply": { zh: "执行团队安装", en: "Apply team install" },
     "switchboard.refresh": { zh: "刷新 Capsule", en: "Refresh capsules" },
     "switchboard.action": { zh: "更新暴露意图", en: "Update exposure intent" },
     "exposure.refresh": { zh: "刷新暴露预览", en: "Refresh exposure preview" },

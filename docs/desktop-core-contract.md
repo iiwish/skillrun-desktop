@@ -444,30 +444,26 @@ Inspect：
 
 ## 7. Team Library
 
-**状态**：Inspect_And_Plan_Read_Only_Implemented
+**状态**：Guarded_Apply_Implemented
 
-Team Library 是团队 catalog 的只读浏览入口。Desktop 当前只允许消费 Core `inspect` 和 `install plan` surface；不得先行实现 catalog install/update apply 语义。
+Team Library 是团队 catalog 的受控浏览和安装入口。Desktop 当前只允许消费 Core `inspect`、`install plan` 和用户显式确认后的 `install apply` surface；不得自行实现 catalog install/update 语义。
 
 ### Commands
 
 ```text
 skillrun team catalog inspect <catalog> --json
 skillrun team catalog install plan <catalog> <item-id> --json
-```
-
-后续待 Core / Desktop 分步接入：
-
-```text
 skillrun team catalog install apply <catalog> <item-id> --json
 ```
 
 ### UI Rules
 
 - `inspect` 只用于展示 catalog 和 item summary。
-- 当前 read-only 页面调用 `inspect` 展示 catalog 和 item summary。
-- 当前 plan 面板调用 `install plan` 展示 import / replace / conflict / warning，但不执行 apply。
-- 后续 `install apply` 必须由用户确认后触发。
+- 页面调用 `inspect` 展示 catalog 和 item summary。
+- plan 面板调用 `install plan` 展示 import / replace / conflict / warning。
+- `install apply` 必须由用户确认后触发。
 - apply 成功后跳转到 Capsule 页面，由现有 Switchboard / Exposure / Mount / Runs 页面继续后续路径。
+- 如果 Core apply 对 source fail closed，例如当前 `https` source 尚无 downloader，Desktop 只展示 Core 错误，不自行下载。
 - `kind = "skillrun.skr"` 才可能进入 install / update。
 - `agent.skill` 和 `mcp.server` item 只能作为 display-only item，直到 Core 明确支持。
 
