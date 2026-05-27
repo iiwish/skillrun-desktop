@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, readdir, realpath, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -46,6 +47,47 @@ type ImportResult = {
     id: string;
     enabled: boolean;
     path: string;
+  };
+};
+
+type TeamCatalogInspectResult = {
+  command: "team catalog inspect";
+  schema_version: "team.catalog.inspect.v1";
+  ok: true;
+  items: Array<{
+    id: string;
+    installable: boolean;
+  }>;
+};
+
+type TeamCatalogPlanResult = {
+  command: "team catalog install plan";
+  schema_version: "team.catalog.install_plan.v1";
+  ok: true;
+  item: {
+    id: string;
+  };
+  actions: Array<{
+    type: "import";
+    replace: boolean;
+    requires_confirmation: boolean;
+  }>;
+};
+
+type TeamCatalogApplyResult = {
+  command: "team catalog install apply";
+  schema_version: "team.catalog.install_apply.v1";
+  ok: true;
+  item_id: string;
+  download: {
+    source_type: "file";
+    sha256_verified: boolean;
+  };
+  import: {
+    id: string;
+    source_type: "imported_skr";
+    enabled: boolean;
+    replaced: boolean;
   };
 };
 
@@ -248,6 +290,61 @@ describe("real Core smoke harness", () => {
         step: "import",
         detail: `capsule=${imported.data.capsule.id}; enabled=${imported.data.capsule.enabled}`,
       });
+
+      if (!(await skillrunSupportsTeamCatalog(env, trace))) {
+        summary.push({
+          step: "team catalog apply",
+          detail: "skipped because PATH skillrun does not expose the team catalog command yet",
+        });
+      } else {
+        const catalogPath = await writeTeamCatalog(workspace, capsuleId, packagePath);
+        const catalogInspect = await runJson<TeamCatalogInspectResult>(
+          {
+            args: ["team", "catalog", "inspect", catalogPath, "--json"],
+            expectedSchemaVersion: "team.catalog.inspect.v1",
+            executor,
+          },
+          trace,
+        );
+        expect(catalogInspect.data.items).toEqual(
+          expect.arrayContaining([expect.objectContaining({ id: capsuleId, installable: true })]),
+        );
+        const catalogPlan = await runJson<TeamCatalogPlanResult>(
+          {
+            args: ["team", "catalog", "install", "plan", catalogPath, capsuleId, "--json"],
+            expectedSchemaVersion: "team.catalog.install_plan.v1",
+            executor,
+          },
+          trace,
+        );
+        expect(catalogPlan.data.actions[0]).toMatchObject({
+          type: "import",
+          replace: true,
+          requires_confirmation: true,
+        });
+        const catalogApply = await runJson<TeamCatalogApplyResult>(
+          {
+            args: ["team", "catalog", "install", "apply", catalogPath, capsuleId, "--json"],
+            expectedSchemaVersion: "team.catalog.install_apply.v1",
+            executor,
+          },
+          trace,
+        );
+        expect(catalogApply.data.download).toMatchObject({
+          source_type: "file",
+          sha256_verified: true,
+        });
+        expect(catalogApply.data.import).toMatchObject({
+          id: capsuleId,
+          source_type: "imported_skr",
+          enabled: false,
+          replaced: true,
+        });
+        summary.push({
+          step: "team catalog apply",
+          detail: `capsule=${catalogApply.data.item_id}; replaced=${catalogApply.data.import.replaced}`,
+        });
+      }
 
       const inventory = await runJson<InventoryResult>(
         {
@@ -636,6 +733,47 @@ async function findSkrPackage(distPath: string): Promise<string> {
     throw new Error(`Environment blocker: no .skr package was created in ${distPath}.`);
   }
   return join(distPath, packageName);
+}
+
+async function writeTeamCatalog(workspace: string, capsuleId: string, packagePath: string): Promise<string> {
+  const catalogPath = join(workspace, "team-catalog.json");
+  const sha256 = createHash("sha256").update(await readFile(packagePath)).digest("hex");
+  await writeFile(
+    catalogPath,
+    JSON.stringify(
+      {
+        schema_version: "team.catalog.v1",
+        catalog_id: "desktop.smoke",
+        name: "Desktop Smoke Catalog",
+        updated_at: "2026-05-27T00:00:00Z",
+        items: [
+          {
+            id: capsuleId,
+            kind: "skillrun.skr",
+            name: "Desktop Smoke Capsule",
+            description: "Local file-source Team Catalog smoke item.",
+            version: "0.0.0",
+            source: {
+              type: "file",
+              url: packagePath,
+              sha256,
+            },
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+  );
+  return catalogPath;
+}
+
+async function skillrunSupportsTeamCatalog(
+  env: NodeJS.ProcessEnv,
+  trace: SmokeTraceEntry[],
+): Promise<boolean> {
+  const help = await runCommand(["--help"], env, trace);
+  return help.stdout.includes("team catalog");
 }
 
 function classifyFailure(error: unknown): string {

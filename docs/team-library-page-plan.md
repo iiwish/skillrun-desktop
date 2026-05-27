@@ -1,8 +1,8 @@
 # SkillRun Desktop Team Library Page Plan
 
-**状态**：Inspect_And_Plan_Read_Only_Implementation
+**状态**：Guarded_Apply_Implementation
 **日期**：2026-05-27
-**依赖**：`skillrun` Core `team catalog inspect` 已落地；`install plan/apply` 的 Desktop UI 仍待后续 PR
+**依赖**：`skillrun` Core `team catalog inspect`、`install plan`、本地 `file` source `install apply` 已落地；HTTPS download 仍等待 Core 显式 downloader
 
 ## 一句话判断
 
@@ -85,7 +85,7 @@ skillrun team catalog install plan <catalog> <item-id> --json
 skillrun team catalog install apply <catalog> <item-id> --json
 ```
 
-Desktop DTO 应等待 Core 命令实现后再冻结 fixture。实现前可以准备页面 skeleton 或文档，但不能从 catalog 文件自行解析并执行安装逻辑。
+Desktop DTO 必须跟随 Core 命令冻结 fixture，不能从 catalog 文件自行解析并执行安装逻辑。
 
 ## Data Model For UI
 
@@ -185,6 +185,7 @@ UI 行为：
 - 不自动 mount。
 - 不自动安装依赖。
 - 不运行 action、test、validate 或 MCP server。
+- 当前 Desktop 只消费 Core apply 结果；若 Core 对 `https` source fail closed，Desktop 只展示错误，不自行下载。
 
 ## Empty, Loading, Error States
 
@@ -257,6 +258,8 @@ UI 行为：
 - 用户确认后调用 apply。
 - 成功后跳转 Capsule page。
 - 刷新 inventory / exposure。
+
+状态：已完成 UI / parser / service / state 接入；真实 Core smoke 可在具备本地 file-source catalog fixture 后补强。
 
 ### PR 5: Team Library Smoke
 

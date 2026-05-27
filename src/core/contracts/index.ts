@@ -157,6 +157,19 @@ export type TeamCatalogInstallPlanContract = {
   error: null;
 };
 
+export type TeamCatalogInstallApplyContract = {
+  command: "team catalog install apply";
+  schema_version: "team.catalog.install_apply.v1";
+  ok: true;
+  catalog_id: string;
+  item_id: string;
+  download: Record<string, unknown>;
+  import: Record<string, unknown>;
+  next_steps: unknown[];
+  warnings: unknown[];
+  error: null;
+};
+
 export type DesktopCoreContract =
   | HostStatusContract
   | ImportContract
@@ -172,7 +185,8 @@ export type DesktopCoreContract =
   | RunsIndexStatusContract
   | RunsInspectContract
   | TeamCatalogInspectContract
-  | TeamCatalogInstallPlanContract;
+  | TeamCatalogInstallPlanContract
+  | TeamCatalogInstallApplyContract;
 
 const contractCommand: CoreCommandRequest = {
   command: "skillrun",
@@ -419,6 +433,34 @@ export function parseTeamCatalogInstallPlanContract(input: unknown): TeamCatalog
     throw mismatch("error", "Expected null.");
   }
   return data as TeamCatalogInstallPlanContract;
+}
+
+export function parseTeamCatalogInstallApplyContract(input: unknown): TeamCatalogInstallApplyContract {
+  const data = baseContract(input, "team.catalog.install_apply.v1", "team catalog install apply");
+  requireLiteral(data, "ok", true);
+  requireString(data, "catalog_id");
+  requireString(data, "item_id");
+  const download = requireRecord(data, "download");
+  const sourceType = requireString(download, "source_type");
+  if (!["file", "https"].includes(sourceType)) {
+    throw mismatch("download.source_type", "Expected file or https.");
+  }
+  requireString(download, "package_path");
+  requireString(download, "sha256");
+  requireBoolean(download, "sha256_verified");
+  const importResult = requireRecord(data, "import");
+  requireLiteral(importResult, "schema_version", "import.v1");
+  requireString(importResult, "id");
+  requireString(importResult, "path");
+  requireLiteral(importResult, "source_type", "imported_skr");
+  requireBoolean(importResult, "enabled");
+  requireBoolean(importResult, "replaced");
+  requireArray(data, "next_steps");
+  requireArray(data, "warnings");
+  if (data.error !== null) {
+    throw mismatch("error", "Expected null.");
+  }
+  return data as TeamCatalogInstallApplyContract;
 }
 
 function baseContract(

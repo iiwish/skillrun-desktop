@@ -14,6 +14,7 @@ import {
   parseRunsIndexStatusContract,
   parseRunsInspectContract,
   parseRunsListContract,
+  parseTeamCatalogInstallApplyContract,
   parseTeamCatalogInstallPlanContract,
   parseTeamCatalogInspectContract,
   type DesktopCoreContract,
@@ -40,6 +41,7 @@ import importFixture from "./fixtures/import.v1.json";
 import importPosixFixture from "./fixtures/import.posix.v1.json";
 import routerDryRunFixture from "./fixtures/router-dry-run.v1.json";
 import routerStatusFixture from "./fixtures/router-status.v1.json";
+import teamCatalogInstallApplyFixture from "./fixtures/team-catalog-install-apply.v1.json";
 import teamCatalogInstallPlanFixture from "./fixtures/team-catalog-install-plan.v1.json";
 import teamCatalogInspectFixture from "./fixtures/team-catalog-inspect.v1.json";
 
@@ -150,6 +152,12 @@ const parserCases: Array<{
     parser: parseTeamCatalogInstallPlanContract,
     fixture: teamCatalogInstallPlanFixture,
     schemaVersion: "team.catalog.install_plan.v1",
+  },
+  {
+    name: "team catalog install apply",
+    parser: parseTeamCatalogInstallApplyContract,
+    fixture: teamCatalogInstallApplyFixture,
+    schemaVersion: "team.catalog.install_apply.v1",
   },
 ];
 
