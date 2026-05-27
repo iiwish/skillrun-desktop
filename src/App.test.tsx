@@ -11,6 +11,8 @@ describe("App alpha dashboard", () => {
     expect(html).toContain("扫描本机已登记 Capsule");
     expect(html).toContain("工作台概览");
     expect(html).toContain("搜索 Capsule");
+    expect(html).toContain("团队库");
+    expect(html).toContain("团队能力库");
     expect(html).toContain("导入 .skr");
     expect(html).toContain("Capsule 管理");
     expect(html).toContain("客户端挂载");

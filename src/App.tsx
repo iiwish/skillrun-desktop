@@ -10,6 +10,7 @@ import {
   HardDriveDownload,
   History,
   Languages,
+  LibraryBig,
   Link2,
   Loader2,
   Play,
@@ -73,6 +74,14 @@ import {
   type RunsListState,
 } from "./state/runs";
 import {
+  TEAM_LIBRARY_SAFETY_COPY,
+  loadTeamLibraryInspect,
+  type TeamCatalogItem,
+  type TeamLibraryError,
+  type TeamLibraryItemState,
+  type TeamLibraryState,
+} from "./state/teamLibrary";
+import {
   SWITCHBOARD_SAFETY_COPY,
   applySwitchboardAction,
   buildSwitchboardState,
@@ -82,9 +91,10 @@ import {
 } from "./state/switchboard";
 import type { TrayStatusKind } from "./state/trayStatus";
 
-type DashboardView = "capsules" | "clients" | "tools" | "runs" | "settings";
+type DashboardView = "capsules" | "teamLibrary" | "clients" | "tools" | "runs" | "settings";
 type Locale = "zh" | "en";
 type CapsuleFilter = "all" | "enabled" | "issues";
+type TeamLibraryFilter = "all" | "installable" | "installed" | "blocked";
 type RunsOkFilter = "any" | "true" | "false";
 type RunsSourceFilter = "scan" | "index";
 type RunsFilters = {
@@ -100,6 +110,7 @@ type RunsFilters = {
 
 type PendingTask =
   | "import"
+  | "teamLibrary.inspect"
   | "switchboard.refresh"
   | "switchboard.action"
   | "exposure.refresh"
@@ -138,12 +149,15 @@ const copy = {
     title: "管理本机 Skill Capsule",
     subtitle: "Desktop 只消费 Core 的稳定 JSON surface。所有状态变化都回到 `skillrun` 命令，UI 不读取 `.skillrun` 内部目录。",
     navCapsules: "Capsule",
+    navTeamLibrary: "团队库",
     navClients: "客户端",
     navTools: "暴露",
     navRuns: "记录",
     navSettings: "设置",
     capsulesTitle: "Capsule 管理",
     capsulesSubtitle: "默认工作台。扫描本机已登记 Capsule，复核就绪性与暴露意图。",
+    teamLibraryTitle: "团队能力库",
+    teamLibrarySubtitle: "浏览团队 catalog 中的 `.skr`、Agent Skill 和 MCP server 条目。当前只做 Core inspect，不安装、不下载、不挂载。",
     clientsTitle: "客户端挂载",
     clientsSubtitle: "复核 Claude Desktop 等 MCP client 的 Router 挂载计划。",
     toolsTitle: "工具暴露",
@@ -184,8 +198,39 @@ const copy = {
     selectionHint: "左侧列表选择一个 Capsule，右侧会显示 readiness、runtime 和暴露操作。",
     noFilteredCapsulesTitle: "没有匹配的 Capsule",
     noFilteredCapsulesBody: "调整搜索或筛选条件，或刷新本地 registry。",
+    noFilteredItemsTitle: "没有匹配的条目",
+    noFilteredItemsBody: "调整搜索或筛选条件，或重新检查 catalog。",
+    noCatalogTitle: "还没有载入 catalog",
+    noCatalogBody: "选择或粘贴团队 catalog JSON 路径后，Desktop 只调用 Core inspect 读取摘要。",
     importAction: "导入 .skr",
+    inspectCatalog: "检查 catalog",
+    chooseCatalog: "选择 catalog",
+    catalogPath: "Catalog 路径",
+    catalogPlaceholder: "/path/to/team.catalog.json",
+    catalogPathReady: "路径已准备好，可以检查 catalog。",
+    catalogBrowserHelp: "浏览器预览不能读取本机 catalog。请粘贴完整路径；在 Tauri 应用里会打开系统文件选择器。",
+    catalogSummary: "Catalog 摘要",
+    catalogItems: "团队条目",
+    itemDetails: "条目详情",
+    catalogUpdated: "更新时间",
+    installable: "可安装",
+    installed: "已安装",
+    blocked: "已阻止",
+    displayOnly: "仅展示",
+    itemKind: "类型",
+    itemVersion: "版本",
+    publisher: "发布方",
+    checksum: "sha256",
+    requirements: "环境要求",
+    permissions: "权限摘要",
+    trustNote: "团队说明",
+    tags: "标签",
+    filterInstallable: "可安装",
+    filterInstalled: "已安装",
+    filterBlocked: "已阻止",
+    teamLibrarySafety: "Team Library 只展示团队 catalog 和 Core inspect 结果；不会下载、解包、安装、启用、挂载、运行，也不会把条目标记为可信。",
     searchCapsules: "搜索 Capsule",
+    searchCatalogItems: "搜索团队条目",
     filterAll: "全部",
     filterEnabled: "已启用",
     filterIssues: "有问题",
@@ -304,6 +349,10 @@ const copy = {
       "Runs 默认只展示摘要和 metadata，不读取完整 input、log 或 artifact 内容。",
     ],
     importSafety: "导入只把 `.skr` 加入本地 registry。不会安装依赖、不会自动启用、不会自动挂载，也不会把它标记为可信。",
+    teamLibraryEmptyAction: "先检查 catalog",
+    teamLibraryDisplayOnlyReason: "这个条目当前只用于展示，不能在 Desktop 中安装或执行。",
+    teamLibraryBlockedReason: "Core inspect 标记为不可安装。Desktop 不提供绕过路径。",
+    teamLibraryPlanLater: "安装计划稍后开放",
     switchboardSafety: "enabled 表示允许 Router 暴露该 Capsule。就绪性来自 Core preflight，不代表业务正确性、trust 或 sandbox。",
     exposureSafety: "这里只展示 Core 报告的 tool/resource metadata。exposed 不等于 trusted、safe 或 sandboxed。",
     mountSafety: "Desktop 只请求 Core 计算、应用和回滚 MCP client 配置。所有真实写入都必须先确认。",
@@ -325,12 +374,15 @@ const copy = {
     title: "Manage local Skill Capsules",
     subtitle: "Desktop only consumes stable Core JSON surfaces. Every state change is backed by a `skillrun` command; the UI never reads `.skillrun` internals.",
     navCapsules: "Capsules",
+    navTeamLibrary: "Team Library",
     navClients: "Clients",
     navTools: "Exposure",
     navRuns: "Runs",
     navSettings: "Settings",
     capsulesTitle: "Capsule management",
     capsulesSubtitle: "Default workspace for scanning registered Capsules, readiness, and exposure intent.",
+    teamLibraryTitle: "Team Library",
+    teamLibrarySubtitle: "Browse team catalog entries for `.skr`, Agent Skills, and MCP servers. This phase only runs Core inspect; it does not install, download, or mount.",
     clientsTitle: "Client mounts",
     clientsSubtitle: "Review Router mount plans for Claude Desktop and other MCP clients.",
     toolsTitle: "Tool exposure",
@@ -371,8 +423,39 @@ const copy = {
     selectionHint: "Select a capsule from the list to inspect readiness, runtime, and exposure actions here.",
     noFilteredCapsulesTitle: "No matching capsules",
     noFilteredCapsulesBody: "Adjust the search or filters, or refresh the local registry.",
+    noFilteredItemsTitle: "No matching items",
+    noFilteredItemsBody: "Adjust search or filters, or inspect the catalog again.",
+    noCatalogTitle: "No catalog loaded",
+    noCatalogBody: "Choose or paste a team catalog JSON path. Desktop only calls Core inspect for the summary.",
     importAction: "Import .skr",
+    inspectCatalog: "Inspect catalog",
+    chooseCatalog: "Choose catalog",
+    catalogPath: "Catalog path",
+    catalogPlaceholder: "/path/to/team.catalog.json",
+    catalogPathReady: "Path ready. You can inspect the catalog.",
+    catalogBrowserHelp: "Browser preview cannot read a local catalog. Paste the full path; the Tauri app opens the native file picker.",
+    catalogSummary: "Catalog summary",
+    catalogItems: "Team items",
+    itemDetails: "Item detail",
+    catalogUpdated: "Updated",
+    installable: "Installable",
+    installed: "Installed",
+    blocked: "Blocked",
+    displayOnly: "Display only",
+    itemKind: "Kind",
+    itemVersion: "Version",
+    publisher: "Publisher",
+    checksum: "sha256",
+    requirements: "Requirements",
+    permissions: "Permissions",
+    trustNote: "Team note",
+    tags: "Tags",
+    filterInstallable: "Installable",
+    filterInstalled: "Installed",
+    filterBlocked: "Blocked",
+    teamLibrarySafety: TEAM_LIBRARY_SAFETY_COPY,
     searchCapsules: "Search capsules",
+    searchCatalogItems: "Search team items",
     filterAll: "All",
     filterEnabled: "Enabled",
     filterIssues: "Issues",
@@ -491,6 +574,10 @@ const copy = {
       "Runs show summary and metadata by default, not full input, logs, or artifact content.",
     ],
     importSafety: IMPORT_SAFETY_COPY,
+    teamLibraryEmptyAction: "Inspect catalog first",
+    teamLibraryDisplayOnlyReason: "This item is display-only in this phase and cannot be installed or executed from Desktop.",
+    teamLibraryBlockedReason: "Core inspect marked this item not installable. Desktop does not provide a bypass.",
+    teamLibraryPlanLater: "Install plan later",
     switchboardSafety: SWITCHBOARD_SAFETY_COPY,
     exposureSafety: "Exposure preview shows Core-reported tool/resource metadata only. Exposed does not mean sandboxed, trusted, or safe.",
     mountSafety: MOUNT_SAFETY_COPY,
@@ -581,9 +668,17 @@ function App() {
   const [packagePath, setPackagePath] = useState("");
   const [pathPickerMessage, setPathPickerMessage] = useState("");
   const packagePathInputRef = useRef<HTMLInputElement>(null);
+  const catalogPathInputRef = useRef<HTMLInputElement>(null);
   const [capsuleQuery, setCapsuleQuery] = useState("");
   const [capsuleFilter, setCapsuleFilter] = useState<CapsuleFilter>("all");
   const [selectedCapsuleId, setSelectedCapsuleId] = useState<string>();
+  const [catalogPath, setCatalogPath] = useState("");
+  const [catalogPickerMessage, setCatalogPickerMessage] = useState("");
+  const [teamLibraryQuery, setTeamLibraryQuery] = useState("");
+  const [teamLibraryFilter, setTeamLibraryFilter] = useState<TeamLibraryFilter>("all");
+  const [teamLibraryState, setTeamLibraryState] = useState<TeamLibraryState>();
+  const [teamLibraryError, setTeamLibraryError] = useState<TeamLibraryError>();
+  const [selectedTeamItemId, setSelectedTeamItemId] = useState<string>();
   const [pendingTask, setPendingTask] = useState<PendingTask>();
   const [refreshState, setRefreshState] = useState<RefreshState>({ phase: "idle" });
   const [importState, setImportState] = useState<ImportFlowState>(initialImportState);
@@ -609,6 +704,7 @@ function App() {
         ? refreshState.lastSnapshot
         : undefined;
   const selectedCapsule = switchboardState.capsules.find((capsule) => capsule.id === selectedCapsuleId);
+  const selectedTeamItem = teamLibraryState?.items.find((item) => item.id === selectedTeamItemId);
   const isRefreshingStatus = refreshState.phase === "loading";
   const activeDefinition = views.find((view) => view.id === activeView) ?? views[0];
   const pendingLabel = pendingTask ? pendingTaskLabel(pendingTask, locale) : undefined;
@@ -623,6 +719,21 @@ function App() {
       capsuleFilter === "all" ||
       (capsuleFilter === "enabled" && capsule.enabled) ||
       (capsuleFilter === "issues" && !capsule.readinessOk);
+    return matchesQuery && matchesFilter;
+  });
+  const filteredTeamItems = (teamLibraryState?.items ?? []).filter((item) => {
+    const query = teamLibraryQuery.trim().toLowerCase();
+    const matchesQuery =
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      item.id.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
+      item.tags.some((tag) => tag.toLowerCase().includes(query));
+    const matchesFilter =
+      teamLibraryFilter === "all" ||
+      (teamLibraryFilter === "installable" && item.installable) ||
+      (teamLibraryFilter === "installed" && item.installed) ||
+      (teamLibraryFilter === "blocked" && item.state === "blocked");
     return matchesQuery && matchesFilter;
   });
 
@@ -697,6 +808,53 @@ function App() {
     } catch (error) {
       setPathPickerMessage(error instanceof Error ? error.message : String(error));
     }
+  }
+
+  async function handleSelectCatalog() {
+    setCatalogPickerMessage("");
+
+    if (!isTauri()) {
+      setCatalogPickerMessage(t.catalogBrowserHelp);
+      catalogPathInputRef.current?.focus();
+      return;
+    }
+
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: "SkillRun Team Catalog", extensions: ["json"] }],
+      });
+
+      if (typeof selected === "string") {
+        setCatalogPath(selected);
+        setCatalogPickerMessage(t.catalogPathReady);
+      }
+    } catch (error) {
+      setCatalogPickerMessage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function handleTeamLibraryInspect() {
+    if (!catalogPath.trim()) {
+      catalogPathInputRef.current?.focus();
+      return;
+    }
+
+    setPendingTask("teamLibrary.inspect");
+    setTeamLibraryError(undefined);
+
+    const result = await loadTeamLibraryInspect({
+      catalogPath: catalogPath.trim(),
+      executor,
+    });
+
+    if (result.status === "ready") {
+      setTeamLibraryState(result.state);
+      setSelectedTeamItemId(result.state.items[0]?.id);
+    } else {
+      setTeamLibraryError(result.error);
+    }
+    setPendingTask(undefined);
   }
 
   async function handleRefreshSwitchboard(nextSelectedCapsuleId = selectedCapsuleId) {
@@ -989,6 +1147,7 @@ function App() {
                 if (activeView === "clients") void handleMountPlan();
                 else if (activeView === "tools") void handleRefreshExposure();
                 else if (activeView === "runs") void handleRunsRefresh();
+                else if (activeView === "teamLibrary") void handleTeamLibraryInspect();
                 else {
                   void handleRefreshStatus();
                   void handleRefreshSwitchboard();
@@ -1029,6 +1188,34 @@ function App() {
             onEnable={(capsule) => void handleSwitchboardAction("enable", capsule)}
             onDisable={(capsule) => void handleSwitchboardAction("disable", capsule)}
           />
+        ) : null}
+
+        {activeView === "teamLibrary" ? (
+          <section className="single-panel">
+            <TeamLibraryPanel
+              t={t}
+              catalogPath={catalogPath}
+              pickerMessage={catalogPickerMessage}
+              state={teamLibraryState}
+              items={filteredTeamItems}
+              selectedItem={selectedTeamItem}
+              selectedItemId={selectedTeamItemId}
+              query={teamLibraryQuery}
+              filter={teamLibraryFilter}
+              error={teamLibraryError}
+              pending={pendingTask === "teamLibrary.inspect"}
+              inputRef={catalogPathInputRef}
+              onCatalogPathChange={(path) => {
+                setCatalogPath(path);
+                setCatalogPickerMessage(path ? t.catalogPathReady : "");
+              }}
+              onSelectCatalog={() => void handleSelectCatalog()}
+              onInspect={() => void handleTeamLibraryInspect()}
+              onQueryChange={setTeamLibraryQuery}
+              onFilterChange={setTeamLibraryFilter}
+              onSelectItem={setSelectedTeamItemId}
+            />
+          </section>
         ) : null}
 
         {activeView === "clients" ? (
@@ -1113,6 +1300,277 @@ function App() {
         ) : null}
       </section>
     </main>
+  );
+}
+
+function TeamLibraryPanel({
+  t,
+  catalogPath,
+  pickerMessage,
+  state,
+  items,
+  selectedItem,
+  selectedItemId,
+  query,
+  filter,
+  error,
+  pending,
+  inputRef,
+  onCatalogPathChange,
+  onSelectCatalog,
+  onInspect,
+  onQueryChange,
+  onFilterChange,
+  onSelectItem,
+}: {
+  t: typeof copy[Locale];
+  catalogPath: string;
+  pickerMessage?: string;
+  state?: TeamLibraryState;
+  items: TeamCatalogItem[];
+  selectedItem?: TeamCatalogItem;
+  selectedItemId?: string;
+  query: string;
+  filter: TeamLibraryFilter;
+  error?: TeamLibraryError;
+  pending: boolean;
+  inputRef?: RefObject<HTMLInputElement | null>;
+  onCatalogPathChange: (path: string) => void;
+  onSelectCatalog: () => void;
+  onInspect: () => void;
+  onQueryChange: (query: string) => void;
+  onFilterChange: (filter: TeamLibraryFilter) => void;
+  onSelectItem: (itemId: string) => void;
+}) {
+  return (
+    <section className="panel-body">
+      <form
+        className="catalog-toolbar"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onInspect();
+        }}
+      >
+        <div className="catalog-source-field">
+          <label htmlFor="catalog-path">{t.catalogPath}</label>
+          <div className="input-row">
+            <input
+              id="catalog-path"
+              ref={inputRef}
+              value={catalogPath}
+              onChange={(event) => onCatalogPathChange(event.target.value)}
+              placeholder={t.catalogPlaceholder}
+            />
+            <Button type="button" variant="secondary" icon={HardDriveDownload} onClick={onSelectCatalog}>
+              {t.chooseCatalog}
+            </Button>
+            <Button type="submit" icon={RefreshCw} disabled={!catalogPath.trim()} loading={pending}>
+              {t.inspectCatalog}
+            </Button>
+          </div>
+          <p className="form-hint">{pickerMessage || t.noCatalogBody}</p>
+        </div>
+      </form>
+
+      <section className="index-status-strip neutral" aria-label={t.boundaries}>
+        <div>
+          <h4>{t.teamLibraryTitle}</h4>
+          <p>{t.teamLibrarySafety}</p>
+        </div>
+        <DescriptionList
+          items={[
+            [t.source, state?.catalogSource ?? t.none],
+            [t.catalogUpdated, state?.catalog.updatedAt ?? t.notChecked],
+            [t.catalogItems, state ? String(state.summary.total) : t.unknown],
+          ]}
+        />
+      </section>
+
+      {error ? <Alert>{error.message}</Alert> : null}
+
+      {!state ? (
+        <div className="empty-action compact-empty">
+          <EmptyState icon={LibraryBig} title={t.noCatalogTitle} />
+          <p>{t.noCatalogBody}</p>
+          <Button variant="secondary" icon={RefreshCw} onClick={onInspect} disabled={!catalogPath.trim()} loading={pending}>
+            {t.teamLibraryEmptyAction}
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="overview-metrics team-library-metrics" aria-label={t.catalogSummary}>
+            <SummaryStat label={t.catalogItems} value={state.summary.total} />
+            <SummaryStat label={t.installable} value={state.summary.installable} />
+            <SummaryStat label={t.installed} value={state.summary.installed} />
+            <SummaryStat label={t.blocked} value={state.summary.blocked} tone={state.summary.blocked > 0 ? "warning" : "neutral"} />
+          </div>
+
+          <section className="team-library-layout">
+            <aside className="catalog-rail" aria-label={t.catalogSummary}>
+              <header className="compact-heading">
+                <LibraryBig aria-hidden="true" />
+                <div>
+                  <h3>{state.catalog.name}</h3>
+                  <p>{state.catalog.id}</p>
+                </div>
+              </header>
+              <DescriptionList
+                items={[
+                  [t.catalogUpdated, state.catalog.updatedAt],
+                  [t.catalogItems, String(state.catalog.itemCount)],
+                  [t.displayOnly, String(state.summary.displayOnly)],
+                  [t.source, state.catalogSource],
+                ]}
+              />
+              {state.catalog.description ? <p className="safety-copy">{state.catalog.description}</p> : null}
+            </aside>
+
+            <section className="team-items-panel" aria-label={t.catalogItems}>
+              <div className="list-toolbar team-library-toolbar">
+                <label className="search-field">
+                  <Search aria-hidden="true" />
+                  <input
+                    value={query}
+                    onChange={(event) => onQueryChange(event.target.value)}
+                    placeholder={t.searchCatalogItems}
+                  />
+                </label>
+                <div className="filter-tabs" role="group" aria-label={t.status}>
+                  {([
+                    ["all", t.filterAll],
+                    ["installable", t.filterInstallable],
+                    ["installed", t.filterInstalled],
+                    ["blocked", t.filterBlocked],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={filter === value ? "active" : ""}
+                      onClick={() => onFilterChange(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {items.length === 0 ? (
+                <div className="empty-action compact-empty">
+                  <EmptyState icon={Search} title={t.noFilteredItemsTitle} />
+                  <p>{t.noFilteredItemsBody}</p>
+                </div>
+              ) : (
+                <div className="team-items-table" role="table" aria-label={t.catalogItems}>
+                  <div className="team-items-head" role="row">
+                    <span>{t.catalogItems}</span>
+                    <span>{t.itemKind}</span>
+                    <span>{t.status}</span>
+                    <span>{t.source}</span>
+                  </div>
+                  {items.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={selectedItemId === item.id ? "team-item-row selected" : "team-item-row"}
+                      onClick={() => onSelectItem(item.id)}
+                    >
+                      <span className="capsule-identity">
+                        <strong>{item.name}</strong>
+                        <small>{item.id} · {item.version}</small>
+                      </span>
+                      <span className="muted">{item.kind}</span>
+                      <Badge tone={teamItemTone(item.state)}>{teamItemStateLabel(item.state, t)}</Badge>
+                      <span className="muted">{item.sourceType}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <TeamItemInspector t={t} item={selectedItem} />
+          </section>
+        </>
+      )}
+    </section>
+  );
+}
+
+function TeamItemInspector({ t, item }: { t: typeof copy[Locale]; item?: TeamCatalogItem }) {
+  return (
+    <aside className="inspector team-item-inspector" aria-label={t.itemDetails}>
+      <header className="compact-heading">
+        <LibraryBig aria-hidden="true" />
+        <div>
+          <h3>{t.itemDetails}</h3>
+          <p>{item?.id ?? t.noSelection}</p>
+        </div>
+      </header>
+      {item ? (
+        <>
+          <DescriptionList
+            items={[
+              [t.catalogItems, item.name],
+              [t.itemKind, item.kind],
+              [t.itemVersion, item.version],
+              [t.status, teamItemStateLabel(item.state, t)],
+              [t.publisher, item.publisherName ?? t.unknown],
+              [t.source, item.sourceType],
+              [t.checksum, item.sha256 ?? t.none],
+            ]}
+          />
+          <section className="subsection">
+            <h4>{t.permissions}</h4>
+            {item.permissionsSummary.length === 0 ? <p className="muted">{t.none}</p> : null}
+            <ul className="plain-list">
+              {item.permissionsSummary.map((permission) => (
+                <li key={permission}>{permission}</li>
+              ))}
+            </ul>
+          </section>
+          <section className="subsection">
+            <h4>{t.requirements}</h4>
+            {item.requirements.length === 0 ? <p className="muted">{t.none}</p> : null}
+            <ul className="plain-list">
+              {item.requirements.map((requirement) => (
+                <li key={requirement}>{requirement}</li>
+              ))}
+            </ul>
+          </section>
+          {item.trustNote ? (
+            <section className="safety-strip">
+              <h4>{t.trustNote}</h4>
+              <p className="safety-copy">{item.trustNote}</p>
+            </section>
+          ) : null}
+          {item.warnings.length > 0 ? (
+            <section className="subsection">
+              <h4>{t.warnings}</h4>
+              <ul className="plain-list">
+                {item.warnings.map((warning) => (
+                  <li key={`${warning.code}:${warning.message}`}>
+                    <code>{warning.code}</code> {warning.message}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          <Button variant="secondary" icon={Play} disabled>
+            {item.state === "display_only"
+              ? t.displayOnly
+              : item.state === "blocked"
+                ? t.blocked
+                : t.teamLibraryPlanLater}
+          </Button>
+          {item.state === "display_only" ? <p className="form-hint">{t.teamLibraryDisplayOnlyReason}</p> : null}
+          {item.state === "blocked" ? <p className="form-hint">{t.teamLibraryBlockedReason}</p> : null}
+        </>
+      ) : (
+        <div className="inspector-empty">
+          <EmptyState icon={LibraryBig} title={t.noSelection} />
+          <p>{t.selectionHint}</p>
+        </div>
+      )}
+    </aside>
   );
 }
 
@@ -1946,6 +2404,7 @@ function summarizeIndexStatus(
 function viewDefinitions(t: typeof copy[Locale]): ViewDefinition[] {
   return [
     { id: "capsules", icon: Boxes, step: t.capsules, label: t.capsulesTitle, navLabel: t.navCapsules, description: t.capsulesSubtitle },
+    { id: "teamLibrary", icon: LibraryBig, step: t.catalogItems, label: t.teamLibraryTitle, navLabel: t.navTeamLibrary, description: t.teamLibrarySubtitle },
     { id: "clients", icon: Link2, step: t.client, label: t.clientsTitle, navLabel: t.navClients, description: t.clientsSubtitle },
     { id: "tools", icon: Globe2, step: t.tools, label: t.toolsTitle, navLabel: t.navTools, description: t.toolsSubtitle },
     { id: "runs", icon: History, step: t.runList, label: t.runsTitle, navLabel: t.navRuns, description: t.runsSubtitle },
@@ -1993,6 +2452,7 @@ function toActionError(error: unknown, fallback: string): SwitchboardActionError
 function pendingTaskLabel(task: PendingTask, locale: Locale): string {
   const labels: Record<PendingTask, { zh: string; en: string }> = {
     import: { zh: "导入 .skr", en: "Import .skr" },
+    "teamLibrary.inspect": { zh: "检查团队 catalog", en: "Inspect team catalog" },
     "switchboard.refresh": { zh: "刷新 Capsule", en: "Refresh capsules" },
     "switchboard.action": { zh: "更新暴露意图", en: "Update exposure intent" },
     "exposure.refresh": { zh: "刷新暴露预览", en: "Refresh exposure preview" },
@@ -2006,6 +2466,29 @@ function pendingTaskLabel(task: PendingTask, locale: Locale): string {
   };
 
   return labels[task][locale];
+}
+
+function teamItemStateLabel(state: TeamLibraryItemState, t: typeof copy[Locale]): string {
+  const labels: Record<TeamLibraryItemState, string> = {
+    display_only: t.displayOnly,
+    not_installed: t.installable,
+    installed_current: t.installed,
+    blocked: t.blocked,
+  };
+  return labels[state];
+}
+
+function teamItemTone(state: TeamLibraryItemState): "neutral" | "success" | "warning" | "danger" {
+  if (state === "installed_current") {
+    return "success";
+  }
+  if (state === "blocked") {
+    return "danger";
+  }
+  if (state === "display_only") {
+    return "neutral";
+  }
+  return "warning";
 }
 
 function statusLabel(kind: TrayStatusKind, locale: Locale): string {

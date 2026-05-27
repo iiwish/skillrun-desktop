@@ -136,6 +136,15 @@ export type RunsInspectContract = {
   warnings: unknown[];
 };
 
+export type TeamCatalogInspectContract = {
+  command: "team catalog inspect";
+  schema_version: "team.catalog.inspect.v1";
+  ok: true;
+  catalog: Record<string, unknown>;
+  items: unknown[];
+  error: null;
+};
+
 export type DesktopCoreContract =
   | HostStatusContract
   | ImportContract
@@ -149,7 +158,8 @@ export type DesktopCoreContract =
   | RunsListContract
   | RunsIndexRebuildContract
   | RunsIndexStatusContract
-  | RunsInspectContract;
+  | RunsInspectContract
+  | TeamCatalogInspectContract;
 
 const contractCommand: CoreCommandRequest = {
   command: "skillrun",
@@ -336,6 +346,38 @@ export function parseRunsInspectContract(input: unknown): RunsInspectContract {
   requireBoolean(logs, "stderr_included");
   requireArray(data, "warnings");
   return data as RunsInspectContract;
+}
+
+export function parseTeamCatalogInspectContract(input: unknown): TeamCatalogInspectContract {
+  const data = baseContract(input, "team.catalog.inspect.v1", "team catalog inspect");
+  requireLiteral(data, "ok", true);
+  const catalog = requireRecord(data, "catalog");
+  requireString(catalog, "catalog_id");
+  requireString(catalog, "name");
+  requireString(catalog, "updated_at");
+  requireNumber(catalog, "items");
+  for (const item of requireArray(data, "items")) {
+    const record = asRecord(item, "items[]");
+    requireString(record, "id");
+    const kind = requireString(record, "kind");
+    if (!["skillrun.skr", "agent.skill", "mcp.server"].includes(kind)) {
+      throw mismatch("items[].kind", "Expected supported team catalog item kind.");
+    }
+    requireString(record, "name");
+    requireString(record, "description");
+    requireString(record, "version");
+    requireBoolean(record, "installable");
+    requireBoolean(record, "installed");
+    const sourceType = requireString(record, "source_type");
+    if (!["file", "https"].includes(sourceType)) {
+      throw mismatch("items[].source_type", "Expected file or https.");
+    }
+    requireArray(record, "warnings");
+  }
+  if (data.error !== null) {
+    throw mismatch("error", "Expected null.");
+  }
+  return data as TeamCatalogInspectContract;
 }
 
 function baseContract(

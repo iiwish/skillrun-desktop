@@ -1,8 +1,8 @@
 # SkillRun Desktop Team Library Page Plan
 
-**状态**：Draft / Waiting_For_Core_Surface  
-**日期**：2026-05-26  
-**依赖**：`skillrun` Core `docs/team-catalog-contract.md` 草案；当前 Core 尚未实现 `team catalog` 命令
+**状态**：Inspect_Read_Only_Implementation
+**日期**：2026-05-27
+**依赖**：`skillrun` Core `team catalog inspect` 已落地；`install plan/apply` 的 Desktop UI 仍待后续 PR
 
 ## 一句话判断
 
@@ -231,12 +231,16 @@ UI 行为：
 - 增加 `teamLibraryService` read-only load 方法。
 - 不新增 install/apply UI。
 
+状态：已完成。
+
 ### PR 2: Read-Only Team Library Page
 
 - 增加主导航 `团队库`。
 - Catalog selector + item table + inspector。
 - 支持 loading / empty / invalid / display-only states。
 - 只调用 `inspect`。
+
+状态：已完成。
 
 ### PR 3: Install Plan
 
