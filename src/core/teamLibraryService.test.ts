@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { fetchTeamCatalogInspect } from "./teamLibraryService";
+import { fetchTeamCatalogInstallPlan, fetchTeamCatalogInspect } from "./teamLibraryService";
 import type { CommandExecutor } from "./runner";
+import teamCatalogInstallPlanFixture from "./fixtures/team-catalog-install-plan.v1.json";
 import teamCatalogInspectFixture from "./fixtures/team-catalog-inspect.v1.json";
 
 describe("fetchTeamCatalogInspect", () => {
@@ -30,6 +31,43 @@ describe("fetchTeamCatalogInspect", () => {
       },
     ]);
     expect(calls.map((call) => call.args.join(" "))).not.toContain("team catalog install plan");
+    expect(calls.map((call) => call.args.join(" "))).not.toContain("team catalog install apply");
+  });
+
+  it("calls Core install plan without apply", async () => {
+    const calls: Parameters<CommandExecutor>[0][] = [];
+    const executor: CommandExecutor = async (request) => {
+      calls.push(request);
+      return {
+        exitCode: 0,
+        stdout: JSON.stringify(teamCatalogInstallPlanFixture),
+        stderr: "",
+      };
+    };
+
+    const result = await fetchTeamCatalogInstallPlan({
+      catalogPath: "/Users/iiwish/team/catalog.json",
+      itemId: "refund",
+      executor,
+      now: () => 1_000,
+    });
+
+    expect(result.contract.schema_version).toBe("team.catalog.install_plan.v1");
+    expect(calls).toEqual([
+      {
+        command: "skillrun",
+        args: [
+          "team",
+          "catalog",
+          "install",
+          "plan",
+          "/Users/iiwish/team/catalog.json",
+          "refund",
+          "--json",
+        ],
+        cwd: undefined,
+      },
+    ]);
     expect(calls.map((call) => call.args.join(" "))).not.toContain("team catalog install apply");
   });
 });

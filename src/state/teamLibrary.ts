@@ -1,9 +1,14 @@
 import {
   coreErrorKind,
+  fetchTeamCatalogInstallPlan,
   fetchTeamCatalogInspect,
+  type TeamCatalogInstallPlanOptions,
   type TeamCatalogInspectOptions,
 } from "../core/teamLibraryService";
-import type { TeamCatalogInspectContract } from "../core/contracts";
+import type {
+  TeamCatalogInstallPlanContract,
+  TeamCatalogInspectContract,
+} from "../core/contracts";
 
 export type TeamCatalogItemKind = "skillrun.skr" | "agent.skill" | "mcp.server";
 export type TeamCatalogSourceType = "file" | "https";
@@ -62,6 +67,30 @@ export type TeamLibraryState = {
   safetyCopy: string;
 };
 
+export type TeamLibraryPlanAction = {
+  type: "import";
+  replace: boolean;
+  requiresConfirmation: boolean;
+};
+
+export type TeamLibraryPlanState = {
+  status: "ready";
+  catalogId: string;
+  itemId: string;
+  version: string;
+  sourceType: TeamCatalogSourceType;
+  sha256: string;
+  registry: {
+    installed: boolean;
+    sourceType?: string;
+    enabled: boolean | null;
+    path?: string;
+  };
+  actions: TeamLibraryPlanAction[];
+  warnings: TeamCatalogWarning[];
+  safetyCopy: string;
+};
+
 export type TeamLibraryError = {
   kind: string;
   message: string;
@@ -82,8 +111,15 @@ export type BuildTeamLibraryInput = {
   inspect: TeamCatalogInspectContract;
 };
 
+export type BuildTeamLibraryPlanInput = {
+  plan: TeamCatalogInstallPlanContract;
+};
+
 export const TEAM_LIBRARY_SAFETY_COPY =
   "Team Library only shows Core inspect results. It does not download, unpack, install, enable, mount, run, or mark catalog items trusted.";
+
+export const TEAM_LIBRARY_PLAN_SAFETY_COPY =
+  "Install plan is a Core preview only. Desktop does not download, unpack, import, enable, mount, or apply anything from this result.";
 
 export async function loadTeamLibraryInspect(
   options: TeamCatalogInspectOptions,
@@ -103,6 +139,35 @@ export async function loadTeamLibraryInspect(
       error: {
         kind: coreErrorKind(error),
         message: error instanceof Error ? error.message : "Team catalog inspect failed.",
+      },
+    };
+  }
+}
+
+export async function loadTeamLibraryInstallPlan(
+  options: TeamCatalogInstallPlanOptions,
+): Promise<
+  | {
+      status: "ready";
+      state: TeamLibraryPlanState;
+    }
+  | {
+      status: "error";
+      error: TeamLibraryError;
+    }
+> {
+  try {
+    const result = await fetchTeamCatalogInstallPlan(options);
+    return {
+      status: "ready",
+      state: buildTeamLibraryPlanState({ plan: result.contract }),
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      error: {
+        kind: coreErrorKind(error),
+        message: error instanceof Error ? error.message : "Team catalog install plan failed.",
       },
     };
   }
@@ -131,6 +196,28 @@ export function buildTeamLibraryState(input: BuildTeamLibraryInput): TeamLibrary
     },
     items,
     safetyCopy: TEAM_LIBRARY_SAFETY_COPY,
+  };
+}
+
+export function buildTeamLibraryPlanState(input: BuildTeamLibraryPlanInput): TeamLibraryPlanState {
+  const item = input.plan.item;
+  const registry = input.plan.registry;
+  return {
+    status: "ready",
+    catalogId: input.plan.catalog_id,
+    itemId: readString(item, "id", ""),
+    version: readString(item, "version", ""),
+    sourceType: readSourceType(item, "source_type", "file"),
+    sha256: readString(item, "sha256", ""),
+    registry: {
+      installed: readBoolean(registry, "installed", false),
+      sourceType: readOptionalString(registry, "source_type"),
+      enabled: readOptionalBoolean(registry, "enabled"),
+      path: readOptionalString(registry, "path"),
+    },
+    actions: readPlanActions(input.plan.actions),
+    warnings: readWarnings(input.plan.warnings),
+    safetyCopy: TEAM_LIBRARY_PLAN_SAFETY_COPY,
   };
 }
 
@@ -226,6 +313,21 @@ function readWarnings(input: unknown): TeamCatalogWarning[] {
   });
 }
 
+function readPlanActions(input: unknown): TeamLibraryPlanAction[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input.map((action) => {
+    const record = asNullableRecord(action);
+    return {
+      type: "import",
+      replace: readBoolean(record, "replace", false),
+      requiresConfirmation: readBoolean(record, "requires_confirmation", false),
+    };
+  });
+}
+
 function readStringArray(input: unknown): string[] {
   if (!Array.isArray(input)) {
     return [];
@@ -290,6 +392,14 @@ function readBoolean(
 ): boolean {
   const value = record?.[key];
   return typeof value === "boolean" ? value : fallback;
+}
+
+function readOptionalBoolean(
+  record: Record<string, unknown> | null,
+  key: string,
+): boolean | null {
+  const value = record?.[key];
+  return typeof value === "boolean" ? value : null;
 }
 
 function asRecord(input: unknown): Record<string, unknown> {
