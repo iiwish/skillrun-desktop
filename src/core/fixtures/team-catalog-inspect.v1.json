@@ -1,0 +1,108 @@
+{
+  "command": "team catalog inspect",
+  "schema_version": "team.catalog.inspect.v1",
+  "ok": true,
+  "catalog": {
+    "catalog_id": "acme.internal",
+    "name": "Acme AI Capabilities",
+    "description": "Team-distributed SkillRun capsules and display-only Agent capabilities.",
+    "updated_at": "2026-05-26T10:00:00Z",
+    "homepage": "https://example.com/ai",
+    "items": 3
+  },
+  "items": [
+    {
+      "id": "refund",
+      "kind": "skillrun.skr",
+      "name": "Refund Decision",
+      "description": "Evaluate refund requests with policy limits and approval preflight.",
+      "version": "0.1.0",
+      "installable": true,
+      "installed": false,
+      "source_type": "https",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "publisher": {
+        "name": "Acme Operations"
+      },
+      "homepage": "https://example.com/refund",
+      "repository": null,
+      "requirements": [
+        {
+          "kind": "python",
+          "summary": "Python 3.11+"
+        }
+      ],
+      "permissions_summary": [
+        "reads provided refund input",
+        "writes run-local receipt artifact"
+      ],
+      "mcp": {
+        "exposes_tools": true,
+        "mount": "skillrun-router"
+      },
+      "trust_note": "Internal operations example. Review before enabling.",
+      "tags": ["ops", "refund"],
+      "warnings": [
+        {
+          "code": "trust.not_proven",
+          "message": "sha256 verifies integrity, not publisher identity."
+        }
+      ]
+    },
+    {
+      "id": "weekly-review",
+      "kind": "agent.skill",
+      "name": "Weekly Review",
+      "description": "Shared team instructions for weekly planning and retrospective notes.",
+      "version": "0.2.0",
+      "installable": false,
+      "installed": false,
+      "source_type": "https",
+      "sha256": null,
+      "publisher": {
+        "name": "Acme Product"
+      },
+      "homepage": null,
+      "repository": "https://example.com/acme/weekly-review",
+      "requirements": null,
+      "permissions_summary": null,
+      "mcp": null,
+      "trust_note": "Display-only Agent Skill metadata.",
+      "tags": ["planning"],
+      "warnings": [
+        {
+          "code": "catalog.display_only",
+          "message": "agent.skill items are display-only in this SkillRun phase."
+        }
+      ]
+    },
+    {
+      "id": "legacy-local",
+      "kind": "skillrun.skr",
+      "name": "Legacy Local Import",
+      "description": "Local development capsule with an existing local registry conflict.",
+      "version": "0.1.0",
+      "installable": false,
+      "installed": true,
+      "source_type": "file",
+      "sha256": null,
+      "publisher": null,
+      "homepage": null,
+      "repository": null,
+      "requirements": [],
+      "permissions_summary": ["reads local fixture input"],
+      "mcp": {
+        "exposes_tools": true
+      },
+      "trust_note": null,
+      "tags": ["local"],
+      "warnings": [
+        {
+          "code": "catalog.registry_conflict",
+          "message": "A local-path registry entry with this id cannot be replaced by catalog install."
+        }
+      ]
+    }
+  ],
+  "error": null
+}
