@@ -534,6 +534,38 @@ host status --json
 
 失败输出必须包含命令 trace，并区分缺少 CLI、Core 命令失败、JSON mismatch 或环境 blocker。
 
+## Hero Desktop Smoke Harness
+
+Desktop 仓库另提供面向手动测试素材的 hero smoke：
+
+```bash
+SKILLRUN_CLI=/Users/iiwish/self/skillrun/target/debug/skillrun \
+SKILLRUN_HERO_CATALOG=/Users/iiwish/self/skillrun/target/desktop-hero-skr/catalog.json \
+npm run smoke:hero-desktop
+```
+
+该命令默认使用 `meeting_action_brief`，并通过临时 `SKILLRUN_HOME` 验证本地 hero catalog 的最小团队分发链路：
+
+```text
+team catalog inspect --json
+  -> team catalog install plan --json
+  -> team catalog install apply --json
+  -> consumer inventory --json
+  -> switchboard enable
+  -> consumer exposure --json
+  -> router serve --mcp --dry-run
+```
+
+如果本机可找到 Chrome，脚本会额外启动临时 Vite server，并用 Chrome DevTools Protocol 做 Desktop shell DOM smoke：桌面和窄屏视口必须包含 `Capsule 管理`、`导入 .skr`、`刷新状态`、`还没有 Capsule`、`EN`，Team Library 基础导航切换必须成功，且不能出现水平溢出或浏览器 runtime error。该检查只覆盖 Web shell 和 Team Library 手测入口的可渲染性，不宣称覆盖 Tauri 原生文件选择器或真实用户点击链路。
+
+可配置项：
+
+- `SKILLRUN_HERO_CATALOG`：hero catalog 路径；默认尝试相邻 `../skillrun/target/desktop-hero-skr/catalog.json`。
+- `SKILLRUN_HERO_ITEM`：hero item id；默认 `meeting_action_brief`。
+- `SKILLRUN_CLI`：要调用的 `skillrun` binary；默认 `skillrun`。
+- `SKILLRUN_DESKTOP_UI_SMOKE=0`：跳过 Chrome / Vite UI DOM 检查，只跑 Core hero 链路。
+- `CHROME_PATH`：Chrome / Chromium binary path；未设置时脚本尝试常见 macOS / Linux 路径。
+
 ## Alpha Golden Path
 
 Desktop alpha 的最低验收链路：
