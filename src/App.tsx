@@ -25,6 +25,7 @@ import {
   Upload,
   type LucideIcon,
 } from "lucide-react";
+import AppShell from "./components/layout/AppShell";
 import "./App.css";
 import {
   Alert,
@@ -93,9 +94,10 @@ import {
   type SwitchboardCapsule,
   type SwitchboardState,
 } from "./state/switchboard";
-import type { TrayStatusKind } from "./state/trayStatus";
 
-type DashboardView = "capsules" | "teamLibrary" | "clients" | "tools" | "runs" | "settings";
+
+import { type DashboardView } from "./components/layout/SidebarNav";
+
 type Locale = "zh" | "en";
 type CapsuleFilter = "all" | "enabled" | "issues";
 type TeamLibraryFilter = "all" | "installable" | "installed" | "blocked";
@@ -1214,53 +1216,24 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <aside className="sidebar" aria-label={t.appName}>
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">SR</span>
-          <div>
-            <h1>SkillRun</h1>
-            <p>{t.surface}</p>
-          </div>
-        </div>
-
-        <nav className="side-nav" aria-label={t.surface}>
-          {views.map((view) => (
-            <button
-              key={view.id}
-              type="button"
-              className={activeView === view.id ? "nav-item active" : "nav-item"}
-              aria-label={view.label}
-              onClick={() => setActiveView(view.id)}
-            >
-              <view.icon aria-hidden="true" />
-              <span>
-                <strong>{view.navLabel}</strong>
-                <small>{view.description}</small>
-              </span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          <span className={statusClass(statusSnapshot?.status.kind)}>
-            {statusSnapshot ? statusLabel(statusSnapshot.status.kind, locale) : t.notChecked}
-          </span>
-          <div className="segmented" role="group" aria-label={t.language}>
-            <button type="button" className={locale === "zh" ? "active" : ""} onClick={() => setLocale("zh")}>
-              {t.cn}
-            </button>
-            <button type="button" className={locale === "en" ? "active" : ""} onClick={() => setLocale("en")}>
-              {t.en}
-            </button>
-          </div>
-        </div>
-      </aside>
-
+    <AppShell
+      activeView={activeView}
+      onNavigate={setActiveView}
+      navItems={views}
+      settingsLabel={t.settingsTitle}
+      locale={locale}
+      onLocaleChange={setLocale}
+      languageLabel={t.language}
+      cnLabel={t.cn}
+      enLabel={t.en}
+      statusKind={statusSnapshot?.status.kind}
+      coreVersion={undefined}
+      onRefresh={handleRefreshStatus}
+      isRefreshing={isRefreshingStatus}
+    >
       <section className="workspace" aria-label={activeDefinition.label}>
         <header className="topbar">
           <div className="topbar-copy">
-            <p className="eyebrow">{t.appMeta}</p>
             <h2>{activeDefinition.label}</h2>
             <p>{activeDefinition.description}</p>
           </div>
@@ -1293,11 +1266,12 @@ function App() {
 
         {pendingLabel ? (
           <div className="pending-bar" role="status">
-            <Loader2 aria-hidden="true" />
-            <span>{t.pending}: {pendingLabel}</span>
+            <Loader2 aria-hidden="true" className="spin" />
+            <span>{pendingLabel}</span>
           </div>
         ) : null}
 
+        <div className="page-container">
         {activeView === "capsules" ? (
           <CapsulesPage
             t={t}
@@ -1414,9 +1388,12 @@ function App() {
             onLocaleChange={setLocale}
           />
         ) : null}
+        </div>
 
         {refreshState.phase === "failed" ? (
-          <Alert title={t.statusFailed}>{refreshState.message}</Alert>
+          <div className="page-container" style={{ paddingTop: 0 }}>
+            <Alert title={t.statusFailed}>{refreshState.message}</Alert>
+          </div>
         ) : null}
 
         {importOpen ? (
@@ -1437,7 +1414,7 @@ function App() {
           />
         ) : null}
       </section>
-    </main>
+    </AppShell>
   );
 }
 
@@ -1905,97 +1882,95 @@ function CapsulesPage({
   return (
     <section className="capsules-page">
       <section className="capsule-list-panel" aria-label={t.capsulesTitle}>
-        <header className="workspace-overview">
-          <div>
-            <p className="eyebrow">{t.workspaceOverview}</p>
-            <h3>{t.capsulesTitle}</h3>
-            <p>{t.capsulesSubtitle}</p>
-          </div>
-          <div className="overview-metrics" aria-label={t.workspaceOverview}>
-            <SummaryStat label={t.registered} value={summary.total} />
-            <SummaryStat label={t.enabled} value={summary.enabled} />
-            <SummaryStat label={t.ready} value={summary.ready} />
-            <SummaryStat label={t.attention} value={summary.attention} tone={summary.attention > 0 ? "warning" : "neutral"} />
-          </div>
-        </header>
-
-        <div className="list-toolbar">
-          <label className="search-field">
-            <Search aria-hidden="true" />
-            <input
-              value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
-              placeholder={t.searchCapsules}
-            />
-          </label>
-          <div className="filter-tabs" role="group" aria-label={t.status}>
-            {([
-              ["all", t.filterAll],
-              ["enabled", t.filterEnabled],
-              ["issues", t.filterIssues],
-            ] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                className={filter === value ? "active" : ""}
-                onClick={() => onFilterChange(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <Button variant="secondary" icon={RefreshCw} onClick={onRefresh}>
-            {t.switchboardRefresh}
-          </Button>
-        </div>
-
-        {error ? <Alert>{error.message}</Alert> : null}
-
         {allCapsules.length === 0 ? (
-          <div className="empty-action">
-            <EmptyState icon={Boxes} title={t.emptyCapsulesTitle} />
-            <p>{t.emptyCapsulesBody}</p>
+          <div className="empty-state-full">
+            <Boxes aria-hidden="true" />
+            <p className="empty-title">{t.emptyCapsulesTitle}</p>
+            <p className="empty-body">{t.emptyCapsulesBody}</p>
             <Button icon={FilePlus2} onClick={onImport}>{t.importAction}</Button>
           </div>
-        ) : capsules.length === 0 ? (
-          <div className="empty-action compact-empty">
-            <EmptyState icon={Search} title={t.noFilteredCapsulesTitle} />
-            <p>{t.noFilteredCapsulesBody}</p>
-            <Button variant="secondary" icon={RefreshCw} onClick={onRefresh}>{t.switchboardRefresh}</Button>
-          </div>
         ) : (
-          <div className="capsule-table" role="table" aria-label={t.capsulesTitle}>
-            <div className="capsule-table-head" role="row">
-              <span>{t.capsule}</span>
-              <span>{t.status}</span>
-              <span>{t.exposure}</span>
-              <span>{t.source}</span>
+          <>
+            <div className="list-toolbar">
+              <label className="search-field">
+                <Search aria-hidden="true" />
+                <input
+                  value={query}
+                  onChange={(event) => onQueryChange(event.target.value)}
+                  placeholder={t.searchCapsules}
+                />
+              </label>
+              <div className="filter-tabs" role="group" aria-label={t.status}>
+                {([
+                  ["all", t.filterAll],
+                  ["enabled", t.filterEnabled],
+                  ["issues", t.filterIssues],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={filter === value ? "active" : ""}
+                    onClick={() => onFilterChange(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="toolbar-spacer" />
+              {summary.total > 0 ? (
+                <span className="toolbar-count">
+                  {summary.total} {t.registered.toLowerCase()}
+                  {summary.attention > 0 ? ` · ${summary.attention} ${t.attention.toLowerCase()}` : ""}
+                </span>
+              ) : null}
+              <Button variant="ghost" icon={RefreshCw} onClick={onRefresh}>
+                {t.switchboardRefresh}
+              </Button>
             </div>
-            {capsules.map((capsule) => (
-              <button
-                key={capsule.id}
-                type="button"
-                className={selectedCapsuleId === capsule.id ? "capsule-row selected" : "capsule-row"}
-                onClick={() => onSelectCapsule(capsule.id)}
-              >
-                <span className="capsule-identity">
-                  <strong>{capsule.name}</strong>
-                  <small>{capsule.id}</small>
-                </span>
-                <span>
-                  <Badge tone={capsule.readinessOk ? "success" : "warning"}>
-                    {capsule.readinessStatus}
-                  </Badge>
-                </span>
-                <span>
-                  <Badge tone={capsule.enabled ? "success" : "neutral"}>
-                    {capsule.enabled ? t.enabled : t.disabled}
-                  </Badge>
-                </span>
-                <span className="muted">{capsule.sourceType}</span>
-              </button>
-            ))}
-          </div>
+
+            {error ? <Alert>{error.message}</Alert> : null}
+
+            {capsules.length === 0 ? (
+              <div className="empty-action compact-empty">
+                <EmptyState icon={Search} title={t.noFilteredCapsulesTitle} />
+                <p>{t.noFilteredCapsulesBody}</p>
+                <Button variant="secondary" icon={RefreshCw} onClick={onRefresh}>{t.switchboardRefresh}</Button>
+              </div>
+            ) : (
+              <div className="capsule-table" role="table" aria-label={t.capsulesTitle}>
+                <div className="capsule-table-head" role="row">
+                  <span>{t.capsule}</span>
+                  <span>{t.status}</span>
+                  <span>{t.exposure}</span>
+                  <span>{t.source}</span>
+                </div>
+                {capsules.map((capsule) => (
+                  <button
+                    key={capsule.id}
+                    type="button"
+                    className={selectedCapsuleId === capsule.id ? "capsule-row selected" : "capsule-row"}
+                    onClick={() => onSelectCapsule(capsule.id)}
+                  >
+                    <span className="capsule-identity">
+                      <strong>{capsule.name}</strong>
+                      <small>{capsule.id}</small>
+                    </span>
+                    <span>
+                      <Badge tone={capsule.readinessOk ? "success" : "warning"}>
+                        {capsule.readinessStatus}
+                      </Badge>
+                    </span>
+                    <span>
+                      <Badge tone={capsule.enabled ? "success" : "neutral"}>
+                        {capsule.enabled ? t.enabled : t.disabled}
+                      </Badge>
+                    </span>
+                    <span className="muted">{capsule.sourceType}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </section>
 
@@ -2028,18 +2003,17 @@ function CapsuleInspector({
 }) {
   return (
     <aside className="inspector" aria-label={t.capsuleDetails}>
-      <header className="compact-heading">
-        <Boxes aria-hidden="true" />
-        <div>
-          <h3>{t.capsuleDetails}</h3>
-          <p>{capsule?.id ?? t.noSelection}</p>
-        </div>
-      </header>
       {capsule ? (
         <>
+          <header className="compact-heading">
+            <Boxes aria-hidden="true" />
+            <div>
+              <h3>{capsule.name}</h3>
+              <p>{capsule.id}</p>
+            </div>
+          </header>
           <DescriptionList
             items={[
-              [t.capsule, capsule.name],
               [t.enabled, booleanLabel(capsule.enabled, locale)],
               [t.readiness, capsule.readinessOk ? statusWord("ready", locale) : capsule.nextStep],
               [t.tools, capsule.toolName],
@@ -2079,7 +2053,7 @@ function CapsuleInspector({
         </>
       ) : (
         <div className="inspector-empty">
-          <EmptyState icon={Boxes} title={t.noSelection} />
+          <Boxes aria-hidden="true" />
           <p>{t.selectionHint}</p>
         </div>
       )}
@@ -2775,36 +2749,6 @@ function teamItemTone(state: TeamLibraryItemState): "neutral" | "success" | "war
     return "neutral";
   }
   return "warning";
-}
-
-function statusLabel(kind: TrayStatusKind, locale: Locale): string {
-  const labels: Record<TrayStatusKind, { zh: string; en: string }> = {
-    core_missing: { zh: "Core 缺失", en: "Core missing" },
-    core_error: { zh: "Core 错误", en: "Core error" },
-    recent_failures: { zh: "最近失败", en: "Recent failures" },
-    mount_not_configured: { zh: "挂载未配置", en: "Mount not configured" },
-    tools_exposed: { zh: "工具已暴露", en: "Tools exposed" },
-    capsules_disabled: { zh: "Capsule 未启用", en: "Capsules disabled" },
-    no_capsules: { zh: "无 Capsule", en: "No capsules" },
-  };
-
-  return labels[kind][locale];
-}
-
-function statusClass(kind: TrayStatusKind | undefined): string {
-  if (!kind) {
-    return "status-chip neutral";
-  }
-
-  if (kind === "tools_exposed") {
-    return "status-chip success";
-  }
-
-  if (kind === "core_missing" || kind === "core_error" || kind === "recent_failures") {
-    return "status-chip danger";
-  }
-
-  return "status-chip warning";
 }
 
 function statusWord(word: "ready", locale: Locale): string {
