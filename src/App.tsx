@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
@@ -196,7 +196,7 @@ const copy = {
     onlyOk: "只看成功",
     onlyFailed: "只看失败",
     settingsTitle: "设置",
-    settingsSubtitle: "语言、Core 路径和本机诊断信息。",
+    settingsSubtitle: "语言、Core 状态和本机诊断信息。",
     workspaceOverview: "工作台概览",
     registered: "已登记",
     ready: "就绪",
@@ -301,6 +301,16 @@ const copy = {
     false: "否",
     shellStatus: "本机状态",
     core: "Core",
+    coreDetected: "Core 可用",
+    coreMissingHint: "Desktop 没能启动 `skillrun`。请确认 Core CLI 已安装，并且 Desktop 启动环境能在 PATH 中找到它。",
+    coreReadyHint: "Desktop 只通过 Core CLI JSON surface 读取状态；不会读取 `.skillrun/` 内部目录。",
+    coreVersion: "Core 版本",
+    corePath: "Core 路径",
+    skillrunHome: "SkillRun Home",
+    registryPath: "Registry 路径",
+    statusSourceCommand: "状态来源",
+    statusErrorKind: "错误类型",
+    statusErrorMessage: "错误信息",
     imported: "已导入",
     enabled: "已启用",
     readiness: "就绪性",
@@ -458,7 +468,7 @@ const copy = {
     onlyOk: "OK only",
     onlyFailed: "Failed only",
     settingsTitle: "Settings",
-    settingsSubtitle: "Language, Core path, and local diagnostics.",
+    settingsSubtitle: "Language, Core status, and local diagnostics.",
     workspaceOverview: "Workspace overview",
     registered: "Registered",
     ready: "Ready",
@@ -563,6 +573,16 @@ const copy = {
     false: "No",
     shellStatus: "Local status",
     core: "Core",
+    coreDetected: "Core available",
+    coreMissingHint: "Desktop could not spawn `skillrun`. Confirm the Core CLI is installed and visible in PATH for the Desktop launch environment.",
+    coreReadyHint: "Desktop reads state only through Core CLI JSON surfaces; it does not read internal `.skillrun/` directories.",
+    coreVersion: "Core version",
+    corePath: "Core path",
+    skillrunHome: "SkillRun Home",
+    registryPath: "Registry path",
+    statusSourceCommand: "Status source",
+    statusErrorKind: "Error kind",
+    statusErrorMessage: "Error message",
     imported: "Imported",
     enabled: "Enabled",
     readiness: "Readiness",
@@ -1261,7 +1281,15 @@ function App() {
       navItems={views}
       settingsLabel={t.settingsTitle}
       statusKind={statusSnapshot?.status.kind}
-      coreVersion={undefined}
+      statusLabel={trayStatusLabel(statusSnapshot?.status.kind, t)}
+      statusTitle={t.shellStatus}
+      coreLabel={t.core}
+      sourceCommandLabel={t.statusSourceCommand}
+      lastCapturedLabel={t.lastCaptured}
+      noRefreshLabel={t.noRefresh}
+      statusCommand={statusSnapshot?.status.source.command}
+      statusCapturedAt={statusSnapshot ? formatTimestamp(statusSnapshot.status.source.capturedAtMs, locale) : undefined}
+      coreVersion={coreVersionFromSnapshot(statusSnapshot)}
       onRefresh={handleRefreshStatus}
       refreshLabel={t.refresh}
       isRefreshing={isRefreshingStatus}
@@ -2193,22 +2221,141 @@ function SettingsPage({
           </div>
         </header>
         {statusSnapshot ? (
-          <ul className="command-list">
-            {statusSnapshot.commands.map((command) => (
-              <li key={`${command.command}-${command.capturedAtMs}`}>
-                <code>{command.displayCommand}</code>
-                <Badge tone={command.status === "ok" ? "success" : "danger"}>
-                  {command.status === "ok" ? "ok" : command.errorKind}
-                </Badge>
-              </li>
-            ))}
-          </ul>
+          <>
+            <div className={`diagnostic-banner ${coreDiagnosticsTone(statusSnapshot)}`}>
+              <strong>{coreDiagnosticsTitle(statusSnapshot, t)}</strong>
+              <p>{coreDiagnosticsDetail(statusSnapshot, t)}</p>
+            </div>
+            <DescriptionList items={coreDiagnosticsItems(statusSnapshot, t)} />
+            <ul className="command-list">
+              {statusSnapshot.commands.map((command) => (
+                <li key={`${command.command}-${command.capturedAtMs}`}>
+                  <div className="command-row">
+                    <code>{command.displayCommand}</code>
+                    <Badge tone={command.status === "ok" ? "success" : "danger"}>
+                      {command.status === "ok" ? "ok" : command.errorKind}
+                    </Badge>
+                  </div>
+                  {command.errorMessage ? <p>{command.errorMessage}</p> : null}
+                </li>
+              ))}
+            </ul>
+          </>
         ) : (
           <EmptyState icon={TerminalSquare} title={t.commandTraceEmpty} />
         )}
       </section>
     </section>
   );
+}
+
+function coreVersionFromSnapshot(snapshot?: DashboardRefreshSnapshot): string | undefined {
+  const binary = recordFrom(snapshot?.contracts.host?.binary);
+  return readOptionalRecordString(binary, "version");
+}
+
+function trayStatusLabel(
+  kind: DashboardRefreshSnapshot["status"]["kind"] | undefined,
+  t: typeof copy[Locale],
+): string {
+  if (!kind) {
+    return t.notChecked;
+  }
+
+  switch (kind) {
+    case "core_missing":
+      return localeText(t, "Core 缺失", "Core missing");
+    case "core_error":
+      return localeText(t, "Core 错误", "Core error");
+    case "recent_failures":
+      return localeText(t, "最近失败", "Recent failures");
+    case "mount_not_configured":
+      return localeText(t, "挂载未配置", "Mount not configured");
+    case "tools_exposed":
+      return localeText(t, "工具已暴露", "Tools exposed");
+    case "capsules_disabled":
+      return localeText(t, "Capsule 未启用", "Capsules disabled");
+    case "no_capsules":
+      return localeText(t, "无 Capsule", "No capsules");
+  }
+}
+
+function coreDiagnosticsTone(snapshot: DashboardRefreshSnapshot): "success" | "warning" | "danger" {
+  if (snapshot.contracts.host) {
+    return "success";
+  }
+  if (snapshot.status.kind === "core_missing" || snapshot.status.kind === "core_error") {
+    return "danger";
+  }
+  return "warning";
+}
+
+function coreDiagnosticsTitle(snapshot: DashboardRefreshSnapshot, t: typeof copy[Locale]): string {
+  if (snapshot.contracts.host) {
+    return t.coreDetected;
+  }
+  return trayStatusLabel(snapshot.status.kind, t);
+}
+
+function coreDiagnosticsDetail(snapshot: DashboardRefreshSnapshot, t: typeof copy[Locale]): string {
+  if (snapshot.contracts.host) {
+    return t.coreReadyHint;
+  }
+
+  if (snapshot.status.kind === "core_missing") {
+    return t.coreMissingHint;
+  }
+
+  const hostCommand = snapshot.commands.find((command) => command.command === "host status --json");
+  return hostCommand?.errorMessage ?? t.coreMissingHint;
+}
+
+function coreDiagnosticsItems(
+  snapshot: DashboardRefreshSnapshot,
+  t: typeof copy[Locale],
+): Array<[string, ReactNode]> {
+  const host = snapshot.contracts.host;
+  if (host) {
+    const binary = recordFrom(host.binary);
+    const paths = recordFrom(host.paths);
+    return [
+      [t.core, <Badge tone="success">{t.coreDetected}</Badge>],
+      [t.coreVersion, stringOrUnknown(readOptionalRecordString(binary, "version"), t)],
+      [t.corePath, codeOrUnknown(readOptionalRecordString(paths, "current_exe"), t)],
+      [t.skillrunHome, codeOrUnknown(readOptionalRecordString(paths, "skillrun_home"), t)],
+      [t.registryPath, codeOrUnknown(readOptionalRecordString(paths, "registry_path"), t)],
+      [t.statusSourceCommand, <code>{snapshot.status.source.command}</code>],
+    ];
+  }
+
+  const hostCommand = snapshot.commands.find((command) => command.command === "host status --json");
+  return [
+    [t.core, <Badge tone="danger">{trayStatusLabel(snapshot.status.kind, t)}</Badge>],
+    [t.statusSourceCommand, <code>{hostCommand?.displayCommand ?? "skillrun host status --json"}</code>],
+    [t.statusErrorKind, stringOrUnknown(hostCommand?.errorKind, t)],
+    [t.statusErrorMessage, stringOrUnknown(hostCommand?.errorMessage, t)],
+  ];
+}
+
+function recordFrom(input: unknown): Record<string, unknown> {
+  return typeof input === "object" && input !== null && !Array.isArray(input) ? input as Record<string, unknown> : {};
+}
+
+function readOptionalRecordString(record: Record<string, unknown>, field: string): string | undefined {
+  const value = record[field];
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function stringOrUnknown(value: string | undefined, t: typeof copy[Locale]): string {
+  return value ?? t.unknown;
+}
+
+function codeOrUnknown(value: string | undefined, t: typeof copy[Locale]): ReactNode {
+  return value ? <code>{value}</code> : t.unknown;
+}
+
+function localeText(t: typeof copy[Locale], zh: string, en: string): string {
+  return t.language === "语言" ? zh : en;
 }
 
 function ImportPanel({

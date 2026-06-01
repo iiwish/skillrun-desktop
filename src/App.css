@@ -1495,6 +1495,41 @@ code {
 }
 
 /* ── Command List ── */
+.diagnostic-banner {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.65rem;
+}
+
+.diagnostic-banner strong {
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.diagnostic-banner p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.diagnostic-banner.success {
+  border-color: hsl(145 40% 82%);
+  background: var(--success-soft);
+}
+
+.diagnostic-banner.warning {
+  border-color: hsl(38 50% 78%);
+  background: var(--warning-soft);
+}
+
+.diagnostic-banner.danger {
+  border-color: hsl(6 50% 82%);
+  background: var(--danger-soft);
+}
+
 .command-list li {
   display: grid;
   gap: 0.25rem;
@@ -1504,7 +1539,17 @@ code {
   padding: 0.45rem 0.55rem;
 }
 
+.command-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
 .command-list code {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 0.76rem;
 }
 

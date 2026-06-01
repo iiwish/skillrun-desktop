@@ -5,6 +5,14 @@ import type { TrayStatusKind } from '@/state/trayStatus';
 
 interface TrayStatusBarProps {
   statusKind?: TrayStatusKind;
+  statusLabel: string;
+  statusTitle: string;
+  coreLabel: string;
+  sourceCommandLabel: string;
+  lastCapturedLabel: string;
+  noRefreshLabel: string;
+  statusCommand?: string;
+  statusCapturedAt?: string;
   coreVersion?: string;
   onRefresh?: () => void;
   refreshLabel: string;
@@ -13,6 +21,14 @@ interface TrayStatusBarProps {
 
 export default function TrayStatusBar({
   statusKind,
+  statusLabel,
+  statusTitle,
+  coreLabel,
+  sourceCommandLabel,
+  lastCapturedLabel,
+  noRefreshLabel,
+  statusCommand,
+  statusCapturedAt,
   coreVersion,
   onRefresh,
   refreshLabel,
@@ -23,16 +39,6 @@ export default function TrayStatusBar({
   const statusDotColor = statusKind === 'tools_exposed' ? '#22C55E' :
     statusKind === 'core_missing' || statusKind === 'core_error' || statusKind === 'recent_failures' ? '#EF4444' :
     '#EAB308';
-
-  const statusText = statusKind ? {
-    core_missing: 'Core 缺失',
-    core_error: 'Core 错误',
-    recent_failures: '最近失败',
-    mount_not_configured: '挂载未配置',
-    tools_exposed: '工具已暴露',
-    capsules_disabled: 'Capsule 未启用',
-    no_capsules: '无 Capsule',
-  }[statusKind] : '未检查';
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -52,6 +58,7 @@ export default function TrayStatusBar({
     >
       {/* Left: Status */}
       <button
+        type="button"
         className="flex items-center gap-2"
         onClick={() => setShowDropdown(!showDropdown)}
       >
@@ -64,7 +71,7 @@ export default function TrayStatusBar({
           }}
         />
         <span className="text-[11px] font-medium tracking-wide" style={{ color: '#8A8A9A' }}>
-          {statusText}
+          {statusLabel}
         </span>
         <span className="text-[11px]" style={{ color: '#5A5A6A' }}>
           {coreVersion ? `skillrun ${coreVersion}` : ''}
@@ -111,12 +118,14 @@ export default function TrayStatusBar({
           >
             <div className="px-3 py-2" style={{ borderBottom: '1px solid #1E1E2A' }}>
               <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#5A5A6A' }}>
-                系统状态
+                {statusTitle}
               </p>
             </div>
             <div className="py-1">
               {[
-                { label: 'Core 状态', value: statusText, color: statusDotColor },
+                { label: coreLabel, value: coreVersion ? `${statusLabel} · ${coreVersion}` : statusLabel, color: statusDotColor },
+                { label: sourceCommandLabel, value: statusCommand ?? noRefreshLabel, color: '#5A5A6A' },
+                { label: lastCapturedLabel, value: statusCapturedAt ?? noRefreshLabel, color: '#5A5A6A' },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-2.5 px-3 py-1.5">
                   <span

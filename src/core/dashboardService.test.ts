@@ -54,6 +54,8 @@ describe("refreshDashboardStatus", () => {
     expect(executed).not.toContain("consumer mount apply --client claude-desktop --json");
     expect(executed).not.toContain("consumer mount rollback --client claude-desktop --json");
     expect(snapshot.commands.every((command) => command.status === "ok")).toBe(true);
+    expect(snapshot.contracts.host?.binary.version).toBe("0.5.15");
+    expect(snapshot.contracts.inventory?.registry_path).toBe("C:/Users/iiwish/.skillrun/registry.json");
   });
 });
 
