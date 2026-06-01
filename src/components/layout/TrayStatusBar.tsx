@@ -4,26 +4,18 @@ import { RefreshCw } from 'lucide-react';
 import type { TrayStatusKind } from '@/state/trayStatus';
 
 interface TrayStatusBarProps {
-  locale: 'zh' | 'en';
-  onLocaleChange: (locale: 'zh' | 'en') => void;
-  languageLabel: string;
-  cnLabel: string;
-  enLabel: string;
   statusKind?: TrayStatusKind;
   coreVersion?: string;
   onRefresh?: () => void;
+  refreshLabel: string;
   isRefreshing?: boolean;
 }
 
 export default function TrayStatusBar({
-  locale,
-  onLocaleChange,
-  languageLabel,
-  cnLabel,
-  enLabel,
   statusKind,
   coreVersion,
   onRefresh,
+  refreshLabel,
   isRefreshing,
 }: TrayStatusBarProps) {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -79,40 +71,12 @@ export default function TrayStatusBar({
         </span>
       </button>
 
-      {/* Right: language and refresh controls */}
-      <div className="flex items-center gap-3">
-        <div
-          className="flex items-center rounded-md"
-          role="group"
-          aria-label={languageLabel}
-          style={{
-            height: 20,
-            backgroundColor: '#0C0C0F',
-            border: '1px solid #1E1E2A',
-            overflow: 'hidden',
-          }}
-        >
-          {([
-            ['zh', cnLabel],
-            ['en', enLabel],
-          ] as const).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => onLocaleChange(value)}
-              className="px-2 text-[10px] font-medium transition-colors duration-150"
-              style={{
-                height: 18,
-                color: locale === value ? '#E7E7EC' : '#5A5A6A',
-                backgroundColor: locale === value ? '#20202A' : 'transparent',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      {/* Right: refresh control */}
+      <div className="flex items-center">
         <button
+          type="button"
           onClick={onRefresh}
+          aria-label={refreshLabel}
           className="flex items-center justify-center rounded transition-colors duration-150 hover:bg-[#1A1A22]"
           style={{ width: 20, height: 20 }}
         >
