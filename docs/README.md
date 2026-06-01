@@ -1,15 +1,15 @@
 # SkillRun Desktop Docs
 
-**状态**：Desktop_Alpha_Planning  
-**日期**：2026-05-18
+**状态**：Desktop_Alpha_Implementation
+**日期**：2026-06-01
 
 ## 阅读顺序
 
-1. `desktop-readiness.md`：判断 Desktop 是否可以进入 alpha，以及它和 SkillRun Core 的产品边界。
+1. `desktop-readiness.md`：记录 Desktop alpha 的产品边界、当前已具备能力和后续验证路径。
 2. `desktop-core-contract.md`：冻结 Desktop alpha 可以调用的 Core CLI JSON surfaces，以及禁止依赖的内部路径。
 3. `desktop-tray-design.md`：定义 tray-first 产品形态、托盘状态、菜单和 Router 边界。
-4. `desktop-alpha-roadmap.md`：把 alpha 拆成可执行阶段和验收 gate。
-5. `team-library-page-plan.md`：规划 Team Library 页面、Core catalog surface 依赖、状态流和 UI 禁区。
+4. `desktop-alpha-roadmap.md`：记录 alpha 阶段拆分、已完成状态和仍需发布前验证的 gate。
+5. `team-library-page-plan.md`：记录 Team Library 页面、Core catalog surface、状态流和 UI 禁区。
 6. `router-diagnostics-manual-test.md`：Router diagnostics 的手动测试场景，覆盖 no routes、routable、blocked、duplicate tool 和 Desktop UI refresh。
 
 ## 核心原则
