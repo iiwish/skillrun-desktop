@@ -72,6 +72,10 @@ async function runCoreHeroSmoke() {
       throw new Error(`Catalog item ${itemId} is not installable.`);
     }
     summary.push(["catalog inspect", `items=${inspect.items.length}; hero=${itemId}`]);
+    const requirements = summarizeRequirements(catalogItem);
+    if (requirements) {
+      summary.push(["catalog requirements", requirements]);
+    }
 
     const statusBefore = await runSkillrunJson(["team", "catalog", "status", catalogPath, "--json"], {
       env,
@@ -140,12 +144,30 @@ async function runCoreHeroSmoke() {
     }
     summary.push(["exposure", `tool=${exposed.name ?? itemId}; readiness=${exposed.readiness_status ?? "unknown"}`]);
 
+    const routerStatus = await runSkillrunJson(["router", "status", "--json"], {
+      env,
+      schema: "router.status.v1",
+    });
+    if (!routerStatus.tools?.some((tool) => tool.capsule_id === itemId || tool.name === itemId)) {
+      throw new Error(`Router status did not include hero tool ${itemId}.`);
+    }
+    if (Array.isArray(routerStatus.routes) && !routerStatus.routes.some((route) => route.capsule_id === itemId && route.state === "routable")) {
+      throw new Error(`Router status did not mark ${itemId} as routable.`);
+    }
+    if (Array.isArray(routerStatus.issues) && routerStatus.issues.length > 0) {
+      throw new Error(`Router status reported issues for ${itemId}: ${JSON.stringify(routerStatus.issues).slice(0, 240)}`);
+    }
+    summary.push(["router status", `routes=${routerStatus.routes?.length ?? 0}; hero=${itemId}`]);
+
     const router = await runSkillrunJson(["router", "serve", "--mcp", "--dry-run"], {
       env,
       schema: "router.mcp.v1",
     });
     if (!router.tools?.some((tool) => tool.capsule_id === itemId || tool.name === itemId)) {
       throw new Error(`Router dry-run did not include hero tool ${itemId}.`);
+    }
+    if (Array.isArray(router.routes) && !router.routes.some((route) => route.capsule_id === itemId && route.state === "routable")) {
+      throw new Error(`Router dry-run did not mark ${itemId} as routable.`);
     }
     summary.push(["router dry-run", `tools=${router.tools.length}; hero=${itemId}`]);
   } finally {
@@ -546,6 +568,19 @@ function printResult() {
 
 function preview(value) {
   return value.trim().replace(/\s+/g, " ").slice(0, 240);
+}
+
+function summarizeRequirements(item) {
+  if (!Array.isArray(item.requirements) || item.requirements.length === 0) {
+    return "";
+  }
+  return item.requirements
+    .map((requirement) => {
+      const kind = typeof requirement.kind === "string" ? requirement.kind : "runtime";
+      const summaryText = typeof requirement.summary === "string" ? requirement.summary : "";
+      return summaryText ? `${kind}: ${summaryText}` : kind;
+    })
+    .join("; ");
 }
 
 function delay(ms) {

@@ -562,12 +562,16 @@ host status --json
 Desktop 仓库另提供面向手动测试素材的 hero smoke：
 
 ```bash
+/opt/homebrew/bin/python3.13 -m venv /tmp/skillrun-hero-py313
+/tmp/skillrun-hero-py313/bin/python -m pip install -U pip pydantic
+
+PATH=/tmp/skillrun-hero-py313/bin:$PATH \
 SKILLRUN_CLI=/Users/iiwish/self/skillrun/target/debug/skillrun \
 SKILLRUN_HERO_CATALOG=/Users/iiwish/self/skillrun/target/desktop-hero-skr/catalog.json \
 npm run smoke:hero-desktop
 ```
 
-该命令默认使用 `meeting_action_brief`，并通过临时 `SKILLRUN_HOME` 验证本地 hero catalog 的最小团队分发链路：
+该命令默认使用 `meeting_action_brief`，并通过临时 `SKILLRUN_HOME` 验证本地 hero catalog 的最小团队分发链路。默认 hero 需要 Python 3.13+ 和 pydantic 2.x；推荐使用上面的临时 venv，不要求 Docker，也不修改系统 Python：
 
 ```text
 team catalog inspect --json
