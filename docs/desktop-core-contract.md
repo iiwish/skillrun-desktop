@@ -292,6 +292,7 @@ skillrun router serve --mcp --dry-run
 - 暴露页应显示 Core 返回的 `routes` / `issues`，包含 routable / blocked、warning / error、原因和 `recommended_action`。
 - disabled 或 readiness failed 的 capsule 不应显示为 exposed。
 - Router dry-run 的 resources 只展示 metadata。
+- Router diagnostics 的手动测试场景见 `router-diagnostics-manual-test.md`。
 
 ### Forbidden
 

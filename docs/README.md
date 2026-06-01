@@ -10,6 +10,7 @@
 3. `desktop-tray-design.md`：定义 tray-first 产品形态、托盘状态、菜单和 Router 边界。
 4. `desktop-alpha-roadmap.md`：把 alpha 拆成可执行阶段和验收 gate。
 5. `team-library-page-plan.md`：规划 Team Library 页面、Core catalog surface 依赖、状态流和 UI 禁区。
+6. `router-diagnostics-manual-test.md`：Router diagnostics 的手动测试场景，覆盖 no routes、routable、blocked、duplicate tool 和 Desktop UI refresh。
 
 ## 核心原则
 
