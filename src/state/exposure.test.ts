@@ -28,6 +28,19 @@ describe("exposure preview", () => {
     ]);
     expect(calls.some((call) => call.args.join(" ") === "router serve --mcp")).toBe(false);
     expect(result.status).toBe("ready");
+    if (result.status === "ready") {
+      expect(result.state.routerRoutes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            capsuleId: "meeting_action_brief",
+            state: "routable",
+            readinessStatus: "ok",
+          }),
+        ]),
+      );
+      expect(result.state.routerStatus.routeCount).toBe(1);
+      expect(result.state.routerStatus.routableCount).toBe(1);
+    }
   });
 
   it("filters disabled and not-ready tools out of the exposed display", () => {
@@ -126,6 +139,140 @@ describe("exposure preview", () => {
     expect(state.routerStatus.errorCode).toBe("duplicate-tool-name");
     expect(JSON.stringify(state.resources)).not.toContain("hidden content");
     expect(JSON.stringify(state.resources)).not.toContain("should_not");
+  });
+
+  it("maps Router route issues and recovery actions without reading Core internals", () => {
+    const state = buildExposurePreviewState({
+      exposure: exposureFixture,
+      routerStatus: {
+        ok: true,
+        router: { snapshot: true, capsules: 1 },
+        tools: [],
+        resources: [],
+        routes: [
+          {
+            capsule_id: "meeting_action_brief",
+            capsule_path: "/tmp/skillrun/capsules/meeting_action_brief",
+            enabled: true,
+            state: "blocked",
+            readiness_status: "missing_dependency",
+            readiness_reason: "python not found",
+            issue: {
+              code: "capsule-not-ready",
+              severity: "warning",
+              message: "Capsule is enabled but not ready.",
+              capsule_id: "meeting_action_brief",
+              tool_name: "meeting_action_brief",
+              recommended_action: "Install the required runtime, then refresh Router status.",
+            },
+            recommended_action: "Install the required runtime, then refresh Router status.",
+          },
+        ],
+        issues: [
+          {
+            code: "capsule-not-ready",
+            severity: "warning",
+            message: "Capsule is enabled but not ready.",
+            capsule_id: "meeting_action_brief",
+            tool_name: "meeting_action_brief",
+            recommended_action: "Install the required runtime, then refresh Router status.",
+          },
+        ],
+        error: null,
+      },
+      dryRun: routerDryRunFixture,
+    });
+
+    expect(state.routerRoutes).toEqual([
+      expect.objectContaining({
+        capsuleId: "meeting_action_brief",
+        state: "blocked",
+        readinessStatus: "missing_dependency",
+        readinessReason: "python not found",
+        issue: expect.objectContaining({
+          code: "capsule-not-ready",
+          severity: "warning",
+          recommendedAction: "Install the required runtime, then refresh Router status.",
+        }),
+      }),
+    ]);
+    expect(state.routerStatus.blockedCount).toBe(1);
+    expect(state.routerStatus.warningCount).toBe(1);
+    expect(JSON.stringify(state.routerRoutes)).not.toContain(".skillrun");
+  });
+
+  it("keeps structured Router diagnostics when Core exits non-zero", async () => {
+    const routerIssue = {
+      code: "duplicate-tool-name",
+      severity: "error",
+      message: "duplicate MCP tool name meeting_action_brief",
+      capsule_id: "meeting_action_brief",
+      tool_name: "meeting_action_brief",
+      recommended_action: "Disable one duplicate capsule, then refresh Router status.",
+    };
+    const statusJson = {
+      command: "router status",
+      schema_version: "router.status.v1",
+      ok: false,
+      router: { snapshot: true, capsules: 1 },
+      tools: [],
+      resources: [],
+      routes: [
+        {
+          capsule_id: "meeting_action_brief",
+          capsule_path: "/tmp/skillrun/capsules/meeting_action_brief",
+          enabled: true,
+          state: "blocked",
+          readiness_status: "duplicate_tool_name",
+          tool_name: "meeting_action_brief",
+          issue: routerIssue,
+          recommended_action: "Disable one duplicate capsule, then refresh Router status.",
+        },
+      ],
+      issues: [routerIssue],
+      error: { code: "duplicate-tool-name", message: "duplicate MCP tool name meeting_action_brief" },
+    };
+    const dryRunJson = {
+      command: "router serve --mcp --dry-run",
+      schema_version: "router.mcp.v1",
+      ok: false,
+      mcp: { dry_run: true, protocol: "model-context-protocol", transport: "stdio" },
+      router: { snapshot: true, capsules: 1 },
+      tools: [],
+      resources: [],
+      routes: statusJson.routes,
+      issues: [routerIssue],
+      error: statusJson.error,
+    };
+
+    const result = await loadExposurePreview({
+      executor: async (request) => {
+        const args = request.args.join(" ");
+        if (args === "consumer exposure --json") {
+          return { exitCode: 0, stdout: JSON.stringify(exposureFixture), stderr: "" };
+        }
+        if (args === "router status --json") {
+          return { exitCode: 1, stdout: JSON.stringify(statusJson), stderr: "" };
+        }
+        if (args === "router serve --mcp --dry-run") {
+          return { exitCode: 1, stdout: JSON.stringify(dryRunJson), stderr: "" };
+        }
+        return { exitCode: 1, stdout: "", stderr: `unexpected command: ${args}` };
+      },
+    });
+
+    expect(result.status).toBe("ready");
+    if (result.status === "ready") {
+      expect(result.state.routerStatus.ok).toBe(false);
+      expect(result.state.routerStatus.errorCode).toBe("duplicate-tool-name");
+      expect(result.state.routerStatus.errorCount).toBe(1);
+      expect(result.state.routerRoutes[0]).toEqual(
+        expect.objectContaining({
+          state: "blocked",
+          issue: expect.objectContaining({ code: "duplicate-tool-name" }),
+        }),
+      );
+    }
   });
 
   it("surfaces Core errors without guessing filesystem repair", async () => {

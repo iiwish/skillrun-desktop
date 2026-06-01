@@ -147,6 +147,23 @@ describe("runSkillrunJson", () => {
     expect(result.data.ok).toBe(false);
   });
 
+  it("can parse structured diagnostic JSON from a non-zero exit when explicitly allowed", async () => {
+    const result = await runSkillrunJson<{ ok: false; schema_version: string }>({
+      args: ["router", "status", "--json"],
+      expectedSchemaVersion: "router.status.v1",
+      allowNonZeroJson: true,
+      allowOkFalse: true,
+      executor: executorWith(
+        JSON.stringify({ ok: false, schema_version: "router.status.v1", error: { code: "duplicate-tool-name" } }),
+        { exitCode: 1, stderr: "router failed" },
+      ),
+      now: fixedNow,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.data.ok).toBe(false);
+  });
+
   it("rejects stale snapshots when freshness metadata is provided", async () => {
     await expect(
       runSkillrunJson({

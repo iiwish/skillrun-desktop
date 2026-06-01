@@ -1,15 +1,49 @@
 {
   "command": "router serve --mcp",
   "schema_version": "router.mcp.v1",
+  "ok": true,
   "mcp": {
     "dry_run": true,
     "protocol": "model-context-protocol",
     "transport": "stdio"
   },
-  "resources": [],
+  "resources": [
+    {
+      "capsule_id": "meeting_action_brief",
+      "uri": "skillrun://router/meeting_action_brief/SKILL.md",
+      "name": "SKILL.md",
+      "path": "SKILL.md",
+      "mime_type": "text/markdown"
+    }
+  ],
   "router": {
-    "capsules": 0,
+    "capsules": 1,
     "snapshot": true
   },
-  "tools": []
+  "tools": [
+    {
+      "capsule_id": "meeting_action_brief",
+      "capsule_path": "/tmp/skillrun/capsules/meeting_action_brief",
+      "name": "meeting_action_brief",
+      "description": "Summarize meeting notes into action briefs.",
+      "input_schema": {},
+      "output_schema": {},
+      "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "result_contract": "SkillRun output/error envelope"
+    }
+  ],
+  "routes": [
+    {
+      "capsule_id": "meeting_action_brief",
+      "capsule_path": "/tmp/skillrun/capsules/meeting_action_brief",
+      "enabled": true,
+      "state": "routable",
+      "readiness_status": "ok",
+      "tool_name": "meeting_action_brief",
+      "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "uri_prefix": "skillrun://router/meeting_action_brief/",
+      "recommended_action": "Mount `skillrun router serve --mcp` in the MCP client when you want this capsule exposed."
+    }
+  ],
+  "issues": []
 }

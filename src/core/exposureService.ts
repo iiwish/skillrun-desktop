@@ -45,6 +45,7 @@ export async function fetchExposurePreview(
     executor: options.executor,
     expectedSchemaVersion: "router.status.v1",
     allowOkFalse: true,
+    allowNonZeroJson: true,
     now: options.now,
   });
 
@@ -53,6 +54,8 @@ export async function fetchExposurePreview(
     cwd: options.cwd,
     executor: options.executor,
     expectedSchemaVersion: "router.mcp.v1",
+    allowOkFalse: true,
+    allowNonZeroJson: true,
     now: options.now,
   });
 

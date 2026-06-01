@@ -18,6 +18,33 @@ export type RouterResourceMetadata = {
   mimeType: string;
 };
 
+export type RouterIssueSeverity = "warning" | "error";
+
+export type RouterIssue = {
+  code: string;
+  severity: RouterIssueSeverity;
+  message: string;
+  capsuleId?: string;
+  toolName?: string;
+  recommendedAction: string;
+};
+
+export type RouterRouteState = "routable" | "blocked";
+
+export type RouterRouteDiagnostic = {
+  capsuleId: string;
+  capsulePath: string;
+  enabled: boolean;
+  state: RouterRouteState;
+  readinessStatus: string;
+  readinessReason?: string;
+  toolName?: string;
+  manifestHash?: string;
+  uriPrefix?: string;
+  issue?: RouterIssue;
+  recommendedAction: string;
+};
+
 export type ExposurePreviewState = {
   status: "ready";
   exposedTools: ExposureTool[];
@@ -37,7 +64,14 @@ export type ExposurePreviewState = {
     resourceCount: number;
     errorCode?: string;
     errorMessage?: string;
+    routeCount: number;
+    routableCount: number;
+    blockedCount: number;
+    warningCount: number;
+    errorCount: number;
   };
+  routerRoutes: RouterRouteDiagnostic[];
+  routerIssues: RouterIssue[];
   resources: RouterResourceMetadata[];
   safetyCopy: string;
 };
@@ -59,8 +93,8 @@ export type ExposurePreviewResult =
 
 export type BuildExposurePreviewInput = {
   exposure: Pick<ConsumerExposureContract, "tools">;
-  routerStatus: Pick<RouterStatusContract, "ok" | "router" | "tools" | "resources" | "error">;
-  dryRun: Pick<RouterDryRunContract, "mcp" | "router" | "tools" | "resources">;
+  routerStatus: Pick<RouterStatusContract, "ok" | "router" | "tools" | "resources" | "routes" | "issues" | "error">;
+  dryRun: Pick<RouterDryRunContract, "mcp" | "router" | "tools" | "resources" | "routes" | "issues" | "error">;
 };
 
 export const EXPOSURE_SAFETY_COPY =
@@ -92,6 +126,13 @@ export function buildExposurePreviewState(
   const allTools = input.exposure.tools.map(readExposureTool);
   const exposedTools = allTools.filter((tool) => tool.isExposed);
   const filteredToolCount = allTools.length - exposedTools.length;
+  const routerRoutes = readRouterRoutes(
+    hasItems(input.routerStatus.routes) ? input.routerStatus.routes : input.dryRun.routes,
+  );
+  const routerIssues = mergeRouteIssues(
+    readRouterIssues(hasItems(input.routerStatus.issues) ? input.routerStatus.issues : input.dryRun.issues),
+    routerRoutes,
+  );
 
   return {
     status: "ready",
@@ -105,13 +146,19 @@ export function buildExposurePreviewState(
       toolCount: input.dryRun.tools.length,
       resourceCount: input.dryRun.resources.length,
     },
-    routerStatus: readRouterStatus(input.routerStatus),
+    routerStatus: readRouterStatus(input.routerStatus, routerRoutes, routerIssues),
+    routerRoutes,
+    routerIssues,
     resources: input.dryRun.resources.map(readResourceMetadata),
     safetyCopy: EXPOSURE_SAFETY_COPY,
   };
 }
 
-function readRouterStatus(input: BuildExposurePreviewInput["routerStatus"]): ExposurePreviewState["routerStatus"] {
+function readRouterStatus(
+  input: BuildExposurePreviewInput["routerStatus"],
+  routerRoutes: RouterRouteDiagnostic[],
+  routerIssues: RouterIssue[],
+): ExposurePreviewState["routerStatus"] {
   const error = asRecord(input.error);
   return {
     ok: input.ok === true,
@@ -120,6 +167,11 @@ function readRouterStatus(input: BuildExposurePreviewInput["routerStatus"]): Exp
     resourceCount: input.resources.length,
     errorCode: readOptionalString(error, "code"),
     errorMessage: readOptionalString(error, "message"),
+    routeCount: routerRoutes.length,
+    routableCount: routerRoutes.filter((route) => route.state === "routable").length,
+    blockedCount: routerRoutes.filter((route) => route.state === "blocked").length,
+    warningCount: routerIssues.filter((issue) => issue.severity === "warning").length,
+    errorCount: routerIssues.filter((issue) => issue.severity === "error").length,
   };
 }
 
@@ -160,11 +212,81 @@ function readResourceMetadata(input: unknown): RouterResourceMetadata {
   };
 }
 
+function readRouterRoutes(input: unknown[] | undefined): RouterRouteDiagnostic[] {
+  return Array.isArray(input) ? input.map(readRouterRoute) : [];
+}
+
+function readRouterRoute(input: unknown): RouterRouteDiagnostic {
+  const record = asRecord(input);
+  const issue = readOptionalIssue(record.issue);
+  return {
+    capsuleId: readString(record, "capsule_id"),
+    capsulePath: readString(record, "capsule_path"),
+    enabled: readBoolean(record, "enabled"),
+    state: readRouteState(record),
+    readinessStatus: readString(record, "readiness_status"),
+    readinessReason: readOptionalString(record, "readiness_reason"),
+    toolName: readOptionalString(record, "tool_name"),
+    manifestHash: readOptionalString(record, "manifest_sha256"),
+    uriPrefix: readOptionalString(record, "uri_prefix"),
+    issue,
+    recommendedAction: readString(record, "recommended_action"),
+  };
+}
+
+function readRouterIssues(input: unknown[] | undefined): RouterIssue[] {
+  return Array.isArray(input) ? input.map(readRouterIssue) : [];
+}
+
+function mergeRouteIssues(issues: RouterIssue[], routes: RouterRouteDiagnostic[]): RouterIssue[] {
+  const merged = [...issues];
+  const keys = new Set(issues.map(routerIssueKey));
+  for (const route of routes) {
+    if (!route.issue) {
+      continue;
+    }
+    const key = routerIssueKey(route.issue);
+    if (!keys.has(key)) {
+      keys.add(key);
+      merged.push(route.issue);
+    }
+  }
+  return merged;
+}
+
+function routerIssueKey(issue: RouterIssue): string {
+  return `${issue.code}:${issue.capsuleId ?? ""}:${issue.toolName ?? ""}`;
+}
+
+function readRouterIssue(input: unknown): RouterIssue {
+  const record = asRecord(input);
+  return {
+    code: readString(record, "code"),
+    severity: readIssueSeverity(record),
+    message: readString(record, "message"),
+    capsuleId: readOptionalString(record, "capsule_id"),
+    toolName: readOptionalString(record, "tool_name"),
+    recommendedAction: readString(record, "recommended_action"),
+  };
+}
+
+function readOptionalIssue(input: unknown): RouterIssue | undefined {
+  return isRecord(input) ? readRouterIssue(input) : undefined;
+}
+
+function hasItems(input: unknown[] | undefined): input is unknown[] {
+  return Array.isArray(input) && input.length > 0;
+}
+
 function asRecord(input: unknown): Record<string, unknown> {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
     return {};
   }
   return input as Record<string, unknown>;
+}
+
+function isRecord(input: unknown): input is Record<string, unknown> {
+  return typeof input === "object" && input !== null && !Array.isArray(input);
 }
 
 function readString(
@@ -179,6 +301,19 @@ function readString(
 function readOptionalString(record: Record<string, unknown>, field: string): string | undefined {
   const value = record[field];
   return typeof value === "string" ? value : undefined;
+}
+
+function readBoolean(record: Record<string, unknown>, field: string, fallback = false): boolean {
+  const value = record[field];
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function readRouteState(record: Record<string, unknown>): RouterRouteState {
+  return record.state === "routable" ? "routable" : "blocked";
+}
+
+function readIssueSeverity(record: Record<string, unknown>): RouterIssueSeverity {
+  return record.severity === "error" ? "error" : "warning";
 }
 
 function readNumber(record: Record<string, unknown>, field: string, fallback = 0): number {

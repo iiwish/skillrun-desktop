@@ -222,6 +222,7 @@ skillrun doctor --json --cwd <capsule>
 
 ```text
 skillrun consumer exposure --json
+skillrun router status --json
 skillrun router serve --mcp --dry-run
 ```
 
@@ -253,6 +254,7 @@ skillrun router serve --mcp --dry-run
 {
   "command": "router serve --mcp",
   "schema_version": "router.mcp.v1",
+  "ok": true,
   "mcp": {
     "dry_run": true,
     "transport": "stdio",
@@ -263,14 +265,31 @@ skillrun router serve --mcp --dry-run
     "capsules": 1
   },
   "tools": [],
-  "resources": []
+  "resources": [],
+  "routes": [
+    {
+      "capsule_id": "...",
+      "capsule_path": "...",
+      "enabled": true,
+      "state": "routable",
+      "readiness_status": "ok",
+      "tool_name": "...",
+      "manifest_sha256": "...",
+      "uri_prefix": "skillrun://router/.../",
+      "recommended_action": "..."
+    }
+  ],
+  "issues": []
 }
 ```
+
+`router status --json` 使用 `schema_version: "router.status.v1"`，同样暴露 `ok`、`router`、`tools`、`resources`、`routes`、`issues`、`error`。当 Router 诊断失败时，Core 可以返回 `ok: false` 和结构化 JSON，即使命令退出码非 0；Desktop 只允许在 Router status / dry-run 这两条命令上解析这种结构化诊断，不把非零退出泛化为成功。
 
 ### UI Rules
 
 - `consumer exposure` 适合 Switchboard 旁边的轻量预览。
-- `router --dry-run` 适合 Mount Manager 预检。
+- `router status` / `router --dry-run` 适合暴露页和 Mount Manager 预检。
+- 暴露页应显示 Core 返回的 `routes` / `issues`，包含 routable / blocked、warning / error、原因和 `recommended_action`。
 - disabled 或 readiness failed 的 capsule 不应显示为 exposed。
 - Router dry-run 的 resources 只展示 metadata。
 
@@ -532,6 +551,8 @@ host status --json
   -> consumer inventory --json
   -> switchboard enable
   -> consumer exposure --json
+  -> router status --json
+  -> router serve --mcp --dry-run
 ```
 
 失败输出必须包含命令 trace，并区分缺少 CLI、Core 命令失败、JSON mismatch 或环境 blocker。
@@ -557,6 +578,7 @@ team catalog inspect --json
   -> consumer inventory --json
   -> switchboard enable
   -> consumer exposure --json
+  -> router status --json
   -> router serve --mcp --dry-run
 ```
 
@@ -580,7 +602,7 @@ Desktop alpha 的最低验收链路：
   -> inventory 显示 imported_skr + enabled=false
   -> exposure 为空
   -> 用户 enable
-  -> exposure 和 router dry-run 显示 tool
+  -> exposure、router status 和 router dry-run 显示 routable route / tool
   -> mount plan 显示 skillrun router serve --mcp
   -> 用户 apply Claude Desktop
   -> Agent 通过 Router 调用 tool

@@ -149,11 +149,19 @@ type RouterStatusResult = {
     uri_prefix: string;
   }>;
   error: null;
+  routes: Array<{
+    capsule_id: string;
+    state: "routable" | "blocked";
+    readiness_status: string;
+    recommended_action: string;
+  }>;
+  issues: unknown[];
 };
 
 type RouterDryRunResult = {
   command: "router serve --mcp";
   schema_version: "router.mcp.v1";
+  ok: boolean;
   mcp: {
     dry_run: boolean;
     protocol: string;
@@ -168,6 +176,13 @@ type RouterDryRunResult = {
     name: string;
   }>;
   resources: unknown[];
+  routes: Array<{
+    capsule_id: string;
+    state: "routable" | "blocked";
+    readiness_status: string;
+    recommended_action: string;
+  }>;
+  issues: unknown[];
 };
 
 type TestRunResult = {
@@ -476,9 +491,19 @@ describe("real Core smoke harness", () => {
           }),
         ]),
       );
+      expect(routerStatus.data.routes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            capsule_id: capsuleId,
+            state: "routable",
+            readiness_status: "ok",
+          }),
+        ]),
+      );
+      expect(routerStatus.data.issues).toEqual([]);
       summary.push({
         step: "router status",
-        detail: `capsules=${routerStatus.data.router.capsules}; tools=${routerStatus.data.tools.length}; resources=${routerStatus.data.resources.length}`,
+        detail: `capsules=${routerStatus.data.router.capsules}; routes=${routerStatus.data.routes.length}; tools=${routerStatus.data.tools.length}; resources=${routerStatus.data.resources.length}`,
       });
 
       const routerDryRun = await runJson<RouterDryRunResult>(
@@ -491,6 +516,7 @@ describe("real Core smoke harness", () => {
       );
       expect(routerDryRun.data.command).toBe("router serve --mcp");
       expect(routerDryRun.data).toMatchObject({
+        ok: true,
         mcp: {
           dry_run: true,
           protocol: "model-context-protocol",
@@ -509,9 +535,19 @@ describe("real Core smoke harness", () => {
           }),
         ]),
       );
+      expect(routerDryRun.data.routes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            capsule_id: capsuleId,
+            state: "routable",
+            readiness_status: "ok",
+          }),
+        ]),
+      );
+      expect(routerDryRun.data.issues).toEqual([]);
       summary.push({
         step: "router dry-run",
-        detail: `transport=${routerDryRun.data.mcp.transport}; tools=${routerDryRun.data.tools.length}; resources=${routerDryRun.data.resources.length}`,
+        detail: `transport=${routerDryRun.data.mcp.transport}; routes=${routerDryRun.data.routes.length}; tools=${routerDryRun.data.tools.length}; resources=${routerDryRun.data.resources.length}`,
       });
 
       const testRun = await runJson<TestRunResult>(
