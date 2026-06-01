@@ -3,11 +3,13 @@ import {
   fetchTeamCatalogInstallApply,
   fetchTeamCatalogInstallPlan,
   fetchTeamCatalogInspect,
+  fetchTeamCatalogStatus,
 } from "./teamLibraryService";
 import type { CommandExecutor } from "./runner";
 import teamCatalogInstallApplyFixture from "./fixtures/team-catalog-install-apply.v1.json";
 import teamCatalogInstallPlanFixture from "./fixtures/team-catalog-install-plan.v1.json";
 import teamCatalogInspectFixture from "./fixtures/team-catalog-inspect.v1.json";
+import teamCatalogStatusFixture from "./fixtures/team-catalog-status.v1.json";
 
 describe("fetchTeamCatalogInspect", () => {
   it("calls Core team catalog inspect without plan or apply", async () => {
@@ -32,6 +34,35 @@ describe("fetchTeamCatalogInspect", () => {
       {
         command: "skillrun",
         args: ["team", "catalog", "inspect", "/Users/iiwish/team/catalog.json", "--json"],
+        cwd: undefined,
+      },
+    ]);
+    expect(calls.map((call) => call.args.join(" "))).not.toContain("team catalog install plan");
+    expect(calls.map((call) => call.args.join(" "))).not.toContain("team catalog install apply");
+  });
+
+  it("calls Core team catalog status without plan or apply", async () => {
+    const calls: Parameters<CommandExecutor>[0][] = [];
+    const executor: CommandExecutor = async (request) => {
+      calls.push(request);
+      return {
+        exitCode: 0,
+        stdout: JSON.stringify(teamCatalogStatusFixture),
+        stderr: "",
+      };
+    };
+
+    const result = await fetchTeamCatalogStatus({
+      catalogPath: "/Users/iiwish/team/catalog.json",
+      executor,
+      now: () => 1_000,
+    });
+
+    expect(result.contract.schema_version).toBe("team.catalog.status.v1");
+    expect(calls).toEqual([
+      {
+        command: "skillrun",
+        args: ["team", "catalog", "status", "/Users/iiwish/team/catalog.json", "--json"],
         cwd: undefined,
       },
     ]);

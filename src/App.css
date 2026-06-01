@@ -564,6 +564,7 @@ code {
 /* ── Filter Tabs ── */
 .filter-tabs {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1703,6 +1704,14 @@ code {
   .compact-table > div,
   .description-list > div {
     grid-template-columns: 1fr;
+  }
+
+  .index-status-strip {
+    flex-direction: column;
+  }
+
+  .index-status-strip .description-list {
+    width: 100%;
   }
 
   .capsule-table,

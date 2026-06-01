@@ -81,6 +81,7 @@ Team Library 只允许调用 Core 暴露的 JSON surface。当前这些命令仍
 
 ```text
 skillrun team catalog inspect <catalog> --json
+skillrun team catalog status <catalog> --json
 skillrun team catalog install plan <catalog> <item-id> --json
 skillrun team catalog install apply <catalog> <item-id> --json
 ```
@@ -94,10 +95,9 @@ Desktop 内部页面状态可以抽象为：
 ```ts
 type TeamLibraryItemState =
   | "display_only"
-  | "not_installable"
   | "not_installed"
   | "installed_current"
-  | "update_available"
+  | "replace_available"
   | "blocked";
 ```
 
@@ -105,6 +105,8 @@ type TeamLibraryItemState =
 
 - `kind = "skillrun.skr"` 才可能进入 install / update。
 - `agent.skill` 和 `mcp.server` 可以展示为 `display_only`，不能出现 install/apply 按钮。
+- `status` 输出的 `missing` / `installed` / `replace_available` / `blocked` 是列表和 inspector 的状态来源。
+- `replace_available` 只表示 Core 可以生成 guarded replace plan，不代表已证明远端有新版本。
 - `https` source 缺少 checksum 必须展示为 blocked。
 - registry 中同 id 为 `local_path` 时必须展示为 conflict，不能覆盖。
 - Core plan 返回 warning 时，主按钮仍可显示，但必须保留确认步骤。
@@ -118,7 +120,9 @@ type TeamLibraryItemState =
 ```text
 Desktop
   -> skillrun team catalog inspect <catalog> --json
+  -> skillrun team catalog status <catalog> --json
   -> catalog summary + items
+  -> installed / replace_available / blocked status
 ```
 
 UI 行为：

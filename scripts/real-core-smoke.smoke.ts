@@ -60,6 +60,23 @@ type TeamCatalogInspectResult = {
   }>;
 };
 
+type TeamCatalogStatusResult = {
+  command: "team catalog status";
+  schema_version: "team.catalog.status.v1";
+  ok: true;
+  items: Array<{
+    id: string;
+    status: "missing" | "installed" | "replace_available" | "blocked";
+    recommended_action: "none" | "install" | "replace" | "resolve_conflict";
+    install_plan_available: boolean;
+    registry: {
+      installed: boolean;
+      source_type: string | null;
+      enabled: boolean | null;
+    };
+  }>;
+};
+
 type TeamCatalogPlanResult = {
   command: "team catalog install plan";
   schema_version: "team.catalog.install_plan.v1";
@@ -291,10 +308,10 @@ describe("real Core smoke harness", () => {
         detail: `capsule=${imported.data.capsule.id}; enabled=${imported.data.capsule.enabled}`,
       });
 
-      if (!(await skillrunSupportsTeamCatalog(env, trace))) {
+      if (!(await skillrunSupportsTeamCatalogStatus(env, trace))) {
         summary.push({
-          step: "team catalog apply",
-          detail: "skipped because PATH skillrun does not expose the team catalog command yet",
+          step: "team catalog status/apply",
+          detail: "skipped because PATH skillrun does not expose the team catalog status command yet",
         });
       } else {
         const catalogPath = await writeTeamCatalog(workspace, capsuleId, packagePath);
@@ -308,6 +325,24 @@ describe("real Core smoke harness", () => {
         );
         expect(catalogInspect.data.items).toEqual(
           expect.arrayContaining([expect.objectContaining({ id: capsuleId, installable: true })]),
+        );
+        const catalogStatusBefore = await runJson<TeamCatalogStatusResult>(
+          {
+            args: ["team", "catalog", "status", catalogPath, "--json"],
+            expectedSchemaVersion: "team.catalog.status.v1",
+            executor,
+          },
+          trace,
+        );
+        expect(catalogStatusBefore.data.items).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: capsuleId,
+              status: "replace_available",
+              recommended_action: "replace",
+              install_plan_available: true,
+            }),
+          ]),
         );
         const catalogPlan = await runJson<TeamCatalogPlanResult>(
           {
@@ -340,6 +375,27 @@ describe("real Core smoke harness", () => {
           enabled: false,
           replaced: true,
         });
+        const catalogStatusAfter = await runJson<TeamCatalogStatusResult>(
+          {
+            args: ["team", "catalog", "status", catalogPath, "--json"],
+            expectedSchemaVersion: "team.catalog.status.v1",
+            executor,
+          },
+          trace,
+        );
+        expect(catalogStatusAfter.data.items).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: capsuleId,
+              status: "replace_available",
+              recommended_action: "replace",
+              registry: expect.objectContaining({
+                installed: true,
+                source_type: "imported_skr",
+              }),
+            }),
+          ]),
+        );
         summary.push({
           step: "team catalog apply",
           detail: `capsule=${catalogApply.data.item_id}; replaced=${catalogApply.data.import.replaced}`,
@@ -768,12 +824,12 @@ async function writeTeamCatalog(workspace: string, capsuleId: string, packagePat
   return catalogPath;
 }
 
-async function skillrunSupportsTeamCatalog(
+async function skillrunSupportsTeamCatalogStatus(
   env: NodeJS.ProcessEnv,
   trace: SmokeTraceEntry[],
 ): Promise<boolean> {
   const help = await runCommand(["--help"], env, trace);
-  return help.stdout.includes("team catalog");
+  return help.stdout.includes("team catalog status");
 }
 
 function classifyFailure(error: unknown): string {
