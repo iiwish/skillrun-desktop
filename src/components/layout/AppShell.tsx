@@ -7,14 +7,10 @@ interface AppShellProps {
   onNavigate: (view: DashboardView) => void;
   navItems: ShellNavItem[];
   settingsLabel: string;
-  locale: 'zh' | 'en';
-  onLocaleChange: (locale: 'zh' | 'en') => void;
-  languageLabel: string;
-  cnLabel: string;
-  enLabel: string;
   statusKind?: TrayStatusKind;
   coreVersion?: string;
   onRefresh?: () => void;
+  refreshLabel: string;
   isRefreshing?: boolean;
   children: React.ReactNode;
 }
@@ -24,14 +20,10 @@ export default function AppShell({
   onNavigate,
   navItems,
   settingsLabel,
-  locale,
-  onLocaleChange,
-  languageLabel,
-  cnLabel,
-  enLabel,
   statusKind,
   coreVersion,
   onRefresh,
+  refreshLabel,
   isRefreshing,
   children,
 }: AppShellProps) {
@@ -48,14 +40,10 @@ export default function AppShell({
           {children}
         </main>
         <TrayStatusBar
-          locale={locale}
-          onLocaleChange={onLocaleChange}
-          languageLabel={languageLabel}
-          cnLabel={cnLabel}
-          enLabel={enLabel}
           statusKind={statusKind}
           coreVersion={coreVersion}
           onRefresh={onRefresh}
+          refreshLabel={refreshLabel}
           isRefreshing={isRefreshing}
         />
       </div>

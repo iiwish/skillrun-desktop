@@ -1260,14 +1260,10 @@ function App() {
       onNavigate={setActiveView}
       navItems={views}
       settingsLabel={t.settingsTitle}
-      locale={locale}
-      onLocaleChange={setLocale}
-      languageLabel={t.language}
-      cnLabel={t.cn}
-      enLabel={t.en}
       statusKind={statusSnapshot?.status.kind}
       coreVersion={undefined}
       onRefresh={handleRefreshStatus}
+      refreshLabel={t.refresh}
       isRefreshing={isRefreshingStatus}
     >
       <section className="workspace" aria-label={activeDefinition.label}>

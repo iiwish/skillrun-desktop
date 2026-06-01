@@ -230,6 +230,7 @@ async function runUiSmokeIfPossible() {
       await mkdir(artifactDir, { recursive: true });
       await assertViewport(page, url, { name: "desktop", width: 1440, height: 900 });
       await assertTeamLibrarySwitch(page);
+      await assertSettingsLanguageSwitch(page);
       const desktopScreenshotPath = join(artifactDir, `desktop-${Date.now()}.png`);
       await writeFile(desktopScreenshotPath, await page.captureScreenshot());
       await assertViewport(page, url, { name: "mobile", width: 390, height: 844 });
@@ -270,7 +271,8 @@ async function assertViewport(page, url, viewport) {
       hasImport: text.includes("导入 .skr"),
       hasRefresh: text.includes("刷新状态"),
       hasEmpty: text.includes("还没有 Capsule"),
-      hasLanguageToggle: text.includes("EN"),
+      hasSettings: text.includes("设置"),
+      hasNoPersistentLanguageToggle: !text.includes("EN") && !Array.from(document.querySelectorAll('[role="group"]')).some((element) => element.getAttribute("aria-label") === "语言"),
       overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth
     };
   })()`);
@@ -312,6 +314,32 @@ async function assertTeamLibrarySwitch(page) {
 
   if (result.clicked !== true || result.hasTeamLibrary !== true) {
     throw new Error("Desktop UI smoke could not switch to Team Library.");
+  }
+}
+
+async function assertSettingsLanguageSwitch(page) {
+  const result = await page.evaluate(`new Promise((resolve) => {
+    const buttons = Array.from(document.querySelectorAll("button"));
+    const settingsButton = buttons.find((button) => {
+      const label = [button.getAttribute("aria-label"), button.textContent].filter(Boolean).join(" ");
+      return label.includes("设置") || label.includes("Settings");
+    });
+    if (!settingsButton) {
+      resolve({ clicked: false, hasLanguageSetting: false });
+      return;
+    }
+    settingsButton.click();
+    setTimeout(() => {
+      const text = document.body.innerText;
+      resolve({
+        clicked: true,
+        hasLanguageSetting: text.includes("中文") && text.includes("English"),
+      });
+    }, 100);
+  })`);
+
+  if (result.clicked !== true || result.hasLanguageSetting !== true) {
+    throw new Error("Desktop UI smoke could not find the language switch in Settings.");
   }
 }
 

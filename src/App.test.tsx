@@ -16,7 +16,7 @@ describe("App alpha dashboard", () => {
     expect(html).toContain("工具暴露");
     expect(html).toContain("执行记录");
     expect(html).toContain("设置");
-    expect(html).toContain("EN");
+    expect(html).not.toContain("EN");
     expect(html).toContain("还没有 Capsule");
     expect(html).toContain("左侧列表选择一个 Capsule");
   });
