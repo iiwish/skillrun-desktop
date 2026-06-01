@@ -444,14 +444,15 @@ Inspect：
 
 ## 7. Team Library
 
-**状态**：Guarded_Apply_Implemented
+**状态**：Status_Consumed
 
-Team Library 是团队 catalog 的受控浏览和安装入口。Desktop 当前只允许消费 Core `inspect`、`install plan` 和用户显式确认后的 `install apply` surface；不得自行实现 catalog install/update 语义。
+Team Library 是团队 catalog 的受控浏览和安装入口。Desktop 当前只允许消费 Core `inspect`、`status`、`install plan` 和用户显式确认后的 `install apply` surface；不得自行实现 catalog install/update 语义。
 
 ### Commands
 
 ```text
 skillrun team catalog inspect <catalog> --json
+skillrun team catalog status <catalog> --json
 skillrun team catalog install plan <catalog> <item-id> --json
 skillrun team catalog install apply <catalog> <item-id> --json
 ```
@@ -459,7 +460,8 @@ skillrun team catalog install apply <catalog> <item-id> --json
 ### UI Rules
 
 - `inspect` 只用于展示 catalog 和 item summary。
-- 页面调用 `inspect` 展示 catalog 和 item summary。
+- 页面调用 `inspect` 展示 catalog 和 item summary，并调用 `status` 展示 installed / replace_available / blocked。
+- `replace_available` 只表示 Core 可以生成 guarded replace plan，不得展示成已证明有新版本。
 - plan 面板调用 `install plan` 展示 import / replace / conflict / warning。
 - `install apply` 必须由用户确认后触发。
 - apply 成功后跳转到 Capsule 页面，由现有 Switchboard / Exposure / Mount / Runs 页面继续后续路径。
@@ -548,8 +550,10 @@ npm run smoke:hero-desktop
 
 ```text
 team catalog inspect --json
+  -> team catalog status --json
   -> team catalog install plan --json
   -> team catalog install apply --json
+  -> team catalog status --json
   -> consumer inventory --json
   -> switchboard enable
   -> consumer exposure --json

@@ -73,6 +73,16 @@ async function runCoreHeroSmoke() {
     }
     summary.push(["catalog inspect", `items=${inspect.items.length}; hero=${itemId}`]);
 
+    const statusBefore = await runSkillrunJson(["team", "catalog", "status", catalogPath, "--json"], {
+      env,
+      schema: "team.catalog.status.v1",
+    });
+    const statusItemBefore = statusBefore.items.find((item) => item.id === itemId);
+    if (!statusItemBefore || statusItemBefore.status !== "missing" || statusItemBefore.recommended_action !== "install") {
+      throw new Error(`Catalog status before apply should mark ${itemId} as missing/install.`);
+    }
+    summary.push(["catalog status", `before=${statusItemBefore.status}; action=${statusItemBefore.recommended_action}`]);
+
     const plan = await runSkillrunJson(["team", "catalog", "install", "plan", catalogPath, itemId, "--json"], {
       env,
       schema: "team.catalog.install_plan.v1",
@@ -96,6 +106,16 @@ async function runCoreHeroSmoke() {
       throw new Error(`Install apply for ${itemId} should import disabled by default.`);
     }
     summary.push(["catalog apply", `sha256_verified=${apply.download.sha256_verified}; enabled=${apply.import.enabled}`]);
+
+    const statusAfter = await runSkillrunJson(["team", "catalog", "status", catalogPath, "--json"], {
+      env,
+      schema: "team.catalog.status.v1",
+    });
+    const statusItemAfter = statusAfter.items.find((item) => item.id === itemId);
+    if (!statusItemAfter || statusItemAfter.status !== "replace_available" || statusItemAfter.registry?.installed !== true) {
+      throw new Error(`Catalog status after apply should mark ${itemId} as replace_available with an installed registry entry.`);
+    }
+    summary.push(["catalog status", `after=${statusItemAfter.status}; registry=${statusItemAfter.registry.source_type}`]);
 
     const inventory = await runSkillrunJson(["consumer", "inventory", "--json"], {
       env,

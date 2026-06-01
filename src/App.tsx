@@ -100,7 +100,7 @@ import { type DashboardView } from "./components/layout/SidebarNav";
 
 type Locale = "zh" | "en";
 type CapsuleFilter = "all" | "enabled" | "issues";
-type TeamLibraryFilter = "all" | "installable" | "installed" | "blocked";
+type TeamLibraryFilter = "all" | "installable" | "installed" | "replace" | "blocked";
 type RunsOkFilter = "any" | "true" | "false";
 type RunsSourceFilter = "scan" | "index";
 type RunsFilters = {
@@ -209,7 +209,7 @@ const copy = {
     noFilteredItemsTitle: "没有匹配的条目",
     noFilteredItemsBody: "调整搜索或筛选条件，或重新检查 catalog。",
     noCatalogTitle: "还没有载入 catalog",
-    noCatalogBody: "选择或粘贴团队 catalog JSON 路径后，Desktop 先调用 Core inspect 读取摘要。",
+    noCatalogBody: "选择或粘贴团队 catalog JSON 路径后，Desktop 调用 Core inspect / status 读取摘要和本地状态。",
     importAction: "导入 .skr",
     inspectCatalog: "检查 catalog",
     chooseCatalog: "选择 catalog",
@@ -223,8 +223,11 @@ const copy = {
     catalogUpdated: "更新时间",
     installable: "可安装",
     installed: "已安装",
+    replaceAvailable: "可替换",
     blocked: "已阻止",
     displayOnly: "仅展示",
+    recommendedAction: "推荐动作",
+    installPlanAvailable: "可生成计划",
     itemKind: "类型",
     itemVersion: "版本",
     publisher: "发布方",
@@ -234,6 +237,7 @@ const copy = {
     trustNote: "团队说明",
     tags: "标签",
     installPlan: "检查安装计划",
+    installReplacePlan: "检查替换计划",
     planResult: "安装计划",
     planAction: "计划动作",
     planImport: "导入到本机 registry",
@@ -253,8 +257,9 @@ const copy = {
     nextSteps: "下一步",
     filterInstallable: "可安装",
     filterInstalled: "已安装",
+    filterReplace: "可替换",
     filterBlocked: "已阻止",
-    teamLibrarySafety: "Team Library 只通过 Core inspect / plan / apply 工作；不会自行下载、解包、导入、启用、挂载、运行，也不会把条目标记为可信。",
+    teamLibrarySafety: "Team Library 只通过 Core inspect / status / plan / apply 工作；不会自行下载、解包、导入、启用、挂载、运行，也不会把条目标记为可信。",
     searchCapsules: "搜索 Capsule",
     searchCatalogItems: "搜索团队条目",
     filterAll: "全部",
@@ -377,7 +382,8 @@ const copy = {
     importSafety: "导入只把 `.skr` 加入本地 registry。不会安装依赖、不会自动启用、不会自动挂载，也不会把它标记为可信。",
     teamLibraryEmptyAction: "先检查 catalog",
     teamLibraryDisplayOnlyReason: "这个条目当前只用于展示，不能在 Desktop 中安装或执行。",
-    teamLibraryBlockedReason: "Core inspect 标记为不可安装。Desktop 不提供绕过路径。",
+    teamLibraryBlockedReason: "Core status 标记为 blocked。Desktop 不提供绕过路径。",
+    teamLibraryReplaceReason: "可替换只表示 Core 可以生成受控 replace plan，不代表已证明有新版本。",
     teamLibraryPlanLater: "安装计划稍后开放",
     switchboardSafety: "enabled 表示允许 Router 暴露该 Capsule。就绪性来自 Core preflight，不代表业务正确性、trust 或 sandbox。",
     exposureSafety: "这里只展示 Core 报告的 tool/resource metadata。exposed 不等于 trusted、safe 或 sandboxed。",
@@ -454,7 +460,7 @@ const copy = {
     noFilteredItemsTitle: "No matching items",
     noFilteredItemsBody: "Adjust search or filters, or inspect the catalog again.",
     noCatalogTitle: "No catalog loaded",
-    noCatalogBody: "Choose or paste a team catalog JSON path. Desktop first calls Core inspect for the summary.",
+    noCatalogBody: "Choose or paste a team catalog JSON path. Desktop calls Core inspect / status for the summary and local state.",
     importAction: "Import .skr",
     inspectCatalog: "Inspect catalog",
     chooseCatalog: "Choose catalog",
@@ -468,8 +474,11 @@ const copy = {
     catalogUpdated: "Updated",
     installable: "Installable",
     installed: "Installed",
+    replaceAvailable: "Replaceable",
     blocked: "Blocked",
     displayOnly: "Display only",
+    recommendedAction: "Recommended action",
+    installPlanAvailable: "Plan available",
     itemKind: "Kind",
     itemVersion: "Version",
     publisher: "Publisher",
@@ -479,6 +488,7 @@ const copy = {
     trustNote: "Team note",
     tags: "Tags",
     installPlan: "Check install plan",
+    installReplacePlan: "Check replace plan",
     planResult: "Install plan",
     planAction: "Planned action",
     planImport: "Import to local registry",
@@ -498,6 +508,7 @@ const copy = {
     nextSteps: "Next steps",
     filterInstallable: "Installable",
     filterInstalled: "Installed",
+    filterReplace: "Replace",
     filterBlocked: "Blocked",
     teamLibrarySafety: TEAM_LIBRARY_SAFETY_COPY,
     searchCapsules: "Search capsules",
@@ -622,7 +633,8 @@ const copy = {
     importSafety: IMPORT_SAFETY_COPY,
     teamLibraryEmptyAction: "Inspect catalog first",
     teamLibraryDisplayOnlyReason: "This item is display-only in this phase and cannot be installed or executed from Desktop.",
-    teamLibraryBlockedReason: "Core inspect marked this item not installable. Desktop does not provide a bypass.",
+    teamLibraryBlockedReason: "Core status marked this item blocked. Desktop does not provide a bypass.",
+    teamLibraryReplaceReason: "Replaceable only means Core can generate a guarded replace plan; it does not prove a newer version.",
     teamLibraryPlanLater: "Install plan later",
     switchboardSafety: SWITCHBOARD_SAFETY_COPY,
     exposureSafety: "Exposure preview shows Core-reported tool/resource metadata only. Exposed does not mean sandboxed, trusted, or safe.",
@@ -787,6 +799,7 @@ function App() {
       teamLibraryFilter === "all" ||
       (teamLibraryFilter === "installable" && item.installable) ||
       (teamLibraryFilter === "installed" && item.installed) ||
+      (teamLibraryFilter === "replace" && item.state === "replace_available") ||
       (teamLibraryFilter === "blocked" && item.state === "blocked");
     return matchesQuery && matchesFilter;
   });
@@ -925,7 +938,7 @@ function App() {
 
   async function handleTeamLibraryPlan(item: TeamCatalogItem) {
     const source = teamLibraryState?.catalogSource ?? catalogPath.trim();
-    if (!source || !item.installable) {
+    if (!source || !item.installPlanAvailable) {
       return;
     }
 
@@ -1533,6 +1546,7 @@ function TeamLibraryPanel({
             <SummaryStat label={t.catalogItems} value={state.summary.total} />
             <SummaryStat label={t.installable} value={state.summary.installable} />
             <SummaryStat label={t.installed} value={state.summary.installed} />
+            <SummaryStat label={t.replaceAvailable} value={state.summary.replaceAvailable} tone={state.summary.replaceAvailable > 0 ? "warning" : "neutral"} />
             <SummaryStat label={t.blocked} value={state.summary.blocked} tone={state.summary.blocked > 0 ? "warning" : "neutral"} />
           </div>
 
@@ -1571,6 +1585,7 @@ function TeamLibraryPanel({
                     ["all", t.filterAll],
                     ["installable", t.filterInstallable],
                     ["installed", t.filterInstalled],
+                    ["replace", t.filterReplace],
                     ["blocked", t.filterBlocked],
                   ] as const).map(([value, label]) => (
                     <button
@@ -1677,6 +1692,10 @@ function TeamItemInspector({
               [t.itemKind, item.kind],
               [t.itemVersion, item.version],
               [t.status, teamItemStateLabel(item.state, t)],
+              [t.recommendedAction, teamItemRecommendedActionLabel(item.recommendedAction, t)],
+              [t.installPlanAvailable, item.installPlanAvailable ? t.true : t.false],
+              [t.registrySource, item.registry.sourceType ?? t.none],
+              [t.enabled, item.registry.enabled === null ? t.unknown : String(item.registry.enabled)],
               [t.publisher, item.publisherName ?? t.unknown],
               [t.source, item.sourceType],
               [t.checksum, item.sha256 ?? t.none],
@@ -1721,14 +1740,15 @@ function TeamItemInspector({
           <Button
             variant="secondary"
             icon={Play}
-            disabled={!item.installable || pendingPlan}
+            disabled={!item.installPlanAvailable || pendingPlan}
             loading={pendingPlan}
             onClick={() => onPlan(item)}
           >
-            {item.installable ? t.installPlan : item.state === "display_only" ? t.displayOnly : t.blocked}
+            {item.installPlanAvailable ? teamItemPlanButtonLabel(item, t) : item.state === "display_only" ? t.displayOnly : t.blocked}
           </Button>
           {item.state === "display_only" ? <p className="form-hint">{t.teamLibraryDisplayOnlyReason}</p> : null}
           {item.state === "blocked" ? <p className="form-hint">{t.teamLibraryBlockedReason}</p> : null}
+          {item.state === "replace_available" ? <p className="form-hint">{t.teamLibraryReplaceReason}</p> : null}
           {planError ? <Alert>{planError.message}</Alert> : null}
           {applyError ? <Alert>{applyError.message}</Alert> : null}
           <TeamInstallPlanPanel
@@ -2733,14 +2753,38 @@ function teamItemStateLabel(state: TeamLibraryItemState, t: typeof copy[Locale])
     display_only: t.displayOnly,
     not_installed: t.installable,
     installed_current: t.installed,
+    replace_available: t.replaceAvailable,
     blocked: t.blocked,
   };
   return labels[state];
 }
 
+function teamItemRecommendedActionLabel(
+  action: TeamCatalogItem["recommendedAction"],
+  t: typeof copy[Locale],
+): string {
+  const labels: Record<TeamCatalogItem["recommendedAction"], string> = {
+    none: t.none,
+    install: t.applyTeamInstall,
+    replace: t.planReplace,
+    resolve_conflict: t.blocked,
+  };
+  return labels[action];
+}
+
+function teamItemPlanButtonLabel(item: TeamCatalogItem, t: typeof copy[Locale]): string {
+  if (item.recommendedAction === "replace") {
+    return t.installReplacePlan;
+  }
+  return t.installPlan;
+}
+
 function teamItemTone(state: TeamLibraryItemState): "neutral" | "success" | "warning" | "danger" {
   if (state === "installed_current") {
     return "success";
+  }
+  if (state === "replace_available") {
+    return "warning";
   }
   if (state === "blocked") {
     return "danger";

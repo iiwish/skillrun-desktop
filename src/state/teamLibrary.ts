@@ -3,6 +3,7 @@ import {
   fetchTeamCatalogInstallApply,
   fetchTeamCatalogInstallPlan,
   fetchTeamCatalogInspect,
+  fetchTeamCatalogStatus,
   type TeamCatalogInstallApplyOptions,
   type TeamCatalogInstallPlanOptions,
   type TeamCatalogInspectOptions,
@@ -11,6 +12,7 @@ import type {
   TeamCatalogInstallApplyContract,
   TeamCatalogInstallPlanContract,
   TeamCatalogInspectContract,
+  TeamCatalogStatusContract,
 } from "../core/contracts";
 
 export type TeamCatalogItemKind = "skillrun.skr" | "agent.skill" | "mcp.server";
@@ -19,7 +21,9 @@ export type TeamLibraryItemState =
   | "display_only"
   | "not_installed"
   | "installed_current"
+  | "replace_available"
   | "blocked";
+export type TeamLibraryRecommendedAction = "none" | "install" | "replace" | "resolve_conflict";
 
 export type TeamCatalogWarning = {
   code: string;
@@ -35,6 +39,14 @@ export type TeamCatalogItem = {
   installable: boolean;
   installed: boolean;
   state: TeamLibraryItemState;
+  recommendedAction: TeamLibraryRecommendedAction;
+  installPlanAvailable: boolean;
+  registry: {
+    installed: boolean;
+    sourceType?: string;
+    enabled: boolean | null;
+    path?: string;
+  };
   sourceType: TeamCatalogSourceType;
   sha256?: string;
   publisherName?: string;
@@ -63,6 +75,7 @@ export type TeamLibraryState = {
     total: number;
     installable: number;
     installed: number;
+    replaceAvailable: number;
     blocked: number;
     displayOnly: number;
   };
@@ -135,6 +148,7 @@ export type TeamLibraryResult =
 export type BuildTeamLibraryInput = {
   catalogSource: string;
   inspect: TeamCatalogInspectContract;
+  status?: TeamCatalogStatusContract;
 };
 
 export type BuildTeamLibraryPlanInput = {
@@ -146,7 +160,7 @@ export type BuildTeamLibraryApplyInput = {
 };
 
 export const TEAM_LIBRARY_SAFETY_COPY =
-  "Team Library only works through Core inspect, plan, and confirmed apply. It does not download, unpack, import, enable, mount, run, or mark catalog items trusted on its own.";
+  "Team Library only works through Core inspect, status, plan, and confirmed apply. It does not download, unpack, import, enable, mount, run, or mark catalog items trusted on its own.";
 
 export const TEAM_LIBRARY_PLAN_SAFETY_COPY =
   "Install plan is a Core preview only. Desktop does not download, unpack, import, enable, mount, or apply anything from this result.";
@@ -158,12 +172,14 @@ export async function loadTeamLibraryInspect(
   options: TeamCatalogInspectOptions,
 ): Promise<TeamLibraryResult> {
   try {
-    const result = await fetchTeamCatalogInspect(options);
+    const inspectResult = await fetchTeamCatalogInspect(options);
+    const statusResult = await fetchTeamCatalogStatus(options);
     return {
       status: "ready",
       state: buildTeamLibraryState({
         catalogSource: options.catalogPath,
-        inspect: result.contract,
+        inspect: inspectResult.contract,
+        status: statusResult.contract,
       }),
     };
   } catch (error) {
@@ -237,7 +253,16 @@ export async function applyTeamLibraryInstall(
 
 export function buildTeamLibraryState(input: BuildTeamLibraryInput): TeamLibraryState {
   const catalog = input.inspect.catalog;
-  const items = input.inspect.items.map((item) => buildTeamCatalogItem(asRecord(item)));
+  const statuses = new Map(
+    (input.status?.items ?? []).map((item) => {
+      const record = asRecord(item);
+      return [readString(record, "id", ""), record] as const;
+    }),
+  );
+  const items = input.inspect.items.map((item) => {
+    const record = asRecord(item);
+    return buildTeamCatalogItem(record, statuses.get(readString(record, "id", "")));
+  });
   return {
     status: "ready",
     catalogSource: input.catalogSource,
@@ -253,6 +278,7 @@ export function buildTeamLibraryState(input: BuildTeamLibraryInput): TeamLibrary
       total: items.length,
       installable: items.filter((item) => item.installable).length,
       installed: items.filter((item) => item.installed).length,
+      replaceAvailable: items.filter((item) => item.state === "replace_available").length,
       blocked: items.filter((item) => item.state === "blocked").length,
       displayOnly: items.filter((item) => item.state === "display_only").length,
     },
@@ -310,11 +336,22 @@ export function buildTeamLibraryApplyState(input: BuildTeamLibraryApplyInput): T
   };
 }
 
-function buildTeamCatalogItem(record: Record<string, unknown>): TeamCatalogItem {
+function buildTeamCatalogItem(
+  record: Record<string, unknown>,
+  statusRecord?: Record<string, unknown>,
+): TeamCatalogItem {
   const kind = readItemKind(record, "kind", "skillrun.skr");
-  const installable = readBoolean(record, "installable", false);
-  const installed = readBoolean(record, "installed", false);
-  const warnings = readWarnings(record.warnings);
+  const installable = statusRecord
+    ? readBoolean(statusRecord, "installable", false)
+    : readBoolean(record, "installable", false);
+  const statusRegistry = asNullableRecord(statusRecord?.registry);
+  const installed = statusRecord
+    ? readBoolean(statusRegistry, "installed", false)
+    : readBoolean(record, "installed", false);
+  const status = statusRecord ? readCatalogStatus(statusRecord, "status") : undefined;
+  const warnings = mergeWarnings(readWarnings(record.warnings), readWarnings(statusRecord?.warnings));
+  const state = status ? deriveItemStateFromStatus({ kind, status }) : deriveItemState({ kind, installable, installed });
+  const recommendedAction = readRecommendedAction(statusRecord, "recommended_action");
   return {
     id: readString(record, "id", ""),
     kind,
@@ -323,7 +360,17 @@ function buildTeamCatalogItem(record: Record<string, unknown>): TeamCatalogItem 
     version: readString(record, "version", ""),
     installable,
     installed,
-    state: deriveItemState({ kind, installable, installed }),
+    state,
+    recommendedAction,
+    installPlanAvailable: statusRecord
+      ? readBoolean(statusRecord, "install_plan_available", false)
+      : installable,
+    registry: {
+      installed,
+      sourceType: readOptionalString(statusRegistry, "source_type"),
+      enabled: readOptionalBoolean(statusRegistry, "enabled"),
+      path: readOptionalString(statusRegistry, "path"),
+    },
     sourceType: readSourceType(record, "source_type", "file"),
     sha256: readOptionalString(record, "sha256"),
     publisherName: readOptionalString(asNullableRecord(record.publisher), "name"),
@@ -336,6 +383,25 @@ function buildTeamCatalogItem(record: Record<string, unknown>): TeamCatalogItem 
     tags: readStringArray(record.tags),
     warnings,
   };
+}
+
+function deriveItemStateFromStatus(input: {
+  kind: TeamCatalogItemKind;
+  status: "missing" | "installed" | "replace_available" | "blocked";
+}): TeamLibraryItemState {
+  if (input.kind !== "skillrun.skr") {
+    return "display_only";
+  }
+  if (input.status === "replace_available") {
+    return "replace_available";
+  }
+  if (input.status === "installed") {
+    return "installed_current";
+  }
+  if (input.status === "blocked") {
+    return "blocked";
+  }
+  return "not_installed";
 }
 
 function deriveItemState(input: {
@@ -353,6 +419,17 @@ function deriveItemState(input: {
     return "installed_current";
   }
   return "not_installed";
+}
+
+function mergeWarnings(
+  inspectWarnings: TeamCatalogWarning[],
+  statusWarnings: TeamCatalogWarning[],
+): TeamCatalogWarning[] {
+  const merged = new Map<string, TeamCatalogWarning>();
+  for (const warning of [...inspectWarnings, ...statusWarnings]) {
+    merged.set(`${warning.code}:${warning.message}`, warning);
+  }
+  return [...merged.values()];
 }
 
 function readRequirements(input: unknown): string[] {
@@ -415,6 +492,28 @@ function readPlanActions(input: unknown): TeamLibraryPlanAction[] {
       requiresConfirmation: readBoolean(record, "requires_confirmation", false),
     };
   });
+}
+
+function readCatalogStatus(
+  record: Record<string, unknown> | undefined,
+  key: string,
+): "missing" | "installed" | "replace_available" | "blocked" | undefined {
+  const value = record?.[key];
+  if (value === "missing" || value === "installed" || value === "replace_available" || value === "blocked") {
+    return value;
+  }
+  return undefined;
+}
+
+function readRecommendedAction(
+  record: Record<string, unknown> | undefined,
+  key: string,
+): TeamLibraryRecommendedAction {
+  const value = record?.[key];
+  if (value === "none" || value === "install" || value === "replace" || value === "resolve_conflict") {
+    return value;
+  }
+  return "none";
 }
 
 function readStringArray(input: unknown): string[] {

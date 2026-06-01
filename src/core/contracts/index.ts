@@ -145,6 +145,17 @@ export type TeamCatalogInspectContract = {
   error: null;
 };
 
+export type TeamCatalogStatusContract = {
+  command: "team catalog status";
+  schema_version: "team.catalog.status.v1";
+  ok: true;
+  catalog: Record<string, unknown>;
+  summary: Record<string, unknown>;
+  items: unknown[];
+  warnings: unknown[];
+  error: null;
+};
+
 export type TeamCatalogInstallPlanContract = {
   command: "team catalog install plan";
   schema_version: "team.catalog.install_plan.v1";
@@ -185,6 +196,7 @@ export type DesktopCoreContract =
   | RunsIndexStatusContract
   | RunsInspectContract
   | TeamCatalogInspectContract
+  | TeamCatalogStatusContract
   | TeamCatalogInstallPlanContract
   | TeamCatalogInstallApplyContract;
 
@@ -407,6 +419,58 @@ export function parseTeamCatalogInspectContract(input: unknown): TeamCatalogInsp
   return data as TeamCatalogInspectContract;
 }
 
+export function parseTeamCatalogStatusContract(input: unknown): TeamCatalogStatusContract {
+  const data = baseContract(input, "team.catalog.status.v1", "team catalog status");
+  requireLiteral(data, "ok", true);
+  const catalog = requireRecord(data, "catalog");
+  requireString(catalog, "catalog_id");
+  requireString(catalog, "name");
+  requireString(catalog, "updated_at");
+  requireNumber(catalog, "items");
+  const summary = requireRecord(data, "summary");
+  requireNumber(summary, "items");
+  requireNumber(summary, "missing");
+  requireNumber(summary, "installed");
+  requireNumber(summary, "replace_available");
+  requireNumber(summary, "blocked");
+  for (const item of requireArray(data, "items")) {
+    const record = asRecord(item, "items[]");
+    requireString(record, "id");
+    const kind = requireString(record, "kind");
+    if (!["skillrun.skr", "agent.skill", "mcp.server"].includes(kind)) {
+      throw mismatch("items[].kind", "Expected supported team catalog item kind.");
+    }
+    requireString(record, "name");
+    requireString(record, "version");
+    requireBoolean(record, "installable");
+    const status = requireString(record, "status");
+    if (!["missing", "installed", "replace_available", "blocked"].includes(status)) {
+      throw mismatch("items[].status", "Expected supported team catalog status.");
+    }
+    const recommendedAction = requireString(record, "recommended_action");
+    if (!["none", "install", "replace", "resolve_conflict"].includes(recommendedAction)) {
+      throw mismatch("items[].recommended_action", "Expected supported recommended action.");
+    }
+    requireBoolean(record, "install_plan_available");
+    const registry = requireRecord(record, "registry");
+    requireBoolean(registry, "installed");
+    requireNullableString(registry, "source_type");
+    requireNullableBoolean(registry, "enabled");
+    requireNullableString(registry, "path");
+    const sourceType = requireString(record, "source_type");
+    if (!["file", "https"].includes(sourceType)) {
+      throw mismatch("items[].source_type", "Expected file or https.");
+    }
+    requireNullableString(record, "sha256");
+    requireArray(record, "warnings");
+  }
+  requireArray(data, "warnings");
+  if (data.error !== null) {
+    throw mismatch("error", "Expected null.");
+  }
+  return data as TeamCatalogStatusContract;
+}
+
 export function parseTeamCatalogInstallPlanContract(input: unknown): TeamCatalogInstallPlanContract {
   const data = baseContract(input, "team.catalog.install_plan.v1", "team catalog install plan");
   requireLiteral(data, "ok", true);
@@ -502,6 +566,22 @@ function requireBoolean(record: Record<string, unknown>, field: string): boolean
   const value = record[field];
   if (typeof value !== "boolean") {
     throw mismatch(field, "Expected boolean.");
+  }
+  return value;
+}
+
+function requireNullableString(record: Record<string, unknown>, field: string): string | null {
+  const value = record[field];
+  if (value !== null && typeof value !== "string") {
+    throw mismatch(field, "Expected string or null.");
+  }
+  return value;
+}
+
+function requireNullableBoolean(record: Record<string, unknown>, field: string): boolean | null {
+  const value = record[field];
+  if (value !== null && typeof value !== "boolean") {
+    throw mismatch(field, "Expected boolean or null.");
   }
   return value;
 }

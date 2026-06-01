@@ -1,0 +1,95 @@
+{
+  "command": "team catalog status",
+  "schema_version": "team.catalog.status.v1",
+  "ok": true,
+  "catalog": {
+    "catalog_id": "acme.internal",
+    "name": "Acme AI Capabilities",
+    "description": "Team-distributed SkillRun capsules and display-only Agent capabilities.",
+    "updated_at": "2026-05-26T10:00:00Z",
+    "homepage": "https://example.com/ai",
+    "items": 3
+  },
+  "summary": {
+    "items": 3,
+    "missing": 0,
+    "installed": 0,
+    "replace_available": 1,
+    "blocked": 2
+  },
+  "items": [
+    {
+      "id": "refund",
+      "kind": "skillrun.skr",
+      "name": "Refund Decision",
+      "version": "0.1.0",
+      "installable": true,
+      "status": "replace_available",
+      "recommended_action": "replace",
+      "install_plan_available": true,
+      "registry": {
+        "installed": true,
+        "source_type": "imported_skr",
+        "enabled": true,
+        "path": "/Users/iiwish/.skillrun/imports/refund"
+      },
+      "source_type": "https",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "warnings": []
+    },
+    {
+      "id": "weekly-review",
+      "kind": "agent.skill",
+      "name": "Weekly Review",
+      "version": "0.2.0",
+      "installable": false,
+      "status": "blocked",
+      "recommended_action": "none",
+      "install_plan_available": false,
+      "registry": {
+        "installed": false,
+        "source_type": null,
+        "enabled": null,
+        "path": null
+      },
+      "source_type": "https",
+      "sha256": null,
+      "warnings": [
+        {
+          "code": "catalog.item.display_only",
+          "message": "agent.skill items are display-only until Core supports them"
+        },
+        {
+          "code": "catalog.source.checksum_missing",
+          "message": "source.sha256 is missing; install plan/apply should fail closed"
+        }
+      ]
+    },
+    {
+      "id": "legacy-local",
+      "kind": "skillrun.skr",
+      "name": "Legacy Local Import",
+      "version": "0.1.0",
+      "installable": true,
+      "status": "blocked",
+      "recommended_action": "resolve_conflict",
+      "install_plan_available": false,
+      "registry": {
+        "installed": true,
+        "source_type": "local_path",
+        "enabled": false,
+        "path": "/tmp/legacy-local"
+      },
+      "source_type": "file",
+      "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "warnings": [
+        {
+          "code": "catalog.registry_conflict",
+          "message": "catalog item legacy-local is already registered with source_type local_path; Team Catalog can only replace imported_skr entries"
+        }
+      ]
+    }
+  ],
+  "warnings": [],
+  "error": null
+}
