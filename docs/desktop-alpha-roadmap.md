@@ -1,7 +1,7 @@
 # SkillRun Desktop Alpha Roadmap
 
-**状态**：Draft_For_Desktop_Project_Start  
-**日期**：2026-05-18  
+**状态**：Desktop_Alpha_Implementation
+**日期**：2026-06-01
 **依赖文档**：`desktop-readiness.md`、`desktop-core-contract.md`
 
 ## 一句话判断
@@ -34,6 +34,8 @@ Tray status
 
 ## Phase A: Tray Shell And Core Adapter
 
+状态：已实现基础 CLI runner、Core JSON parser fixtures、统一错误模型和真实 Core smoke；继续以 smoke / contract tests 防止边界退化。
+
 目标：让 Desktop 有一个可信的 Core 调用层。
 
 必须完成：
@@ -58,6 +60,8 @@ Tray status
 
 ## Phase B: Capsule Switchboard
 
+状态：已实现基础 Capsule 管理、enable / disable 编排和状态刷新；发布前继续通过真实 `.skr` / hero catalog 路径回归。
+
 目标：让用户知道本机有哪些 capsule，哪些被允许暴露。
 
 必须完成：
@@ -75,6 +79,8 @@ Tray status
 - enable 失败时展示 Core stderr/error，不猜测修复。
 
 ## Phase C: Import Flow
+
+状态：已实现本地 `.skr` 导入链路；导入后仍默认 disabled，不自动 enable 或 mount。
 
 目标：让普通用户可以导入一个 `.skr`，但不会误以为已经信任或挂载。
 
@@ -95,6 +101,8 @@ Tray status
 
 ## Phase D: Exposure Preview
 
+状态：已实现 exposure preview、Router dry-run 和 `router.status.v1` / `router.mcp.v1` route diagnostics 展示。
+
 目标：让用户在挂载前看清 Router 会暴露什么。
 
 必须完成：
@@ -111,6 +119,8 @@ Tray status
 - preview 不启动长运行 Router。
 
 ## Phase E: MCP Mount Manager
+
+状态：已实现 plan / apply / rollback 的 Core 编排边界；继续保持 Desktop 不直接修改 MCP client config。
 
 目标：让用户可以把 SkillRun Router 挂到 Claude Desktop，并能回滚。
 
@@ -130,6 +140,8 @@ Tray status
 - Rollback 只使用 Core 返回的 backup path。
 
 ## Phase F: Envelope Explorer
+
+状态：已实现 runs list / inspect 的安全摘要路径；artifact content、stdout/stderr content 和 input include/redaction 仍保持 out of scope。
 
 目标：把 SkillRun 的“可审计、可验收”变成消费者能看懂的证据面板。
 
@@ -166,7 +178,9 @@ Tray status
 
 ## Phase G: Team Library Planning
 
-目标：在 Core team catalog surface 实现前，先冻结 Desktop 的团队能力库页面边界。
+状态：已实现 Team Library alpha UI、`team.catalog.inspect.v1` / `team.catalog.status.v1` / install plan / guarded apply 的 parser、service、state 和 smoke 覆盖。
+
+目标：消费 Core team catalog surface，让 Desktop 能浏览团队 catalog、本地状态、安装计划和 guarded apply，同时保持团队分发不是 marketplace。
 
 必须完成：
 
@@ -174,7 +188,7 @@ Tray status
 - 信息架构：Team Library 是团队 catalog 浏览 / 计划入口，不替代 Capsule 管理。
 - 状态流：inspect -> review item -> install plan -> guarded apply -> Capsule page。
 - 边界：Desktop 不直接解析 catalog 来安装，不下载 `.skr`，不解包 `.skr`，不实现 trust 判断。
-- 依赖：等待 Core 实现 `team catalog inspect/plan/apply --json` 后，再新增 DTO fixture 和页面实现。
+- 依赖：继续跟随 Core 稳定 JSON surface；新增能力必须先有 fixture 和 parser test，再进入 UI。
 
 验收标准：
 
@@ -205,6 +219,6 @@ Desktop alpha 可以对外试用的最低 gate：
 
 ## 下一步动作
 
-1. 初始化 Tauri 项目后，先建 `src/core/runner.ts`、`src/core/contracts/*` 和 `src/tray/*`，不要先画完整 UI。
-2. 从 `desktop-core-contract.md` 提取 fixture，写 parser tests。
-3. 用 mock runner 做 Tray Status + Switchboard 第一屏，再接真实 `skillrun`。
+1. 以 `npm run smoke:real-core` 和 `npm run smoke:hero-desktop` 作为每轮 Desktop alpha 改动的回归基线。
+2. 发布前按 `router-diagnostics-manual-test.md` 记录 no routes、routable、blocked、duplicate tool 和 Desktop refresh 的手测证据。
+3. 收敛 Desktop alpha release gate：real Core smoke 成功后再生成 draft prerelease artifacts；失败时只修复 Core contract、Desktop parser 或环境说明，不绕过 smoke。

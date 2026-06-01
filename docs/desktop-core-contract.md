@@ -644,6 +644,7 @@ Alpha 阶段不做：
 
 ## Next Actions
 
-1. 在 desktop 项目中实现 CLI runner：参数数组调用、超时、stdout JSON parse、stderr capture、统一错误类型。
-2. 为上述 JSON surfaces 建 TypeScript DTO，并用固定 fixture 做 parser test。
-3. 按 Import Flow、Switchboard、Exposure Preview、Mount Manager、Envelope Explorer 的顺序做 alpha 页面。
+1. 发布前持续跑 `npm run smoke:real-core` 和 `npm run smoke:hero-desktop`，确认 Import / Switchboard / Exposure / Router diagnostics / Team Library 的真实 Core 链路没有退化。
+2. 继续补手动测试证据：用 `router-diagnostics-manual-test.md` 覆盖 no routes、routable、blocked、duplicate tool 和 Desktop refresh；记录 Core / Desktop commit、CLI 版本、环境和输出摘要。
+3. 收敛 Desktop alpha release gate：在 release workflow 或手动 Desktop CI 中启用 real Core smoke，确认 smoke 成功后再生成 draft prerelease artifacts。
+4. 后续功能优先补仍在 out-of-scope 外的消费者闭环缺口；继续避免 marketplace、dependency installer、hidden Router daemon、direct `.skillrun/` reads、trust / sandbox overclaim。
