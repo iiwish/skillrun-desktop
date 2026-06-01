@@ -8,6 +8,14 @@ interface AppShellProps {
   navItems: ShellNavItem[];
   settingsLabel: string;
   statusKind?: TrayStatusKind;
+  statusLabel: string;
+  statusTitle: string;
+  coreLabel: string;
+  sourceCommandLabel: string;
+  lastCapturedLabel: string;
+  noRefreshLabel: string;
+  statusCommand?: string;
+  statusCapturedAt?: string;
   coreVersion?: string;
   onRefresh?: () => void;
   refreshLabel: string;
@@ -21,6 +29,14 @@ export default function AppShell({
   navItems,
   settingsLabel,
   statusKind,
+  statusLabel,
+  statusTitle,
+  coreLabel,
+  sourceCommandLabel,
+  lastCapturedLabel,
+  noRefreshLabel,
+  statusCommand,
+  statusCapturedAt,
   coreVersion,
   onRefresh,
   refreshLabel,
@@ -41,6 +57,14 @@ export default function AppShell({
         </main>
         <TrayStatusBar
           statusKind={statusKind}
+          statusLabel={statusLabel}
+          statusTitle={statusTitle}
+          coreLabel={coreLabel}
+          sourceCommandLabel={sourceCommandLabel}
+          lastCapturedLabel={lastCapturedLabel}
+          noRefreshLabel={noRefreshLabel}
+          statusCommand={statusCommand}
+          statusCapturedAt={statusCapturedAt}
           coreVersion={coreVersion}
           onRefresh={onRefresh}
           refreshLabel={refreshLabel}

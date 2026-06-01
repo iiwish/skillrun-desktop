@@ -39,6 +39,7 @@ export type DashboardRefreshSnapshot = {
   status: TrayStatus;
   commands: DashboardCommandRecord[];
   capturedAtMs: number;
+  contracts: DashboardCoreContracts;
 };
 
 export type RefreshDashboardStatusOptions = {
@@ -79,6 +80,7 @@ export async function refreshDashboardStatus(
         lastKnown: options.lastKnown,
         host: host.snapshot,
       }),
+      contracts: {},
     };
   }
 
@@ -127,6 +129,13 @@ export async function refreshDashboardStatus(
       mountPlan: mountPlan.snapshot,
       runsList: runsList.snapshot,
     }),
+    contracts: {
+      host: host.snapshot.data,
+      inventory: inventory.snapshot.data,
+      exposure: exposure.snapshot.data,
+      mountPlan: mountPlan.snapshot.data,
+      runsList: runsList.snapshot.data,
+    },
   };
 }
 
