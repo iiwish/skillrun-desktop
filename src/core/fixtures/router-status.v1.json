@@ -4,9 +4,35 @@
   "ok": true,
   "router": {
     "snapshot": true,
-    "capsules": 0
+    "capsules": 1
   },
-  "tools": [],
-  "resources": [],
+  "tools": [
+    {
+      "capsule_id": "meeting_action_brief",
+      "capsule_path": "/tmp/skillrun/capsules/meeting_action_brief",
+      "name": "meeting_action_brief",
+      "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "resources": [
+    {
+      "capsule_id": "meeting_action_brief",
+      "uri_prefix": "skillrun://router/meeting_action_brief/"
+    }
+  ],
+  "routes": [
+    {
+      "capsule_id": "meeting_action_brief",
+      "capsule_path": "/tmp/skillrun/capsules/meeting_action_brief",
+      "enabled": true,
+      "state": "routable",
+      "readiness_status": "ok",
+      "tool_name": "meeting_action_brief",
+      "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "uri_prefix": "skillrun://router/meeting_action_brief/",
+      "recommended_action": "Mount `skillrun router serve --mcp` in the MCP client when you want this capsule exposed."
+    }
+  ],
+  "issues": [],
   "error": null
 }

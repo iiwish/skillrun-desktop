@@ -40,12 +40,16 @@ export type ConsumerExposureContract = {
 };
 
 export type RouterDryRunContract = {
-  command: "router serve --mcp";
+  command: "router serve --mcp" | "router serve --mcp --dry-run";
   schema_version: "router.mcp.v1";
+  ok: boolean;
   mcp: Record<string, unknown>;
   router: Record<string, unknown>;
   tools: unknown[];
   resources: unknown[];
+  routes?: unknown[];
+  issues?: unknown[];
+  error?: Record<string, unknown>;
 };
 
 export type RouterStatusContract = {
@@ -55,6 +59,8 @@ export type RouterStatusContract = {
   router: Record<string, unknown>;
   tools: unknown[];
   resources: unknown[];
+  routes?: unknown[];
+  issues?: unknown[];
   error: Record<string, unknown> | null;
 };
 
@@ -267,7 +273,13 @@ export function parseConsumerExposureContract(input: unknown): ConsumerExposureC
 }
 
 export function parseRouterDryRunContract(input: unknown): RouterDryRunContract {
-  const data = baseContract(input, "router.mcp.v1", "router serve --mcp");
+  const data = asRecord(input, "root");
+  requireLiteral(data, "schema_version", "router.mcp.v1");
+  const command = requireString(data, "command");
+  if (!["router serve --mcp", "router serve --mcp --dry-run"].includes(command)) {
+    throw mismatch("command", "Expected router serve --mcp command.");
+  }
+  requireBoolean(data, "ok");
   const mcp = requireRecord(data, "mcp");
   requireLiteral(mcp, "dry_run", true);
   requireString(mcp, "transport");
@@ -277,6 +289,12 @@ export function parseRouterDryRunContract(input: unknown): RouterDryRunContract 
   requireNumber(router, "capsules");
   requireArray(data, "tools");
   requireArray(data, "resources");
+  requireRouterDiagnostics(data);
+  if ("error" in data && data.error !== null) {
+    const error = requireRecord(data, "error");
+    requireString(error, "code");
+    requireString(error, "message");
+  }
   return data as RouterDryRunContract;
 }
 
@@ -288,8 +306,11 @@ export function parseRouterStatusContract(input: unknown): RouterStatusContract 
   requireNumber(router, "capsules");
   requireArray(data, "tools");
   requireArray(data, "resources");
+  requireRouterDiagnostics(data);
   if (data.error !== null) {
-    requireRecord(data, "error");
+    const error = requireRecord(data, "error");
+    requireString(error, "code");
+    requireString(error, "message");
   }
   return data as RouterStatusContract;
 }
@@ -625,6 +646,61 @@ function requireStringArray(record: Record<string, unknown>, field: string): str
     throw mismatch(field, "Expected string array.");
   }
   return values;
+}
+
+function requireRouterDiagnostics(data: Record<string, unknown>): void {
+  if ("routes" in data) {
+    for (const route of requireArray(data, "routes")) {
+      const record = asRecord(route, "routes[]");
+      requireString(record, "capsule_id");
+      requireString(record, "capsule_path");
+      requireBoolean(record, "enabled");
+      const state = requireString(record, "state");
+      if (!["routable", "blocked"].includes(state)) {
+        throw mismatch("routes[].state", "Expected routable or blocked.");
+      }
+      requireString(record, "readiness_status");
+      if ("readiness_reason" in record) {
+        requireString(record, "readiness_reason");
+      }
+      if ("tool_name" in record) {
+        requireString(record, "tool_name");
+      }
+      if ("manifest_sha256" in record) {
+        requireString(record, "manifest_sha256");
+      }
+      if ("uri_prefix" in record) {
+        requireString(record, "uri_prefix");
+      }
+      if ("issue" in record) {
+        requireRouterIssue(record, "issue");
+      }
+      requireString(record, "recommended_action");
+    }
+  }
+
+  if ("issues" in data) {
+    for (const issue of requireArray(data, "issues")) {
+      requireRouterIssue({ issue }, "issue");
+    }
+  }
+}
+
+function requireRouterIssue(record: Record<string, unknown>, field: string): void {
+  const issue = requireRecord(record, field);
+  requireString(issue, "code");
+  const severity = requireString(issue, "severity");
+  if (!["warning", "error"].includes(severity)) {
+    throw mismatch(`${field}.severity`, "Expected warning or error.");
+  }
+  requireString(issue, "message");
+  requireString(issue, "recommended_action");
+  if ("capsule_id" in issue) {
+    requireNullableString(issue, "capsule_id");
+  }
+  if ("tool_name" in issue) {
+    requireNullableString(issue, "tool_name");
+  }
 }
 
 function asRecord(input: unknown, field: string): Record<string, unknown> {

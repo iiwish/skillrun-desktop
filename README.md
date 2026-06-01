@@ -61,6 +61,7 @@ skillrun --version              # 查看版本
 skillrun doctor --json          # 检查环境状态
 skillrun consumer inventory --json      # 查看已导入的 capsules
 skillrun consumer exposure --json       # 查看 MCP 暴露状态
+skillrun router status --json           # 查看 Router route / issue 诊断
 ```
 
 Desktop 内部通过子进程调用这些命令并消费 JSON 输出来驱动界面。
@@ -89,4 +90,4 @@ SKILLRUN_HERO_CATALOG=/Users/iiwish/self/skillrun/target/desktop-hero-skr/catalo
 npm run smoke:hero-desktop
 ```
 
-`smoke:hero-desktop` 使用隔离 `SKILLRUN_HOME` 验证 `meeting_action_brief` 的 Team Catalog `inspect -> install plan -> install apply -> inventory -> enable -> exposure -> router dry-run`。如果本机有 Chrome，脚本还会启动临时 Vite server，通过 Chrome DevTools Protocol 检查 Desktop shell 在桌面和窄屏视口下包含关键中文文案、Team Library 可切换且没有水平溢出。设置 `SKILLRUN_DESKTOP_UI_SMOKE=0` 可以只跑 Core hero 链路。
+`smoke:hero-desktop` 使用隔离 `SKILLRUN_HOME` 验证 `meeting_action_brief` 的 Team Catalog `inspect -> install plan -> install apply -> inventory -> enable -> exposure -> router status -> router dry-run`。如果本机有 Chrome，脚本还会启动临时 Vite server，通过 Chrome DevTools Protocol 检查 Desktop shell 在桌面和窄屏视口下包含关键中文文案、Team Library 可切换且没有水平溢出。设置 `SKILLRUN_DESKTOP_UI_SMOKE=0` 可以只跑 Core hero 链路。

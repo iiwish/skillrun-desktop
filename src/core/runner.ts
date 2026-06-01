@@ -22,6 +22,7 @@ export type RunSkillrunJsonOptions = {
   executor: CommandExecutor;
   expectedSchemaVersion?: string;
   allowOkFalse?: boolean;
+  allowNonZeroJson?: boolean;
   maxAgeMs?: number;
   now?: () => number;
 };
@@ -29,7 +30,7 @@ export type RunSkillrunJsonOptions = {
 export type CoreRunnerResult<TData> = {
   command: CoreCommandRequest;
   durationMs: number;
-  exitCode: 0;
+  exitCode: number;
   stdout: string;
   stderr: string;
   data: TData;
@@ -64,7 +65,7 @@ export async function runSkillrunJson<TData = unknown>(
   }
 
   const durationMs = now() - startedAt;
-  if (output.exitCode !== 0) {
+  if (output.exitCode !== 0 && !options.allowNonZeroJson) {
     throw new CoreNonZeroExitError(command, {
       durationMs,
       exitCode: output.exitCode,
@@ -84,7 +85,7 @@ export async function runSkillrunJson<TData = unknown>(
   return {
     command,
     durationMs,
-    exitCode: 0,
+    exitCode: output.exitCode,
     stdout: output.stdout,
     stderr: output.stderr,
     data: data as TData,

@@ -351,6 +351,17 @@ const copy = {
     routerStatus: "Router 状态",
     routerReady: "Router snapshot 可用",
     routerIssue: "Router 需要处理",
+    routerRoutes: "Router 路由诊断",
+    routerRoutesNeedReview: "Router 路由需复核",
+    routerDiagnosticsHint: "Core 报告了 blocked route 或 warning/error。请按建议动作处理后刷新。",
+    noRouterRoutes: "Core 当前没有报告 Router route。",
+    routeReady: "可路由",
+    routeBlocked: "已阻止",
+    routable: "可路由",
+    routeWarnings: "路由警告",
+    routeErrors: "路由错误",
+    recovery: "恢复建议",
+    issue: "问题",
     transport: "传输",
     protocol: "协议",
     capsules: "Capsules",
@@ -602,6 +613,17 @@ const copy = {
     routerStatus: "Router status",
     routerReady: "Router snapshot ready",
     routerIssue: "Router needs attention",
+    routerRoutes: "Router route diagnostics",
+    routerRoutesNeedReview: "Router routes need review",
+    routerDiagnosticsHint: "Core reported blocked routes or warning/error diagnostics. Resolve the recommended action, then refresh.",
+    noRouterRoutes: "Core did not report any Router routes.",
+    routeReady: "Routable",
+    routeBlocked: "Blocked",
+    routable: "Routable",
+    routeWarnings: "Route warnings",
+    routeErrors: "Route errors",
+    recovery: "Recovery",
+    issue: "Issue",
     transport: "Transport",
     protocol: "Protocol",
     capsules: "Capsules",
@@ -669,12 +691,16 @@ const initialExposureState: ExposurePreviewState = buildExposurePreviewState({
     router: { capsules: 0 },
     tools: [],
     resources: [],
+    routes: [],
+    issues: [],
   },
   routerStatus: {
     ok: true,
     router: { snapshot: true, capsules: 0 },
     tools: [],
     resources: [],
+    routes: [],
+    issues: [],
     error: null,
   },
 });
@@ -2274,6 +2300,33 @@ function ExposurePanel({
   error?: ExposurePreviewError;
   onRefresh: () => void;
 }) {
+  const hasRouterDiagnostics =
+    state.routerStatus.blockedCount > 0 ||
+    state.routerStatus.warningCount > 0 ||
+    state.routerStatus.errorCount > 0 ||
+    !state.routerStatus.ok;
+  const routerStatusTone =
+    state.routerStatus.errorCount > 0 || !state.routerStatus.ok
+      ? "danger"
+      : state.routerStatus.warningCount > 0 || state.routerStatus.blockedCount > 0
+        ? "warning"
+        : "success";
+  const routerStatusTitle =
+    routerStatusTone === "danger"
+      ? t.routerIssue
+      : routerStatusTone === "warning"
+        ? t.routerRoutesNeedReview
+        : t.routerReady;
+  const routedIssueKeys = new Set<string>();
+  for (const route of state.routerRoutes) {
+    if (route.issue) {
+      routedIssueKeys.add(`${route.issue.code}:${route.issue.capsuleId ?? ""}:${route.issue.toolName ?? ""}`);
+    }
+  }
+  const standaloneRouterIssues = state.routerIssues.filter(
+    (issue) => !routedIssueKeys.has(`${issue.code}:${issue.capsuleId ?? ""}:${issue.toolName ?? ""}`),
+  );
+
   return (
     <section className="panel-body">
       <div className="toolbar">
@@ -2290,18 +2343,83 @@ function ExposurePanel({
         <Metric icon={Archive} label={t.resources} value={String(state.dryRun.resourceCount)} detail={t.dryRun} compact />
       </div>
 
-      <section className={`index-status-strip ${state.routerStatus.ok ? "success" : "danger"}`} aria-label={t.routerStatus}>
+      <section className={`index-status-strip ${routerStatusTone}`} aria-label={t.routerStatus}>
         <div>
-          <h4>{state.routerStatus.ok ? t.routerReady : t.routerIssue}</h4>
-          <p>{state.routerStatus.errorMessage ?? t.exposureSafety}</p>
+          <h4>{routerStatusTitle}</h4>
+          <p>{state.routerStatus.errorMessage ?? (hasRouterDiagnostics ? t.routerDiagnosticsHint : t.exposureSafety)}</p>
         </div>
         <DescriptionList
           items={[
-            [t.capsules, String(state.routerStatus.capsuleCount)],
-            [t.tools, String(state.routerStatus.toolCount)],
-            [t.resources, String(state.routerStatus.resourceCount)],
+            [t.routerRoutes, String(state.routerStatus.routeCount)],
+            [t.routable, String(state.routerStatus.routableCount)],
+            [t.blocked, String(state.routerStatus.blockedCount)],
+            [t.routeWarnings, String(state.routerStatus.warningCount)],
+            [t.routeErrors, String(state.routerStatus.errorCount)],
           ]}
         />
+      </section>
+
+      <section className="subsection">
+        <h4>{t.routerRoutes}</h4>
+        {state.routerRoutes.length === 0 ? <p className="muted">{t.noRouterRoutes}</p> : null}
+        {state.routerRoutes.length > 0 ? (
+          <div className="data-list">
+            {state.routerRoutes.map((route) => {
+              const routeTone = route.issue?.severity === "error" ? "danger" : route.state === "blocked" ? "warning" : "success";
+              const routeLabel = route.state === "routable" ? t.routeReady : t.routeBlocked;
+              const routeItems: Array<[string, string]> = [
+                [t.capsule, route.capsuleId],
+                [t.path, route.capsulePath],
+                [t.enabled, route.enabled ? t.true : t.false],
+                [t.readiness, route.readinessReason ? `${route.readinessStatus}: ${route.readinessReason}` : route.readinessStatus],
+                [t.recovery, route.recommendedAction],
+              ];
+              if (route.uriPrefix) {
+                routeItems.splice(4, 0, [t.resources, route.uriPrefix]);
+              }
+              if (route.manifestHash) {
+                routeItems.splice(4, 0, [t.manifest, route.manifestHash]);
+              }
+              if (route.issue) {
+                routeItems.splice(4, 0, [t.issue, `${route.issue.code}: ${route.issue.message}`]);
+              }
+
+              return (
+                <article key={`${route.capsuleId}:${route.toolName ?? route.capsulePath}`} className="data-row compact">
+                  <div className="row-main">
+                    <div>
+                      <h4>{route.toolName ?? route.capsuleId}</h4>
+                      <p>{route.readinessStatus}</p>
+                    </div>
+                    <Badge tone={routeTone}>{routeLabel}</Badge>
+                  </div>
+                  <DescriptionList items={routeItems} />
+                </article>
+              );
+            })}
+          </div>
+        ) : null}
+        {standaloneRouterIssues.length > 0 ? (
+          <div className="data-list">
+            {standaloneRouterIssues.map((issue) => (
+              <article key={`${issue.code}:${issue.capsuleId ?? ""}:${issue.toolName ?? ""}`} className="data-row compact">
+                <div className="row-main">
+                  <div>
+                    <h4>{issue.toolName ?? issue.capsuleId ?? issue.code}</h4>
+                    <p>{issue.message}</p>
+                  </div>
+                  <Badge tone={issue.severity === "error" ? "danger" : "warning"}>{issue.severity}</Badge>
+                </div>
+                <DescriptionList
+                  items={[
+                    [t.issue, issue.code],
+                    [t.recovery, issue.recommendedAction],
+                  ]}
+                />
+              </article>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="subsection">
