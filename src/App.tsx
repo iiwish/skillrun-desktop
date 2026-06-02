@@ -5,6 +5,7 @@ import {
   Archive,
   Boxes,
   CheckCircle2,
+  Copy,
   FilePlus2,
   Globe2,
   HardDriveDownload,
@@ -303,6 +304,13 @@ const copy = {
     core: "Core",
     coreDetected: "Core 可用",
     coreMissingHint: "Desktop 没能启动 `skillrun`。请确认 Core CLI 已安装，并且 Desktop 启动环境能在 PATH 中找到它。",
+    coreInstallTitle: "安装 Core CLI",
+    coreInstallBody: "Desktop 不会自动安装或执行 installer。复制适合当前系统的命令，在终端确认后运行，然后回到这里刷新状态。",
+    coreInstallMacLinux: "macOS / Linux",
+    coreInstallWindows: "Windows PowerShell",
+    coreInstallBoundary: "不会自动下载、写入 PATH、安装依赖或运行安装脚本。",
+    copyInstallCommand: "复制命令",
+    installCommandCopied: "已复制",
     coreReadyHint: "Desktop 只通过 Core CLI JSON surface 读取状态；不会读取 `.skillrun/` 内部目录。",
     coreVersion: "Core 版本",
     corePath: "Core 路径",
@@ -575,6 +583,13 @@ const copy = {
     core: "Core",
     coreDetected: "Core available",
     coreMissingHint: "Desktop could not spawn `skillrun`. Confirm the Core CLI is installed and visible in PATH for the Desktop launch environment.",
+    coreInstallTitle: "Install Core CLI",
+    coreInstallBody: "Desktop does not install or execute installers automatically. Copy the command for your system, run it after confirming in a terminal, then refresh here.",
+    coreInstallMacLinux: "macOS / Linux",
+    coreInstallWindows: "Windows PowerShell",
+    coreInstallBoundary: "No automatic downloads, PATH writes, dependency installs, or installer execution.",
+    copyInstallCommand: "Copy command",
+    installCommandCopied: "Copied",
     coreReadyHint: "Desktop reads state only through Core CLI JSON surfaces; it does not read internal `.skillrun/` directories.",
     coreVersion: "Core version",
     corePath: "Core path",
@@ -691,6 +706,14 @@ const copy = {
     confirmRollbackExtra: (backupPath: string) => `Rollback uses the Core-returned backup path only: ${backupPath}`,
   },
 } as const;
+
+const coreInstallCommands = {
+  shell: "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/iiwish/skillrun/releases/latest/download/skillrun-installer.sh | sh\nskillrun --version",
+  powershell:
+    "powershell -ExecutionPolicy Bypass -c \"irm https://github.com/iiwish/skillrun/releases/latest/download/skillrun-installer.ps1 | iex\"\nskillrun --version",
+} as const;
+
+type CoreInstallCommandKind = keyof typeof coreInstallCommands;
 
 const initialImportState: ImportFlowState = {
   status: "idle",
@@ -2193,6 +2216,18 @@ function SettingsPage({
   statusSnapshot?: DashboardRefreshSnapshot;
   onLocaleChange: (locale: Locale) => void;
 }) {
+  const [copiedInstallCommand, setCopiedInstallCommand] = useState<CoreInstallCommandKind>();
+
+  async function copyInstallCommand(kind: CoreInstallCommandKind) {
+    const command = coreInstallCommands[kind];
+    if (await writeClipboardText(command)) {
+      setCopiedInstallCommand(kind);
+      return;
+    }
+
+    setCopiedInstallCommand(undefined);
+  }
+
   return (
     <section className="settings-page">
       <section className="side-panel">
@@ -2226,6 +2261,13 @@ function SettingsPage({
               <strong>{coreDiagnosticsTitle(statusSnapshot, t)}</strong>
               <p>{coreDiagnosticsDetail(statusSnapshot, t)}</p>
             </div>
+            {isCoreMissing(statusSnapshot) ? (
+              <CoreInstallGuide
+                t={t}
+                copiedCommand={copiedInstallCommand}
+                onCopyInstallCommand={copyInstallCommand}
+              />
+            ) : null}
             <DescriptionList items={coreDiagnosticsItems(statusSnapshot, t)} />
             <ul className="command-list">
               {statusSnapshot.commands.map((command) => (
@@ -2249,9 +2291,88 @@ function SettingsPage({
   );
 }
 
+function CoreInstallGuide({
+  t,
+  copiedCommand,
+  onCopyInstallCommand,
+}: {
+  t: typeof copy[Locale];
+  copiedCommand?: CoreInstallCommandKind;
+  onCopyInstallCommand: (kind: CoreInstallCommandKind) => void;
+}) {
+  const commands: Array<{ kind: CoreInstallCommandKind; label: string; command: string }> = [
+    { kind: "shell", label: t.coreInstallMacLinux, command: coreInstallCommands.shell },
+    { kind: "powershell", label: t.coreInstallWindows, command: coreInstallCommands.powershell },
+  ];
+
+  return (
+    <section className="install-guide" aria-label={t.coreInstallTitle}>
+      <div className="install-guide-header">
+        <div>
+          <h4>{t.coreInstallTitle}</h4>
+          <p>{t.coreInstallBody}</p>
+        </div>
+        <Badge tone="warning">{t.notChecked}</Badge>
+      </div>
+      <div className="install-command-list">
+        {commands.map((item) => (
+          <article className="install-command-card" key={item.kind}>
+            <div className="install-command-title">
+              <strong>{item.label}</strong>
+              <Button
+                type="button"
+                variant="secondary"
+                icon={Copy}
+                onClick={() => onCopyInstallCommand(item.kind)}
+              >
+                {copiedCommand === item.kind ? t.installCommandCopied : t.copyInstallCommand}
+              </Button>
+            </div>
+            <pre><code>{item.command}</code></pre>
+          </article>
+        ))}
+      </div>
+      <p className="install-guide-boundary">{t.coreInstallBoundary}</p>
+    </section>
+  );
+}
+
 function coreVersionFromSnapshot(snapshot?: DashboardRefreshSnapshot): string | undefined {
   const binary = recordFrom(snapshot?.contracts.host?.binary);
   return readOptionalRecordString(binary, "version");
+}
+
+function isCoreMissing(snapshot: DashboardRefreshSnapshot): boolean {
+  return snapshot.status.kind === "core_missing";
+}
+
+async function writeClipboardText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fall through to the textarea fallback below.
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.top = "-9999px";
+  textArea.style.left = "-9999px";
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textArea);
+  }
 }
 
 function trayStatusLabel(
