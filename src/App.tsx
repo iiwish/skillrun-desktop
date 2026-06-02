@@ -410,8 +410,17 @@ const copy = {
     ],
     importSafety: "导入只把 `.skr` 加入本地 registry。不会安装依赖、不会自动启用、不会自动挂载，也不会把它标记为可信。",
     teamLibraryEmptyAction: "先检查 catalog",
+    teamLibraryEmptyStepsTitle: "检查路径",
+    teamLibraryEmptyStepCatalogPath: "粘贴或选择团队 catalog JSON",
+    teamLibraryEmptyStepInspect: "调用 Core inspect / status 读取摘要",
+    teamLibraryEmptyStepPlan: "选择 `.skr` 条目后再检查安装计划",
     teamLibraryDisplayOnlyReason: "这个条目当前只用于展示，不能在 Desktop 中安装或执行。",
     teamLibraryBlockedReason: "Core status 标记为 blocked。Desktop 不提供绕过路径。",
+    teamLibraryBlockedSummaryTitle: "有条目被 Core 阻止",
+    teamLibraryBlockedSummaryBody: "blocked 通常表示本地 registry/source 冲突，或 Core 无法生成受控安装计划。选择条目查看原因；Desktop 不提供绕过路径。",
+    teamLibraryBlockedItems: "阻塞条目",
+    teamLibraryBlockedCalloutTitle: "这个条目当前不能在 Desktop 安装",
+    teamLibraryBlockedCalloutBody: "Core status 标记为 blocked。请按推荐动作处理本地 registry 或 source 冲突后，重新检查 catalog。",
     teamLibraryReplaceReason: "可替换只表示 Core 可以生成受控 replace plan，不代表已证明有新版本。",
     teamLibraryPlanLater: "安装计划稍后开放",
     switchboardSafety: "enabled 表示允许 Router 暴露该 Capsule。就绪性来自 Core preflight，不代表业务正确性、trust 或 sandbox。",
@@ -689,8 +698,17 @@ const copy = {
     ],
     importSafety: IMPORT_SAFETY_COPY,
     teamLibraryEmptyAction: "Inspect catalog first",
+    teamLibraryEmptyStepsTitle: "Inspection path",
+    teamLibraryEmptyStepCatalogPath: "Paste or choose a team catalog JSON",
+    teamLibraryEmptyStepInspect: "Call Core inspect / status for summary",
+    teamLibraryEmptyStepPlan: "Select a `.skr` item before checking a plan",
     teamLibraryDisplayOnlyReason: "This item is display-only in this phase and cannot be installed or executed from Desktop.",
     teamLibraryBlockedReason: "Core status marked this item blocked. Desktop does not provide a bypass.",
+    teamLibraryBlockedSummaryTitle: "Core blocked some items",
+    teamLibraryBlockedSummaryBody: "Blocked usually means a local registry/source conflict, or Core cannot generate a guarded install plan. Select an item to inspect the cause; Desktop does not provide a bypass.",
+    teamLibraryBlockedItems: "Blocked items",
+    teamLibraryBlockedCalloutTitle: "This item cannot be installed from Desktop right now",
+    teamLibraryBlockedCalloutBody: "Core status marked this item blocked. Resolve the local registry or source conflict using the recommended action, then inspect the catalog again.",
     teamLibraryReplaceReason: "Replaceable only means Core can generate a guarded replace plan; it does not prove a newer version.",
     teamLibraryPlanLater: "Install plan later",
     switchboardSafety: SWITCHBOARD_SAFETY_COPY,
@@ -843,6 +861,7 @@ function App() {
   const isRefreshingStatus = refreshState.phase === "loading";
   const activeDefinition = views.find((view) => view.id === activeView) ?? views[0];
   const pendingLabel = pendingTask ? pendingTaskLabel(pendingTask, locale) : undefined;
+  const localizedCatalogPickerMessage = localizeCatalogPickerMessage(catalogPickerMessage, t);
   const filteredCapsules = switchboardState.capsules.filter((capsule) => {
     const query = capsuleQuery.trim().toLowerCase();
     const matchesQuery =
@@ -1385,7 +1404,7 @@ function App() {
             <TeamLibraryPanel
               t={t}
               catalogPath={catalogPath}
-              pickerMessage={catalogPickerMessage}
+              pickerMessage={localizedCatalogPickerMessage}
               state={teamLibraryState}
               items={filteredTeamItems}
               selectedItem={selectedTeamItem}
@@ -1559,6 +1578,8 @@ function TeamLibraryPanel({
   onPlan: (item: TeamCatalogItem) => void;
   onApply: (item: TeamCatalogItem, plan: TeamLibraryPlanState) => void;
 }) {
+  const blockedItems = state?.items.filter((item) => item.state === "blocked") ?? [];
+
   return (
     <section className="panel-body">
       <form
@@ -1609,6 +1630,14 @@ function TeamLibraryPanel({
         <div className="empty-action compact-empty">
           <EmptyState icon={LibraryBig} title={t.noCatalogTitle} />
           <p>{t.noCatalogBody}</p>
+          <section className="empty-workflow" aria-label={t.teamLibraryEmptyStepsTitle}>
+            <h4>{t.teamLibraryEmptyStepsTitle}</h4>
+            <ol>
+              <li>{t.teamLibraryEmptyStepCatalogPath}</li>
+              <li>{t.teamLibraryEmptyStepInspect}</li>
+              <li>{t.teamLibraryEmptyStepPlan}</li>
+            </ol>
+          </section>
           <Button variant="secondary" icon={RefreshCw} onClick={onInspect} disabled={!catalogPath.trim()} loading={pending}>
             {t.teamLibraryEmptyAction}
           </Button>
@@ -1622,6 +1651,8 @@ function TeamLibraryPanel({
             <SummaryStat label={t.replaceAvailable} value={state.summary.replaceAvailable} tone={state.summary.replaceAvailable > 0 ? "warning" : "neutral"} />
             <SummaryStat label={t.blocked} value={state.summary.blocked} tone={state.summary.blocked > 0 ? "warning" : "neutral"} />
           </div>
+
+          {blockedItems.length > 0 ? <TeamLibraryBlockedSummary t={t} items={blockedItems} /> : null}
 
           <section className="team-library-layout">
             <aside className="catalog-rail" aria-label={t.catalogSummary}>
@@ -1725,6 +1756,29 @@ function TeamLibraryPanel({
   );
 }
 
+function TeamLibraryBlockedSummary({
+  t,
+  items,
+}: {
+  t: typeof copy[Locale];
+  items: TeamCatalogItem[];
+}) {
+  return (
+    <section className="team-library-blocked-summary" aria-label={t.teamLibraryBlockedSummaryTitle}>
+      <div>
+        <h4>{t.teamLibraryBlockedSummaryTitle}</h4>
+        <p>{t.teamLibraryBlockedSummaryBody}</p>
+      </div>
+      <DescriptionList
+        items={[
+          [t.blocked, String(items.length)],
+          [t.teamLibraryBlockedItems, items.map((item) => item.id).join(", ")],
+        ]}
+      />
+    </section>
+  );
+}
+
 function TeamItemInspector({
   t,
   item,
@@ -1798,6 +1852,7 @@ function TeamItemInspector({
               <p className="safety-copy">{item.trustNote}</p>
             </section>
           ) : null}
+          {item.state === "blocked" ? <TeamItemBlockedCallout t={t} item={item} /> : null}
           {item.warnings.length > 0 ? (
             <section className="subsection">
               <h4>{t.warnings}</h4>
@@ -1840,6 +1895,31 @@ function TeamItemInspector({
         </div>
       )}
     </aside>
+  );
+}
+
+function TeamItemBlockedCallout({
+  t,
+  item,
+}: {
+  t: typeof copy[Locale];
+  item: TeamCatalogItem;
+}) {
+  return (
+    <section className="team-item-blocked-callout" aria-label={t.teamLibraryBlockedCalloutTitle}>
+      <div>
+        <h4>{t.teamLibraryBlockedCalloutTitle}</h4>
+        <p>{t.teamLibraryBlockedCalloutBody}</p>
+      </div>
+      <DescriptionList
+        items={[
+          [t.recommendedAction, teamItemRecommendedActionLabel(item.recommendedAction, t)],
+          [t.registrySource, item.registry.sourceType ?? t.none],
+          [t.currentPath, item.registry.path ?? t.none],
+          [t.installPlanAvailable, item.installPlanAvailable ? t.true : t.false],
+        ]}
+      />
+    </section>
   );
 }
 
@@ -3128,6 +3208,22 @@ function pendingTaskLabel(task: PendingTask, locale: Locale): string {
   };
 
   return labels[task][locale];
+}
+
+function localizeCatalogPickerMessage(message: string, t: typeof copy[Locale]): string {
+  if (!message) {
+    return "";
+  }
+
+  if (message === copy.zh.catalogPathReady || message === copy.en.catalogPathReady) {
+    return t.catalogPathReady;
+  }
+
+  if (message === copy.zh.catalogBrowserHelp || message === copy.en.catalogBrowserHelp) {
+    return t.catalogBrowserHelp;
+  }
+
+  return message;
 }
 
 function teamItemStateLabel(state: TeamLibraryItemState, t: typeof copy[Locale]): string {
