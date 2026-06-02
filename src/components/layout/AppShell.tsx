@@ -20,6 +20,9 @@ interface AppShellProps {
   onRefresh?: () => void;
   refreshLabel: string;
   isRefreshing?: boolean;
+  diagnosticsShortcutLabel?: string;
+  diagnosticsShortcutValue?: string;
+  onDiagnosticsShortcut?: () => void;
   children: React.ReactNode;
 }
 
@@ -41,6 +44,9 @@ export default function AppShell({
   onRefresh,
   refreshLabel,
   isRefreshing,
+  diagnosticsShortcutLabel,
+  diagnosticsShortcutValue,
+  onDiagnosticsShortcut,
   children,
 }: AppShellProps) {
   return (
@@ -69,6 +75,9 @@ export default function AppShell({
           onRefresh={onRefresh}
           refreshLabel={refreshLabel}
           isRefreshing={isRefreshing}
+          diagnosticsShortcutLabel={diagnosticsShortcutLabel}
+          diagnosticsShortcutValue={diagnosticsShortcutValue}
+          onDiagnosticsShortcut={onDiagnosticsShortcut}
         />
       </div>
     </div>

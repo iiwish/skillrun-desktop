@@ -372,6 +372,13 @@ const copy = {
     routerRoutes: "Router 路由诊断",
     routerRoutesNeedReview: "Router 路由需复核",
     routerDiagnosticsHint: "Core 报告了 blocked route 或 warning/error。请按建议动作处理后刷新。",
+    routerDiagnosticsEntryTitle: "Router 诊断入口",
+    routerDiagnosticsEntryBody: "Router route / issue 诊断在工具暴露页读取；Settings 只显示 Core host 状态。",
+    routerDiagnosticsSource: "Router 诊断来源",
+    routerDiagnosticsSourceBody: "来自 Core `router status --json` 和 `router serve --mcp --dry-run`；不会启动长运行 Router。",
+    routerDiagnosticsShortcut: "Router 诊断",
+    openRouterDiagnostics: "打开 Router 诊断",
+    openCoreDiagnostics: "打开 Core 诊断",
     noRouterRoutes: "Core 当前没有报告 Router route。",
     routeReady: "可路由",
     routeBlocked: "已阻止",
@@ -660,6 +667,13 @@ const copy = {
     routerRoutes: "Router route diagnostics",
     routerRoutesNeedReview: "Router routes need review",
     routerDiagnosticsHint: "Core reported blocked routes or warning/error diagnostics. Resolve the recommended action, then refresh.",
+    routerDiagnosticsEntryTitle: "Router diagnostics entry",
+    routerDiagnosticsEntryBody: "Router route / issue diagnostics live in Exposure; Settings only shows Core host status.",
+    routerDiagnosticsSource: "Router diagnostics source",
+    routerDiagnosticsSourceBody: "Read from Core `router status --json` and `router serve --mcp --dry-run`; Desktop does not start a long-running Router.",
+    routerDiagnosticsShortcut: "Router diagnostics",
+    openRouterDiagnostics: "Open Router diagnostics",
+    openCoreDiagnostics: "Open Core diagnostics",
     noRouterRoutes: "Core did not report any Router routes.",
     routeReady: "Routable",
     routeBlocked: "Blocked",
@@ -1335,6 +1349,9 @@ function App() {
       onRefresh={handleRefreshStatus}
       refreshLabel={t.refresh}
       isRefreshing={isRefreshingStatus}
+      diagnosticsShortcutLabel={t.routerDiagnosticsShortcut}
+      diagnosticsShortcutValue={t.navTools}
+      onDiagnosticsShortcut={() => setActiveView("tools")}
     >
       <section className="workspace" aria-label={activeDefinition.label}>
         <header className="topbar">
@@ -1457,6 +1474,7 @@ function App() {
               state={exposureState}
               error={exposureError}
               onRefresh={() => void handleRefreshExposure()}
+              onOpenCoreDiagnostics={() => setActiveView("settings")}
             />
           </section>
         ) : null}
@@ -1491,6 +1509,7 @@ function App() {
             locale={locale}
             statusSnapshot={statusSnapshot}
             onLocaleChange={setLocale}
+            onOpenRouterDiagnostics={() => setActiveView("tools")}
           />
         ) : null}
         </div>
@@ -2290,11 +2309,13 @@ function SettingsPage({
   locale,
   statusSnapshot,
   onLocaleChange,
+  onOpenRouterDiagnostics,
 }: {
   t: typeof copy[Locale];
   locale: Locale;
   statusSnapshot?: DashboardRefreshSnapshot;
   onLocaleChange: (locale: Locale) => void;
+  onOpenRouterDiagnostics: () => void;
 }) {
   const [copiedInstallCommand, setCopiedInstallCommand] = useState<CoreInstallCommandKind>();
 
@@ -2335,6 +2356,20 @@ function SettingsPage({
             <p>{statusSnapshot ? `${t.lastCaptured}: ${formatTimestamp(statusSnapshot.capturedAtMs, locale)}` : t.noRefresh}</p>
           </div>
         </header>
+        <section className="diagnostics-link-card" aria-label={t.routerDiagnosticsEntryTitle}>
+          <div>
+            <h4>{t.routerDiagnosticsEntryTitle}</h4>
+            <p>{t.routerDiagnosticsEntryBody}</p>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            icon={Route}
+            onClick={onOpenRouterDiagnostics}
+          >
+            {t.openRouterDiagnostics}
+          </Button>
+        </section>
         {statusSnapshot ? (
           <>
             <div className={`diagnostic-banner ${coreDiagnosticsTone(statusSnapshot)}`}>
@@ -2638,11 +2673,13 @@ function ExposurePanel({
   state,
   error,
   onRefresh,
+  onOpenCoreDiagnostics,
 }: {
   t: typeof copy[Locale];
   state: ExposurePreviewState;
   error?: ExposurePreviewError;
   onRefresh: () => void;
+  onOpenCoreDiagnostics: () => void;
 }) {
   const hasRouterDiagnostics =
     state.routerStatus.blockedCount > 0 ||
@@ -2680,6 +2717,21 @@ function ExposurePanel({
         </Button>
       </div>
       {error ? <Alert>{error.message}</Alert> : null}
+
+      <section className="diagnostics-link-card" aria-label={t.routerDiagnosticsSource}>
+        <div>
+          <h4>{t.routerDiagnosticsSource}</h4>
+          <p>{t.routerDiagnosticsSourceBody}</p>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          icon={Settings}
+          onClick={onOpenCoreDiagnostics}
+        >
+          {t.openCoreDiagnostics}
+        </Button>
+      </section>
 
       <div className="mini-metrics">
         <Metric icon={Route} label={t.transport} value={state.dryRun.transport} detail={state.dryRun.protocol} compact />
