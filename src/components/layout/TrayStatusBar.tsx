@@ -17,6 +17,9 @@ interface TrayStatusBarProps {
   onRefresh?: () => void;
   refreshLabel: string;
   isRefreshing?: boolean;
+  diagnosticsShortcutLabel?: string;
+  diagnosticsShortcutValue?: string;
+  onDiagnosticsShortcut?: () => void;
 }
 
 export default function TrayStatusBar({
@@ -33,6 +36,9 @@ export default function TrayStatusBar({
   onRefresh,
   refreshLabel,
   isRefreshing,
+  diagnosticsShortcutLabel,
+  diagnosticsShortcutValue,
+  onDiagnosticsShortcut,
 }: TrayStatusBarProps) {
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -136,6 +142,27 @@ export default function TrayStatusBar({
                   <span className="text-[11px] font-mono" style={{ color: '#5A5A6A' }}>{item.value}</span>
                 </div>
               ))}
+              {onDiagnosticsShortcut && diagnosticsShortcutLabel ? (
+                <button
+                  type="button"
+                  className="flex items-center gap-2.5 px-3 py-1.5 w-full text-left transition-colors duration-150 hover:bg-[#1A1A22]"
+                  onClick={() => {
+                    setShowDropdown(false);
+                    onDiagnosticsShortcut();
+                  }}
+                >
+                  <span
+                    className="rounded-full flex-shrink-0"
+                    style={{ width: 6, height: 6, backgroundColor: '#60A5FA' }}
+                  />
+                  <span className="text-[12px] flex-1" style={{ color: '#8A8A9A' }}>
+                    {diagnosticsShortcutLabel}
+                  </span>
+                  <span className="text-[11px] font-mono" style={{ color: '#5A5A6A' }}>
+                    {diagnosticsShortcutValue}
+                  </span>
+                </button>
+              ) : null}
             </div>
           </motion.div>
         </>

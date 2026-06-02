@@ -1592,6 +1592,35 @@ code {
   background: var(--danger-soft);
 }
 
+.diagnostics-link-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-hover);
+  padding: 0.6rem 0.65rem;
+}
+
+.diagnostics-link-card h4,
+.diagnostics-link-card p {
+  margin: 0;
+}
+
+.diagnostics-link-card h4 {
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.diagnostics-link-card p {
+  margin-top: 0.16rem;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
 .install-guide {
   display: grid;
   gap: 0.55rem;
@@ -1893,6 +1922,7 @@ code {
 
   .topbar-actions,
   .topbar-actions .button,
+  .diagnostics-link-card .button,
   .input-row .button {
     width: 100%;
   }
@@ -1900,6 +1930,7 @@ code {
   .list-toolbar,
   .team-library-toolbar,
   .apply-confirm-strip,
+  .diagnostics-link-card,
   .mini-metrics,
   .team-library-metrics,
   .input-row,
