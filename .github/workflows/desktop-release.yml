@@ -182,6 +182,13 @@ jobs:
             - alpha 主线保持为 import -> review -> enable -> preview -> mount -> inspect runs。
             - marketplace、signed package trust、dependency installation、daemon behavior、artifact viewer、log viewer 和 authoring IDE workflow 均不在本次范围内。
 
+            ## 本次 UX 验证焦点
+
+            - Settings Core diagnostics、Core path/version/error 解释和 Core CLI 安装引导。
+            - Team Library catalog 空态、blocked item 说明和中等宽度可读性。
+            - Router diagnostics 在 Settings、Exposure 和状态栏 dropdown 之间的入口关系。
+            - 底部状态栏不再常驻显示语言切换；语言切换保留在 Settings。
+
             ## 签名与 notarization
 
             - macOS packages 未签名，且未 notarize。
