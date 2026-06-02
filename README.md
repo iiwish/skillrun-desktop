@@ -17,9 +17,9 @@ SkillRun Desktop 是 [SkillRun](https://github.com/iiwish/skillrun) 的桌面端
 
 ### 0. 试用 alpha 安装包
 
-`desktop-v0.1.0-alpha.3` 已发布为公开 prerelease，用于验证 Desktop 打包和本地消费者控制台路径：
+`desktop-v0.1.0-alpha.4` 已发布为公开 prerelease，用于验证 Desktop 打包和本地消费者控制台路径：
 
-<https://github.com/iiwish/skillrun-desktop/releases/tag/desktop-v0.1.0-alpha.3>
+<https://github.com/iiwish/skillrun-desktop/releases/tag/desktop-v0.1.0-alpha.4>
 
 注意：
 
@@ -27,6 +27,7 @@ SkillRun Desktop 是 [SkillRun](https://github.com/iiwish/skillrun) 的桌面端
 - macOS app 当前未签名、未 notarize，首次启动时可能出现系统安全提示。
 - Desktop 不捆绑或安装 `skillrun` Core CLI、Python、Node、npm、pip package 或 action 依赖。
 - 使用安装包前仍需先安装并验证 `skillrun` Core CLI；开发和调试仍推荐使用下面的源码路径。
+- alpha.4 重点验证设置页 Core 诊断、Core CLI 安装引导、Team Library 空态 / blocked 态，以及 Router diagnostics 在 Settings / Exposure / 状态栏之间的入口关系。
 
 ### 1. 安装前端依赖
 
