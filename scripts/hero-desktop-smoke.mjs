@@ -10,8 +10,9 @@ import { createServer as createViteServer } from "vite";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const defaultCatalogPath = resolve(repoRoot, "../skillrun/target/desktop-hero-skr/catalog.json");
+const hasExplicitCatalog = Boolean(process.env.SKILLRUN_HERO_CATALOG);
 const catalogPath = resolve(process.env.SKILLRUN_HERO_CATALOG ?? defaultCatalogPath);
-const itemId = process.env.SKILLRUN_HERO_ITEM ?? "meeting_action_brief";
+const itemId = process.env.SKILLRUN_HERO_ITEM ?? "command_hello";
 const skillrunBin = process.env.SKILLRUN_CLI ?? "skillrun";
 const runUiSmoke = process.env.SKILLRUN_DESKTOP_UI_SMOKE !== "0";
 const artifactDir = resolve(process.env.SKILLRUN_DESKTOP_SMOKE_ARTIFACTS ?? join(tmpdir(), "skillrun-desktop-hero-smoke-artifacts"));
@@ -35,6 +36,8 @@ try {
 }
 
 async function runCoreHeroSmoke() {
+  await ensureHeroCatalog();
+
   if (!existsSync(catalogPath)) {
     throw new Error(
       [
@@ -173,6 +176,24 @@ async function runCoreHeroSmoke() {
   } finally {
     await rm(root, { force: true, recursive: true });
   }
+}
+
+async function ensureHeroCatalog() {
+  if (hasExplicitCatalog) {
+    return;
+  }
+
+  const generator = resolve(repoRoot, "../skillrun/scripts/generate-desktop-hero-catalog.sh");
+  if (!existsSync(generator)) {
+    return;
+  }
+
+  const env = { ...process.env };
+  if (!process.env.SKILLRUN_CLI) {
+    delete env.SKILLRUN_CLI;
+  }
+  await runCommand(["bash", generator], { env });
+  summary.push(["catalog generate", catalogPath]);
 }
 
 async function runUiSmokeIfPossible() {
