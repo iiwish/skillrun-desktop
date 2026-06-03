@@ -10,6 +10,7 @@ export type CoreCommandRequest = {
   command: "skillrun";
   args: string[];
   cwd?: string;
+  extraPathDirs?: string[];
 };
 
 export type CoreProcessSnapshot = {

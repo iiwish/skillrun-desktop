@@ -1707,6 +1707,30 @@ code {
   color: var(--text-tertiary);
 }
 
+.runtime-path-settings {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-hover);
+  padding: 0.65rem;
+}
+
+.runtime-path-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.runtime-path-field span {
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.runtime-path-field input {
+  width: 100%;
+}
+
 .command-list li {
   display: grid;
   gap: 0.25rem;

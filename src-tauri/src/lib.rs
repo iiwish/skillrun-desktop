@@ -40,12 +40,20 @@ struct SkillrunProcessOutput {
 }
 
 #[tauri::command]
-fn run_skillrun(args: Vec<String>, cwd: Option<String>) -> Result<SkillrunProcessOutput, String> {
+fn run_skillrun(
+    args: Vec<String>,
+    cwd: Option<String>,
+    extra_path_dirs: Option<Vec<String>>,
+) -> Result<SkillrunProcessOutput, String> {
     let mut command = std::process::Command::new(resolve_skillrun_binary());
     command.args(args);
 
     if let Some(cwd) = cwd {
         command.current_dir(cwd);
+    }
+
+    if let Some(path_env) = build_path_with_extra_dirs(extra_path_dirs) {
+        command.env("PATH", path_env);
     }
 
     let output = command.output().map_err(|error| error.to_string())?;
@@ -55,6 +63,27 @@ fn run_skillrun(args: Vec<String>, cwd: Option<String>) -> Result<SkillrunProces
         stdout: String::from_utf8_lossy(&output.stdout).to_string(),
         stderr: String::from_utf8_lossy(&output.stderr).to_string(),
     })
+}
+
+fn build_path_with_extra_dirs(extra_path_dirs: Option<Vec<String>>) -> Option<OsString> {
+    let extra_dirs: Vec<PathBuf> = extra_path_dirs
+        .unwrap_or_default()
+        .into_iter()
+        .map(|path| path.trim().to_string())
+        .filter(|path| !path.is_empty())
+        .map(PathBuf::from)
+        .collect();
+
+    if extra_dirs.is_empty() {
+        return None;
+    }
+
+    let mut paths = extra_dirs;
+    if let Some(current_path) = std::env::var_os("PATH") {
+        paths.extend(std::env::split_paths(&current_path));
+    }
+
+    std::env::join_paths(paths).ok()
 }
 
 fn resolve_skillrun_binary() -> OsString {
@@ -129,6 +158,19 @@ mod tests {
         );
 
         assert_eq!(resolved, OsString::from("skillrun"));
+    }
+
+    #[test]
+    fn prepends_runtime_paths_when_configured() {
+        let runtime_path = PathBuf::from("/tmp/skillrun-runtime/bin");
+        let path_env = build_path_with_extra_dirs(Some(vec![
+            runtime_path.to_string_lossy().to_string(),
+            " ".to_string(),
+        ]))
+        .expect("path should be built");
+        let paths: Vec<PathBuf> = std::env::split_paths(&path_env).collect();
+
+        assert_eq!(paths.first(), Some(&runtime_path));
     }
 
     #[cfg(target_os = "macos")]
