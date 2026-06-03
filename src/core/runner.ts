@@ -16,6 +16,10 @@ export type CommandExecutionResult = {
 
 export type CommandExecutor = (request: CoreCommandRequest) => Promise<CommandExecutionResult>;
 
+export type TauriCommandExecutorOptions = {
+  extraPathDirs?: string[];
+};
+
 export type RunSkillrunJsonOptions = {
   args: string[];
   cwd?: string;
@@ -36,12 +40,15 @@ export type CoreRunnerResult<TData> = {
   data: TData;
 };
 
-export function createTauriCommandExecutor(): CommandExecutor {
+export function createTauriCommandExecutor(options: TauriCommandExecutorOptions = {}): CommandExecutor {
+  const extraPathDirs = (options.extraPathDirs ?? []).map((path) => path.trim()).filter(Boolean);
+
   return async (request) => {
     const { invoke } = await import("@tauri-apps/api/core");
     return invoke<CommandExecutionResult>("run_skillrun", {
       args: request.args,
       cwd: request.cwd,
+      extraPathDirs: request.extraPathDirs ?? extraPathDirs,
     });
   };
 }

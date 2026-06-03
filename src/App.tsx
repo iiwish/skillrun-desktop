@@ -311,6 +311,15 @@ const copy = {
     coreInstallBoundary: "不会自动下载、写入 PATH、安装依赖或运行安装脚本。",
     copyInstallCommand: "复制命令",
     installCommandCopied: "已复制",
+    runtimeSetupTitle: "Python runtime 引导",
+    runtimeSetupBody: "这个条目需要本机 Python runtime。Desktop 不会替你安装；复制命令在终端创建 venv 后，把生成的 bin 目录填到设置里再刷新。",
+    runtimeSetupMacLinux: "macOS / Linux venv",
+    runtimeSetupWindows: "Windows PowerShell venv",
+    runtimeSetupBoundary: "只创建你确认执行的本机 venv；Desktop 只把配置的 bin 目录临时加入 Core 子进程 PATH。",
+    runtimeBinDir: "Runtime bin 目录",
+    runtimeBinDirPlaceholder: "/Users/you/.skillrun/runtimes/python-3.13/bin",
+    runtimeBinDirHelp: "例如 venv 的 bin 或 Scripts 目录。留空时 Desktop 使用启动时的 PATH。",
+    runtimeBinDirConfigured: "已配置 runtime PATH",
     coreReadyHint: "Desktop 只通过 Core CLI JSON surface 读取状态；不会读取 `.skillrun/` 内部目录。",
     coreVersion: "Core 版本",
     corePath: "Core 路径",
@@ -606,6 +615,15 @@ const copy = {
     coreInstallBoundary: "No automatic downloads, PATH writes, dependency installs, or installer execution.",
     copyInstallCommand: "Copy command",
     installCommandCopied: "Copied",
+    runtimeSetupTitle: "Python runtime guide",
+    runtimeSetupBody: "This entry needs a local Python runtime. Desktop will not install it for you; copy the command, create the venv in a terminal, then set the generated bin directory in Settings and refresh.",
+    runtimeSetupMacLinux: "macOS / Linux venv",
+    runtimeSetupWindows: "Windows PowerShell venv",
+    runtimeSetupBoundary: "Only creates the local venv you explicitly run; Desktop only prepends the configured bin directory to Core child-process PATH.",
+    runtimeBinDir: "Runtime bin directory",
+    runtimeBinDirPlaceholder: "/Users/you/.skillrun/runtimes/python-3.13/bin",
+    runtimeBinDirHelp: "For example a venv bin or Scripts directory. Leave empty to use the Desktop launch PATH.",
+    runtimeBinDirConfigured: "Runtime PATH configured",
     coreReadyHint: "Desktop reads state only through Core CLI JSON surfaces; it does not read internal `.skillrun/` directories.",
     coreVersion: "Core version",
     corePath: "Core path",
@@ -747,6 +765,17 @@ const coreInstallCommands = {
 
 type CoreInstallCommandKind = keyof typeof coreInstallCommands;
 
+const pythonRuntimeCommands = {
+  shell:
+    "mkdir -p \"$HOME/.skillrun/runtimes\"\npython3.13 -m venv \"$HOME/.skillrun/runtimes/python-3.13\"\n\"$HOME/.skillrun/runtimes/python-3.13/bin/python\" -m pip install -U pip pydantic\necho \"$HOME/.skillrun/runtimes/python-3.13/bin\"",
+  powershell:
+    "$runtime = \"$env:USERPROFILE\\.skillrun\\runtimes\\python-3.13\"\npy -3.13 -m venv $runtime\n& \"$runtime\\Scripts\\python.exe\" -m pip install -U pip pydantic\nWrite-Output \"$runtime\\Scripts\"",
+} as const;
+
+type PythonRuntimeCommandKind = keyof typeof pythonRuntimeCommands;
+
+const RUNTIME_BIN_DIR_STORAGE_KEY = "skillrun-desktop.runtimeBinDir";
+
 const initialImportState: ImportFlowState = {
   status: "idle",
   safetyCopy: IMPORT_SAFETY_COPY,
@@ -820,7 +849,18 @@ const initialRunsFilters: RunsFilters = {
 };
 
 function App() {
-  const executor = useMemo(() => createTauriCommandExecutor(), []);
+  const [runtimeBinDir, setRuntimeBinDir] = useState(() => {
+    try {
+      return localStorage.getItem(RUNTIME_BIN_DIR_STORAGE_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const runtimePathDirs = useMemo(() => {
+    const trimmed = runtimeBinDir.trim();
+    return trimmed ? [trimmed] : [];
+  }, [runtimeBinDir]);
+  const executor = useMemo(() => createTauriCommandExecutor({ extraPathDirs: runtimePathDirs }), [runtimePathDirs]);
   const [locale, setLocale] = useState<Locale>("zh");
   const t = copy[locale];
   const views = viewDefinitions(t);
@@ -912,6 +952,19 @@ function App() {
       void handleRefreshSwitchboard();
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      const trimmed = runtimeBinDir.trim();
+      if (trimmed) {
+        localStorage.setItem(RUNTIME_BIN_DIR_STORAGE_KEY, trimmed);
+      } else {
+        localStorage.removeItem(RUNTIME_BIN_DIR_STORAGE_KEY);
+      }
+    } catch {
+      // Keep the configured path for this session even if persistence is unavailable.
+    }
+  }, [runtimeBinDir]);
 
   async function handleRefreshStatus(): Promise<void> {
     const lastSnapshot = statusSnapshot;
@@ -1413,6 +1466,7 @@ function App() {
             onRefresh={() => void handleRefreshSwitchboard()}
             onEnable={(capsule) => void handleSwitchboardAction("enable", capsule)}
             onDisable={(capsule) => void handleSwitchboardAction("disable", capsule)}
+            onRefreshRuntime={() => void handleRefreshSwitchboard()}
           />
         ) : null}
 
@@ -1448,6 +1502,7 @@ function App() {
               onSelectItem={handleSelectTeamItem}
               onPlan={(item) => void handleTeamLibraryPlan(item)}
               onApply={(item, plan) => void handleTeamLibraryApply(item, plan)}
+              onRefreshRuntime={() => void handleTeamLibraryInspect()}
             />
           </section>
         ) : null}
@@ -1508,7 +1563,10 @@ function App() {
             t={t}
             locale={locale}
             statusSnapshot={statusSnapshot}
+            runtimeBinDir={runtimeBinDir}
             onLocaleChange={setLocale}
+            onRuntimeBinDirChange={setRuntimeBinDir}
+            onRefreshStatus={() => void handleRefreshStatus()}
             onOpenRouterDiagnostics={() => setActiveView("tools")}
           />
         ) : null}
@@ -1569,6 +1627,7 @@ function TeamLibraryPanel({
   onSelectItem,
   onPlan,
   onApply,
+  onRefreshRuntime,
 }: {
   t: typeof copy[Locale];
   catalogPath: string;
@@ -1596,6 +1655,7 @@ function TeamLibraryPanel({
   onSelectItem: (itemId: string) => void;
   onPlan: (item: TeamCatalogItem) => void;
   onApply: (item: TeamCatalogItem, plan: TeamLibraryPlanState) => void;
+  onRefreshRuntime: () => void;
 }) {
   const blockedItems = state?.items.filter((item) => item.state === "blocked") ?? [];
 
@@ -1767,6 +1827,7 @@ function TeamLibraryPanel({
               pendingApply={pendingApply}
               onPlan={onPlan}
               onApply={onApply}
+              onRefreshRuntime={onRefreshRuntime}
             />
           </section>
         </>
@@ -1809,6 +1870,7 @@ function TeamItemInspector({
   pendingApply,
   onPlan,
   onApply,
+  onRefreshRuntime,
 }: {
   t: typeof copy[Locale];
   item?: TeamCatalogItem;
@@ -1820,7 +1882,10 @@ function TeamItemInspector({
   pendingApply: boolean;
   onPlan: (item: TeamCatalogItem) => void;
   onApply: (item: TeamCatalogItem, plan: TeamLibraryPlanState) => void;
+  onRefreshRuntime: () => void;
 }) {
+  const runtimeHint = item ? runtimeSetupHintForTeamItem(item) : false;
+
   return (
     <aside className="inspector team-item-inspector" aria-label={t.itemDetails}>
       <header className="compact-heading">
@@ -1865,6 +1930,7 @@ function TeamItemInspector({
               ))}
             </ul>
           </section>
+          {runtimeHint ? <PythonRuntimeSetupGuide t={t} onRefresh={onRefreshRuntime} /> : null}
           {item.trustNote ? (
             <section className="safety-strip">
               <h4>{t.trustNote}</h4>
@@ -2045,6 +2111,7 @@ function CapsulesPage({
   onRefresh,
   onEnable,
   onDisable,
+  onRefreshRuntime,
 }: {
   t: typeof copy[Locale];
   locale: Locale;
@@ -2063,6 +2130,7 @@ function CapsulesPage({
   onRefresh: () => void;
   onEnable: (capsule: SwitchboardCapsule) => void;
   onDisable: (capsule: SwitchboardCapsule) => void;
+  onRefreshRuntime: () => void;
 }) {
   const summary = {
     total: allCapsules.length,
@@ -2173,6 +2241,7 @@ function CapsulesPage({
         pending={selectedCapsule ? pendingCapsuleId === selectedCapsule.id : false}
         onEnable={onEnable}
         onDisable={onDisable}
+        onRefreshRuntime={onRefreshRuntime}
       />
     </section>
   );
@@ -2185,6 +2254,7 @@ function CapsuleInspector({
   pending,
   onEnable,
   onDisable,
+  onRefreshRuntime,
 }: {
   t: typeof copy[Locale];
   locale: Locale;
@@ -2192,7 +2262,10 @@ function CapsuleInspector({
   pending: boolean;
   onEnable: (capsule: SwitchboardCapsule) => void;
   onDisable: (capsule: SwitchboardCapsule) => void;
+  onRefreshRuntime: () => void;
 }) {
+  const runtimeHint = capsule ? runtimeSetupHintForCapsule(capsule) : false;
+
   return (
     <aside className="inspector" aria-label={t.capsuleDetails}>
       {capsule ? (
@@ -2231,6 +2304,7 @@ function CapsuleInspector({
               {t.disable}
             </Button>
           </div>
+          {runtimeHint ? <PythonRuntimeSetupGuide t={t} onRefresh={onRefreshRuntime} /> : null}
           <section className="safety-strip">
             <h4>{t.boundaries}</h4>
             <ul className="boundary-list">
@@ -2308,13 +2382,19 @@ function SettingsPage({
   t,
   locale,
   statusSnapshot,
+  runtimeBinDir,
   onLocaleChange,
+  onRuntimeBinDirChange,
+  onRefreshStatus,
   onOpenRouterDiagnostics,
 }: {
   t: typeof copy[Locale];
   locale: Locale;
   statusSnapshot?: DashboardRefreshSnapshot;
+  runtimeBinDir: string;
   onLocaleChange: (locale: Locale) => void;
+  onRuntimeBinDirChange: (path: string) => void;
+  onRefreshStatus: () => void;
   onOpenRouterDiagnostics: () => void;
 }) {
   const [copiedInstallCommand, setCopiedInstallCommand] = useState<CoreInstallCommandKind>();
@@ -2370,6 +2450,12 @@ function SettingsPage({
             {t.openRouterDiagnostics}
           </Button>
         </section>
+        <RuntimePathSettings
+          t={t}
+          runtimeBinDir={runtimeBinDir}
+          onRuntimeBinDirChange={onRuntimeBinDirChange}
+          onRefreshStatus={onRefreshStatus}
+        />
         {statusSnapshot ? (
           <>
             <div className={`diagnostic-banner ${coreDiagnosticsTone(statusSnapshot)}`}>
@@ -2448,6 +2534,100 @@ function CoreInstallGuide({
         ))}
       </div>
       <p className="install-guide-boundary">{t.coreInstallBoundary}</p>
+    </section>
+  );
+}
+
+function RuntimePathSettings({
+  t,
+  runtimeBinDir,
+  onRuntimeBinDirChange,
+  onRefreshStatus,
+}: {
+  t: typeof copy[Locale];
+  runtimeBinDir: string;
+  onRuntimeBinDirChange: (path: string) => void;
+  onRefreshStatus: () => void;
+}) {
+  return (
+    <section className="runtime-path-settings" aria-label={t.runtimeBinDir}>
+      <div className="install-guide-header">
+        <div>
+          <h4>{t.runtimeBinDir}</h4>
+          <p>{t.runtimeBinDirHelp}</p>
+        </div>
+        {runtimeBinDir.trim() ? <Badge tone="success">{t.runtimeBinDirConfigured}</Badge> : <Badge>{t.none}</Badge>}
+      </div>
+      <label className="runtime-path-field">
+        <span>{t.runtimeBinDir}</span>
+        <input
+          value={runtimeBinDir}
+          onChange={(event) => onRuntimeBinDirChange(event.target.value)}
+          placeholder={t.runtimeBinDirPlaceholder}
+        />
+      </label>
+      <div className="button-group">
+        <Button type="button" variant="secondary" icon={RefreshCw} onClick={onRefreshStatus}>
+          {t.refresh}
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function PythonRuntimeSetupGuide({
+  t,
+  onRefresh,
+}: {
+  t: typeof copy[Locale];
+  onRefresh: () => void;
+}) {
+  const [copiedCommand, setCopiedCommand] = useState<PythonRuntimeCommandKind>();
+
+  async function copyPythonRuntimeCommand(kind: PythonRuntimeCommandKind) {
+    if (await writeClipboardText(pythonRuntimeCommands[kind])) {
+      setCopiedCommand(kind);
+      return;
+    }
+
+    setCopiedCommand(undefined);
+  }
+
+  const commands: Array<{ kind: PythonRuntimeCommandKind; label: string; command: string }> = [
+    { kind: "shell", label: t.runtimeSetupMacLinux, command: pythonRuntimeCommands.shell },
+    { kind: "powershell", label: t.runtimeSetupWindows, command: pythonRuntimeCommands.powershell },
+  ];
+
+  return (
+    <section className="install-guide runtime-setup-guide" aria-label={t.runtimeSetupTitle}>
+      <div className="install-guide-header">
+        <div>
+          <h4>{t.runtimeSetupTitle}</h4>
+          <p>{t.runtimeSetupBody}</p>
+        </div>
+        <Button type="button" variant="secondary" icon={RefreshCw} onClick={onRefresh}>
+          {t.refresh}
+        </Button>
+      </div>
+      <div className="install-command-list">
+        {commands.map((item) => (
+          <article className="install-command-card" key={item.kind}>
+            <div className="install-command-title">
+              <strong>{item.label}</strong>
+              <Button
+                type="button"
+                variant="secondary"
+                icon={Copy}
+                onClick={() => copyPythonRuntimeCommand(item.kind)}
+              >
+                {copiedCommand === item.kind ? t.installCommandCopied : t.copyInstallCommand}
+              </Button>
+            </div>
+            <pre><code>{item.command}</code></pre>
+          </article>
+        ))}
+      </div>
+      <p className="install-guide-boundary">{t.runtimeSetupBoundary}</p>
     </section>
   );
 }
@@ -3323,6 +3503,25 @@ function teamItemTone(state: TeamLibraryItemState): "neutral" | "success" | "war
     return "neutral";
   }
   return "warning";
+}
+
+function runtimeSetupHintForTeamItem(item: TeamCatalogItem): boolean {
+  return item.requirements.some((requirement) => pythonRuntimeText(requirement));
+}
+
+function runtimeSetupHintForCapsule(capsule: SwitchboardCapsule): boolean {
+  if (capsule.readinessOk) {
+    return false;
+  }
+
+  return [capsule.readinessStatus, capsule.nextStep, capsule.adapter, capsule.entrypoint].some((value) =>
+    pythonRuntimeText(value),
+  );
+}
+
+function pythonRuntimeText(value: string): boolean {
+  const lower = value.toLowerCase();
+  return lower.includes("python") || lower.includes("pydantic") || lower.includes("dependency-error");
 }
 
 function statusWord(word: "ready", locale: Locale): string {
