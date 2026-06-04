@@ -17,17 +17,18 @@ SkillRun Desktop 是 [SkillRun](https://github.com/iiwish/skillrun) 的桌面端
 
 ### 0. 试用 alpha 安装包
 
-`desktop-v0.1.0-alpha.4` 已发布为公开 prerelease，用于验证 Desktop 打包和本地消费者控制台路径：
+`desktop-v0.1.0-alpha.5` 已发布为公开 prerelease，用于验证 Desktop 打包和本地消费者控制台路径：
 
-<https://github.com/iiwish/skillrun-desktop/releases/tag/desktop-v0.1.0-alpha.4>
+<https://github.com/iiwish/skillrun-desktop/releases/tag/desktop-v0.1.0-alpha.5>
 
 注意：
 
 - 这是 prerelease，不是 stable/latest。
 - macOS app 当前未签名、未 notarize，首次启动时可能出现系统安全提示。
 - Desktop 不捆绑或安装 `skillrun` Core CLI、Python、Node、npm、pip package 或 action 依赖。
-- 使用安装包前仍需先安装并验证 `skillrun` Core CLI；开发和调试仍推荐使用下面的源码路径。
-- alpha.4 重点验证设置页 Core 诊断、Core CLI 安装引导、Team Library 空态 / blocked 态，以及 Router diagnostics 在 Settings / Exposure / 状态栏之间的入口关系。
+- 使用安装包前仍需先安装并验证 `skillrun` Core CLI；alpha.5 需要 SkillRun Core `v0.6.7+`，或在 Settings 中显式配置指向新版 Core / runtime 的 PATH。
+- alpha.5 重点验证 Python runtime setup UX、Runtime bin PATH 配置、Team Library 低摩擦本地 hero catalog smoke，以及 `command_hello` 的 inspect -> install plan -> install apply -> enable -> exposure -> router dry-run 链路。
+- 如果系统 PATH 上已有旧版 `skillrun`，请先升级 Core CLI，或在 Desktop Settings 中配置包含新版 `skillrun` 的 Runtime bin 目录后刷新状态。
 
 ### 1. 安装前端依赖
 
@@ -79,6 +80,7 @@ skillrun router status --json           # 查看 Router route / issue 诊断
 ```
 
 Desktop 内部通过子进程调用这些命令并消费 JSON 输出来驱动界面。
+当前 alpha.5 推荐使用 SkillRun Core `v0.6.7+`；旧版 Core 可能缺少 Team Catalog status / Router routes JSON surface，导致 Team Library 或 Router diagnostics 显示阻塞。
 
 ## Smoke 测试
 

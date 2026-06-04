@@ -245,7 +245,7 @@ async function runUiSmokeIfPossible() {
       chromeErrors.push(chunk);
     });
 
-    await waitForCdp(cdpPort);
+    await waitForCdp(cdpPort, chromeErrors);
     const page = await connectToFirstPage(cdpPort);
     try {
       await mkdir(artifactDir, { recursive: true });
@@ -539,17 +539,19 @@ function findChrome() {
   return candidates.find((candidate) => existsSync(candidate)) ?? null;
 }
 
-async function waitForCdp(port) {
+async function waitForCdp(port, chromeErrors = []) {
   const url = `http://127.0.0.1:${port}/json/version`;
-  for (let attempt = 0; attempt < 50; attempt += 1) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
       await fetchJson(url);
       return;
     } catch {
-      await delay(100);
+      await delay(200);
     }
   }
-  throw new Error("Chrome DevTools endpoint did not become ready.");
+  const stderr = chromeErrors.join("").trim();
+  const detail = stderr ? `\nChrome stderr:\n${preview(stderr)}` : "";
+  throw new Error(`Chrome DevTools endpoint did not become ready.${detail}`);
 }
 
 async function waitForHttpOk(url) {
