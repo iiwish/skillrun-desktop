@@ -1529,7 +1529,8 @@ code {
 }
 
 .team-library-blocked-summary,
-.team-item-blocked-callout {
+.team-item-blocked-callout,
+.remote-catalog-readonly-strip {
   display: grid;
   gap: 0.55rem;
   border: 1px solid hsl(38 50% 78%);
@@ -1543,21 +1544,30 @@ code {
   align-items: start;
 }
 
+.remote-catalog-readonly-strip {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .team-library-blocked-summary h4,
 .team-library-blocked-summary p,
 .team-item-blocked-callout h4,
-.team-item-blocked-callout p {
+.team-item-blocked-callout p,
+.remote-catalog-readonly-strip h4,
+.remote-catalog-readonly-strip p {
   margin: 0;
 }
 
 .team-library-blocked-summary h4,
-.team-item-blocked-callout h4 {
+.team-item-blocked-callout h4,
+.remote-catalog-readonly-strip h4 {
   font-size: 0.82rem;
   font-weight: 650;
 }
 
 .team-library-blocked-summary p,
-.team-item-blocked-callout p {
+.team-item-blocked-callout p,
+.remote-catalog-readonly-strip p {
   margin-top: 0.15rem;
   color: var(--text-secondary);
   font-size: 0.76rem;
