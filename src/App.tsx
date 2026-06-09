@@ -210,7 +210,7 @@ const copy = {
     noFilteredItemsTitle: "没有匹配的条目",
     noFilteredItemsBody: "调整搜索或筛选条件，或重新检查 catalog。",
     noCatalogTitle: "还没有载入 catalog",
-    noCatalogBody: "选择或粘贴团队 catalog JSON 路径后，Desktop 调用 Core inspect / status 读取摘要和本地状态。",
+    noCatalogBody: "粘贴 HTTPS catalog URL，或选择本地团队 catalog JSON。Desktop 调用 Core inspect / status 读取摘要和本地状态。",
     firstRunTitle: "跑通第一次本地能力安装",
     firstRunSubtitle: "从示例团队能力库开始：先检查 catalog，再复核安装计划，确认后导入 `.skr`，最后启用暴露并查看 Router / run evidence。",
     firstRunCoreTitle: "Core 就绪",
@@ -226,14 +226,17 @@ const copy = {
     useSampleCatalog: "试用本地示例能力库",
     openTeamLibrary: "打开团队能力库",
     sampleCatalogReady: "已填入本地 hero catalog 路径。请检查 catalog。",
-    sampleCatalogHint: "本地示例 catalog 来自相邻 Core 仓库的 hero smoke 产物；Desktop 不会自动生成、下载、安装或启用它。",
+    sampleCatalogHint: "本地示例 catalog 来自相邻 Core 仓库的 hero smoke 产物；远程 URL 只读检查同样不会让 Desktop 自动下载、安装或启用条目。",
     importAction: "导入 .skr",
     inspectCatalog: "检查 catalog",
-    chooseCatalog: "选择 catalog",
-    catalogPath: "Catalog 路径",
-    catalogPlaceholder: "/path/to/team.catalog.json",
-    catalogPathReady: "路径已准备好，可以检查 catalog。",
-    catalogBrowserHelp: "浏览器预览不能读取本机 catalog。请粘贴完整路径；在 Tauri 应用里会打开系统文件选择器。",
+    chooseCatalog: "选择本地 catalog",
+    catalogPath: "Catalog 路径或 URL",
+    catalogPlaceholder: "https://example.com/team.catalog.json 或 /path/to/team.catalog.json",
+    catalogPathReady: "Catalog 已准备好，可以检查。",
+    catalogRemoteReady: "远程 catalog URL 已准备好。Desktop 将只读检查 metadata、状态和安装计划。",
+    catalogBrowserHelp: "浏览器预览不能调用本机 Core。请粘贴 URL 或完整路径；在 Tauri 应用里会打开系统文件选择器。",
+    remoteCatalogReadonlyTitle: "远程 catalog 只读",
+    remoteCatalogReadonlyBody: "远程 catalog URL 只用于 Core inspect / status / install plan。Desktop 不会从 URL 执行安装；如需安装，请使用经过确认的本地 catalog / package 路径。",
     catalogSummary: "Catalog 摘要",
     catalogItems: "团队条目",
     itemDetails: "条目详情",
@@ -443,7 +446,7 @@ const copy = {
     importSafety: "导入只把 `.skr` 加入本地 registry。不会安装依赖、不会自动启用、不会自动挂载，也不会把它标记为可信。",
     teamLibraryEmptyAction: "先检查 catalog",
     teamLibraryEmptyStepsTitle: "检查路径",
-    teamLibraryEmptyStepCatalogPath: "粘贴或选择团队 catalog JSON",
+    teamLibraryEmptyStepCatalogPath: "粘贴 HTTPS catalog URL 或选择本地 JSON",
     teamLibraryEmptyStepInspect: "调用 Core inspect / status 读取摘要",
     teamLibraryEmptyStepPlan: "选择 `.skr` 条目后再检查安装计划",
     teamLibraryDisplayOnlyReason: "这个条目当前只用于展示，不能在 Desktop 中安装或执行。",
@@ -530,7 +533,7 @@ const copy = {
     noFilteredItemsTitle: "No matching items",
     noFilteredItemsBody: "Adjust search or filters, or inspect the catalog again.",
     noCatalogTitle: "No catalog loaded",
-    noCatalogBody: "Choose or paste a team catalog JSON path. Desktop calls Core inspect / status for the summary and local state.",
+    noCatalogBody: "Paste an HTTPS catalog URL, or choose a local team catalog JSON. Desktop calls Core inspect / status for the summary and local state.",
     firstRunTitle: "Complete the first local capability install",
     firstRunSubtitle: "Start with a sample Team Library: inspect the catalog, review the install plan, confirm the `.skr` import, then enable exposure and inspect Router / run evidence.",
     firstRunCoreTitle: "Core ready",
@@ -546,14 +549,17 @@ const copy = {
     useSampleCatalog: "Try local sample library",
     openTeamLibrary: "Open Team Library",
     sampleCatalogReady: "Local hero catalog path filled. Inspect the catalog next.",
-    sampleCatalogHint: "The local sample catalog comes from the adjacent Core repo hero smoke artifact; Desktop will not generate, download, install, or enable it automatically.",
+    sampleCatalogHint: "The local sample catalog comes from the adjacent Core repo hero smoke artifact; remote URLs are read-only and Desktop will not download, install, or enable items automatically.",
     importAction: "Import .skr",
     inspectCatalog: "Inspect catalog",
-    chooseCatalog: "Choose catalog",
-    catalogPath: "Catalog path",
-    catalogPlaceholder: "/path/to/team.catalog.json",
-    catalogPathReady: "Path ready. You can inspect the catalog.",
-    catalogBrowserHelp: "Browser preview cannot read a local catalog. Paste the full path; the Tauri app opens the native file picker.",
+    chooseCatalog: "Choose local catalog",
+    catalogPath: "Catalog path or URL",
+    catalogPlaceholder: "https://example.com/team.catalog.json or /path/to/team.catalog.json",
+    catalogPathReady: "Catalog ready. You can inspect it.",
+    catalogRemoteReady: "Remote catalog URL ready. Desktop will only inspect metadata, status, and install plans.",
+    catalogBrowserHelp: "Browser preview cannot call the local Core. Paste a URL or full path; the Tauri app opens the native file picker.",
+    remoteCatalogReadonlyTitle: "Remote catalog is read-only",
+    remoteCatalogReadonlyBody: "Remote catalog URLs are only for Core inspect / status / install plan. Desktop will not apply installs from a URL; use a confirmed local catalog / package path to install.",
     catalogSummary: "Catalog summary",
     catalogItems: "Team items",
     itemDetails: "Item detail",
@@ -763,7 +769,7 @@ const copy = {
     importSafety: IMPORT_SAFETY_COPY,
     teamLibraryEmptyAction: "Inspect catalog first",
     teamLibraryEmptyStepsTitle: "Inspection path",
-    teamLibraryEmptyStepCatalogPath: "Paste or choose a team catalog JSON",
+    teamLibraryEmptyStepCatalogPath: "Paste an HTTPS catalog URL or choose local JSON",
     teamLibraryEmptyStepInspect: "Call Core inspect / status for summary",
     teamLibraryEmptyStepPlan: "Select a `.skr` item before checking a plan",
     teamLibraryDisplayOnlyReason: "This item is display-only in this phase and cannot be installed or executed from Desktop.",
@@ -808,6 +814,11 @@ type PythonRuntimeCommandKind = keyof typeof pythonRuntimeCommands;
 
 const RUNTIME_BIN_DIR_STORAGE_KEY = "skillrun-desktop.runtimeBinDir";
 const LOCAL_HERO_CATALOG_PATH = "../skillrun/target/desktop-hero-skr/catalog.json";
+
+function isRemoteCatalogSource(source: string): boolean {
+  const trimmed = source.trim().toLowerCase();
+  return trimmed.startsWith("https://") || trimmed.startsWith("http://");
+}
 
 const initialImportState: ImportFlowState = {
   status: "idle",
@@ -1160,6 +1171,14 @@ function App() {
   async function handleTeamLibraryApply(item: TeamCatalogItem, plan: TeamLibraryPlanState) {
     const source = teamLibraryState?.catalogSource ?? catalogPath.trim();
     if (!source || !item.installable || plan.itemId !== item.id) {
+      return;
+    }
+
+    if (isRemoteCatalogSource(source)) {
+      setTeamLibraryApplyError({
+        kind: "remote_catalog_readonly",
+        message: t.remoteCatalogReadonlyBody,
+      });
       return;
     }
 
@@ -1540,7 +1559,14 @@ function App() {
               inputRef={catalogPathInputRef}
               onCatalogPathChange={(path) => {
                 setCatalogPath(path);
-                setCatalogPickerMessage(path ? t.catalogPathReady : "");
+                setCatalogPickerMessage(path ? (isRemoteCatalogSource(path) ? t.catalogRemoteReady : t.catalogPathReady) : "");
+                setTeamLibraryState(undefined);
+                setTeamLibraryPlan(undefined);
+                setTeamLibraryApply(undefined);
+                setTeamLibraryError(undefined);
+                setTeamLibraryPlanError(undefined);
+                setTeamLibraryApplyError(undefined);
+                setSelectedTeamItemId(undefined);
               }}
               onSelectCatalog={() => void handleSelectCatalog()}
               onUseSampleCatalog={handleUseSampleCatalog}
@@ -1708,6 +1734,8 @@ function TeamLibraryPanel({
   onRefreshRuntime: () => void;
 }) {
   const blockedItems = state?.items.filter((item) => item.state === "blocked") ?? [];
+  const activeCatalogSource = state?.catalogSource ?? catalogPath.trim();
+  const remoteCatalogReadonly = isRemoteCatalogSource(activeCatalogSource);
 
   return (
     <section className="panel-body">
@@ -1754,6 +1782,16 @@ function TeamLibraryPanel({
       </section>
 
       {error ? <Alert>{error.message}</Alert> : null}
+
+      {remoteCatalogReadonly ? (
+        <section className="remote-catalog-readonly-strip" aria-label={t.remoteCatalogReadonlyTitle}>
+          <div>
+            <h4>{t.remoteCatalogReadonlyTitle}</h4>
+            <p>{t.remoteCatalogReadonlyBody}</p>
+          </div>
+          <Badge tone="neutral">URL</Badge>
+        </section>
+      ) : null}
 
       {!state ? (
         <div className="empty-action compact-empty">
@@ -1884,6 +1922,7 @@ function TeamLibraryPanel({
               onPlan={onPlan}
               onApply={onApply}
               onRefreshRuntime={onRefreshRuntime}
+              remoteCatalogReadonly={remoteCatalogReadonly}
             />
           </section>
         </>
@@ -1927,6 +1966,7 @@ function TeamItemInspector({
   onPlan,
   onApply,
   onRefreshRuntime,
+  remoteCatalogReadonly,
 }: {
   t: typeof copy[Locale];
   item?: TeamCatalogItem;
@@ -1939,6 +1979,7 @@ function TeamItemInspector({
   onPlan: (item: TeamCatalogItem) => void;
   onApply: (item: TeamCatalogItem, plan: TeamLibraryPlanState) => void;
   onRefreshRuntime: () => void;
+  remoteCatalogReadonly: boolean;
 }) {
   const runtimeHint = item ? runtimeSetupHintForTeamItem(item) : false;
 
@@ -2027,6 +2068,7 @@ function TeamItemInspector({
             apply={apply}
             pendingApply={pendingApply}
             onApply={onApply}
+            remoteCatalogReadonly={remoteCatalogReadonly}
           />
         </>
       ) : (
@@ -2071,6 +2113,7 @@ function TeamInstallPlanPanel({
   apply,
   pendingApply,
   onApply,
+  remoteCatalogReadonly,
 }: {
   t: typeof copy[Locale];
   item: TeamCatalogItem;
@@ -2078,6 +2121,7 @@ function TeamInstallPlanPanel({
   apply?: TeamLibraryApplyState;
   pendingApply: boolean;
   onApply: (item: TeamCatalogItem, plan: TeamLibraryPlanState) => void;
+  remoteCatalogReadonly: boolean;
 }) {
   if (!plan) {
     return (
@@ -2116,9 +2160,14 @@ function TeamInstallPlanPanel({
       <div className="apply-confirm-strip">
         <div>
           <h4>{t.installApply}</h4>
-          <p>{t.applySafety}</p>
+          <p>{remoteCatalogReadonly ? t.remoteCatalogReadonlyBody : t.applySafety}</p>
         </div>
-        <Button icon={CheckCircle2} loading={pendingApply} disabled={pendingApply || !primaryAction} onClick={() => onApply(item, plan)}>
+        <Button
+          icon={CheckCircle2}
+          loading={pendingApply}
+          disabled={pendingApply || !primaryAction || remoteCatalogReadonly}
+          onClick={() => onApply(item, plan)}
+        >
           {applyLabel}
         </Button>
       </div>
@@ -3636,6 +3685,10 @@ function localizeCatalogPickerMessage(message: string, t: typeof copy[Locale]): 
 
   if (message === copy.zh.catalogPathReady || message === copy.en.catalogPathReady) {
     return t.catalogPathReady;
+  }
+
+  if (message === copy.zh.catalogRemoteReady || message === copy.en.catalogRemoteReady) {
+    return t.catalogRemoteReady;
   }
 
   if (message === copy.zh.catalogBrowserHelp || message === copy.en.catalogBrowserHelp) {

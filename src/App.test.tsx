@@ -19,7 +19,7 @@ describe("App alpha dashboard", () => {
     expect(html).not.toContain("EN");
     expect(html).toContain("跑通第一次本地能力安装");
     expect(html).toContain("试用本地示例能力库");
-    expect(html).toContain("Desktop 不会自动生成、下载、安装或启用它。");
+    expect(html).toContain("远程 URL 只读检查");
     expect(html).toContain("还没有 Capsule");
     expect(html).toContain("左侧列表选择一个 Capsule");
   });

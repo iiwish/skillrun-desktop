@@ -80,13 +80,14 @@ Inspector rail
 Team Library 只允许调用 Core 暴露的 JSON surface。当前这些命令仍是 Core 草案，Desktop 不能先行实现：
 
 ```text
-skillrun team catalog inspect <catalog> --json
-skillrun team catalog status <catalog> --json
-skillrun team catalog install plan <catalog> <item-id> --json
-skillrun team catalog install apply <catalog> <item-id> --json
+skillrun team catalog inspect <catalog-path-or-url> --json
+skillrun team catalog status <catalog-path-or-url> --json
+skillrun team catalog install plan <catalog-path-or-url> <item-id> --json
+skillrun team catalog install apply <catalog-path> <item-id> --json
 ```
 
 Desktop DTO 必须跟随 Core 命令冻结 fixture，不能从 catalog 文件自行解析并执行安装逻辑。
+远程 catalog URL 只允许进入 inspect / status / install plan；Desktop 不应对 URL 调用 apply，也不应自行下载 package。
 
 ## Data Model For UI
 
@@ -119,8 +120,8 @@ type TeamLibraryItemState =
 
 ```text
 Desktop
-  -> skillrun team catalog inspect <catalog> --json
-  -> skillrun team catalog status <catalog> --json
+  -> skillrun team catalog inspect <catalog-path-or-url> --json
+  -> skillrun team catalog status <catalog-path-or-url> --json
   -> catalog summary + items
   -> installed / replace_available / blocked status
 ```
@@ -158,7 +159,7 @@ UI 行为：
 
 ```text
 Desktop
-  -> skillrun team catalog install plan <catalog> <item-id> --json
+  -> skillrun team catalog install plan <catalog-path-or-url> <item-id> --json
   -> show import / replace / conflict / warning
 ```
 
@@ -176,7 +177,7 @@ UI 行为：
 
 ```text
 Desktop
-  -> skillrun team catalog install apply <catalog> <item-id> --json
+  -> skillrun team catalog install apply <catalog-path> <item-id> --json
   -> navigate to Capsule page
 ```
 

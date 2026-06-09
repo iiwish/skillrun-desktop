@@ -143,4 +143,46 @@ describe("fetchTeamCatalogInspect", () => {
     ]);
     expect(calls.map((call) => call.args.join(" "))).not.toContain("import");
   });
+
+  it("passes remote catalog URLs to read-only Core catalog surfaces without apply", async () => {
+    const calls: Parameters<CommandExecutor>[0][] = [];
+    const executor: CommandExecutor = async (request) => {
+      calls.push(request);
+      const stdout = request.args.includes("inspect")
+        ? teamCatalogInspectFixture
+        : request.args.includes("status")
+          ? teamCatalogStatusFixture
+          : teamCatalogInstallPlanFixture;
+      return {
+        exitCode: 0,
+        stdout: JSON.stringify(stdout),
+        stderr: "",
+      };
+    };
+    const catalogUrl = "https://example.com/team.catalog.json";
+
+    await fetchTeamCatalogInspect({
+      catalogPath: catalogUrl,
+      executor,
+      now: () => 1_000,
+    });
+    await fetchTeamCatalogStatus({
+      catalogPath: catalogUrl,
+      executor,
+      now: () => 1_000,
+    });
+    await fetchTeamCatalogInstallPlan({
+      catalogPath: catalogUrl,
+      itemId: "refund",
+      executor,
+      now: () => 1_000,
+    });
+
+    expect(calls.map((call) => call.args)).toEqual([
+      ["team", "catalog", "inspect", catalogUrl, "--json"],
+      ["team", "catalog", "status", catalogUrl, "--json"],
+      ["team", "catalog", "install", "plan", catalogUrl, "refund", "--json"],
+    ]);
+    expect(calls.map((call) => call.args.join(" "))).not.toContain("team catalog install apply");
+  });
 });

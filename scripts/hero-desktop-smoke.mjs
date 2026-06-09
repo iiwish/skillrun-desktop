@@ -325,16 +325,25 @@ async function assertTeamLibrarySwitch(page) {
     }
     teamButton.click();
     setTimeout(() => {
-      const text = document.body.innerText;
-      resolve({
-        clicked: true,
-        hasTeamLibrary: text.includes("团队能力库") || text.includes("Catalog 路径") || text.includes("检查 catalog"),
-      });
+      const input = document.querySelector("#catalog-path");
+      if (input) {
+        const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+        valueSetter.call(input, "https://example.com/team.catalog.json");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      setTimeout(() => {
+        const text = document.body.innerText;
+        resolve({
+          clicked: true,
+          hasTeamLibrary: text.includes("团队能力库") || text.includes("Catalog 路径或 URL") || text.includes("检查 catalog"),
+          hasRemoteReadonly: text.includes("远程 catalog 只读") || text.includes("Remote catalog is read-only"),
+        });
+      }, 100);
     }, 100);
   })`);
 
-  if (result.clicked !== true || result.hasTeamLibrary !== true) {
-    throw new Error("Desktop UI smoke could not switch to Team Library.");
+  if (result.clicked !== true || result.hasTeamLibrary !== true || result.hasRemoteReadonly !== true) {
+    throw new Error(`Desktop UI smoke could not verify Team Library URL state: ${JSON.stringify(result)}`);
   }
 }
 
