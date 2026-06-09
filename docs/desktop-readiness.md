@@ -12,7 +12,7 @@ Desktop 已经进入 alpha 实现阶段，并且仍必须把自己定位成 **Sk
 
 ## 当前结论
 
-SkillRun Core 到 v0.6.7 已经补齐 Desktop alpha 的关键底座：
+SkillRun Core 到 v0.6.8 已经补齐 Desktop alpha 的关键底座：
 
 - 本地 capsule inventory。
 - `.skr import`。

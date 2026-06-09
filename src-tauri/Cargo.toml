@@ -1,6 +1,6 @@
 [package]
 name = "skillrun-desktop"
-version = "0.1.0-alpha.5"
+version = "0.1.0-alpha.6"
 description = "SkillRun Desktop tray-first consumer control plane"
 authors = ["SkillRun"]
 edition = "2021"
