@@ -211,6 +211,22 @@ const copy = {
     noFilteredItemsBody: "调整搜索或筛选条件，或重新检查 catalog。",
     noCatalogTitle: "还没有载入 catalog",
     noCatalogBody: "选择或粘贴团队 catalog JSON 路径后，Desktop 调用 Core inspect / status 读取摘要和本地状态。",
+    firstRunTitle: "跑通第一次本地能力安装",
+    firstRunSubtitle: "从示例团队能力库开始：先检查 catalog，再复核安装计划，确认后导入 `.skr`，最后启用暴露并查看 Router / run evidence。",
+    firstRunCoreTitle: "Core 就绪",
+    firstRunCoreReady: "Core 可用，可以检查能力库。",
+    firstRunCoreMissing: "先刷新或修复 Core CLI。",
+    firstRunCatalogTitle: "示例能力库",
+    firstRunCatalogReady: "Catalog 路径已准备好。",
+    firstRunCatalogEmpty: "使用本地 hero catalog 进入 Team Library。",
+    firstRunInstallTitle: "复核安装",
+    firstRunInstallBody: "检查 install plan 后再确认导入。",
+    firstRunExposureTitle: "启用暴露",
+    firstRunExposureBody: "导入后仍需显式 enable 和 Router 预览。",
+    useSampleCatalog: "试用本地示例能力库",
+    openTeamLibrary: "打开团队能力库",
+    sampleCatalogReady: "已填入本地 hero catalog 路径。请检查 catalog。",
+    sampleCatalogHint: "本地示例 catalog 来自相邻 Core 仓库的 hero smoke 产物；Desktop 不会自动生成、下载、安装或启用它。",
     importAction: "导入 .skr",
     inspectCatalog: "检查 catalog",
     chooseCatalog: "选择 catalog",
@@ -515,6 +531,22 @@ const copy = {
     noFilteredItemsBody: "Adjust search or filters, or inspect the catalog again.",
     noCatalogTitle: "No catalog loaded",
     noCatalogBody: "Choose or paste a team catalog JSON path. Desktop calls Core inspect / status for the summary and local state.",
+    firstRunTitle: "Complete the first local capability install",
+    firstRunSubtitle: "Start with a sample Team Library: inspect the catalog, review the install plan, confirm the `.skr` import, then enable exposure and inspect Router / run evidence.",
+    firstRunCoreTitle: "Core ready",
+    firstRunCoreReady: "Core is available. You can inspect a library.",
+    firstRunCoreMissing: "Refresh or repair the Core CLI first.",
+    firstRunCatalogTitle: "Sample library",
+    firstRunCatalogReady: "Catalog path is ready.",
+    firstRunCatalogEmpty: "Use the local hero catalog and continue in Team Library.",
+    firstRunInstallTitle: "Review install",
+    firstRunInstallBody: "Check an install plan before confirming import.",
+    firstRunExposureTitle: "Enable exposure",
+    firstRunExposureBody: "Imported capsules still require explicit enable and Router preview.",
+    useSampleCatalog: "Try local sample library",
+    openTeamLibrary: "Open Team Library",
+    sampleCatalogReady: "Local hero catalog path filled. Inspect the catalog next.",
+    sampleCatalogHint: "The local sample catalog comes from the adjacent Core repo hero smoke artifact; Desktop will not generate, download, install, or enable it automatically.",
     importAction: "Import .skr",
     inspectCatalog: "Inspect catalog",
     chooseCatalog: "Choose catalog",
@@ -775,6 +807,7 @@ const pythonRuntimeCommands = {
 type PythonRuntimeCommandKind = keyof typeof pythonRuntimeCommands;
 
 const RUNTIME_BIN_DIR_STORAGE_KEY = "skillrun-desktop.runtimeBinDir";
+const LOCAL_HERO_CATALOG_PATH = "../skillrun/target/desktop-hero-skr/catalog.json";
 
 const initialImportState: ImportFlowState = {
   status: "idle",
@@ -1054,6 +1087,14 @@ function App() {
     } catch (error) {
       setCatalogPickerMessage(error instanceof Error ? error.message : String(error));
     }
+  }
+
+  function handleUseSampleCatalog() {
+    setCatalogPath(LOCAL_HERO_CATALOG_PATH);
+    setCatalogPickerMessage(t.sampleCatalogReady);
+    setTeamLibraryError(undefined);
+    setActiveView("teamLibrary");
+    window.setTimeout(() => catalogPathInputRef.current?.focus(), 0);
   }
 
   async function handleTeamLibraryInspect() {
@@ -1457,6 +1498,8 @@ function App() {
             filter={capsuleFilter}
             selectedCapsuleId={selectedCapsuleId}
             selectedCapsule={selectedCapsule}
+            statusSnapshot={statusSnapshot}
+            catalogPath={catalogPath}
             error={switchboardError}
             pendingCapsuleId={pendingTask === "switchboard.action" ? selectedCapsuleId : undefined}
             onQueryChange={setCapsuleQuery}
@@ -1464,6 +1507,10 @@ function App() {
             onSelectCapsule={setSelectedCapsuleId}
             onImport={() => setImportOpen(true)}
             onRefresh={() => void handleRefreshSwitchboard()}
+            onRefreshStatus={() => void handleRefreshStatus()}
+            onUseSampleCatalog={handleUseSampleCatalog}
+            onOpenTeamLibrary={() => setActiveView("teamLibrary")}
+            onOpenSettings={() => setActiveView("settings")}
             onEnable={(capsule) => void handleSwitchboardAction("enable", capsule)}
             onDisable={(capsule) => void handleSwitchboardAction("disable", capsule)}
             onRefreshRuntime={() => void handleRefreshSwitchboard()}
@@ -1496,6 +1543,7 @@ function App() {
                 setCatalogPickerMessage(path ? t.catalogPathReady : "");
               }}
               onSelectCatalog={() => void handleSelectCatalog()}
+              onUseSampleCatalog={handleUseSampleCatalog}
               onInspect={() => void handleTeamLibraryInspect()}
               onQueryChange={setTeamLibraryQuery}
               onFilterChange={setTeamLibraryFilter}
@@ -1621,6 +1669,7 @@ function TeamLibraryPanel({
   inputRef,
   onCatalogPathChange,
   onSelectCatalog,
+  onUseSampleCatalog,
   onInspect,
   onQueryChange,
   onFilterChange,
@@ -1649,6 +1698,7 @@ function TeamLibraryPanel({
   inputRef?: RefObject<HTMLInputElement | null>;
   onCatalogPathChange: (path: string) => void;
   onSelectCatalog: () => void;
+  onUseSampleCatalog: () => void;
   onInspect: () => void;
   onQueryChange: (query: string) => void;
   onFilterChange: (filter: TeamLibraryFilter) => void;
@@ -1717,9 +1767,15 @@ function TeamLibraryPanel({
               <li>{t.teamLibraryEmptyStepPlan}</li>
             </ol>
           </section>
-          <Button variant="secondary" icon={RefreshCw} onClick={onInspect} disabled={!catalogPath.trim()} loading={pending}>
-            {t.teamLibraryEmptyAction}
-          </Button>
+          <div className="button-group center">
+            <Button icon={Play} onClick={onUseSampleCatalog}>
+              {t.useSampleCatalog}
+            </Button>
+            <Button variant="secondary" icon={RefreshCw} onClick={onInspect} disabled={!catalogPath.trim()} loading={pending}>
+              {t.teamLibraryEmptyAction}
+            </Button>
+          </div>
+          <p className="form-hint">{t.sampleCatalogHint}</p>
         </div>
       ) : (
         <>
@@ -2102,6 +2158,8 @@ function CapsulesPage({
   filter,
   selectedCapsuleId,
   selectedCapsule,
+  statusSnapshot,
+  catalogPath,
   error,
   pendingCapsuleId,
   onQueryChange,
@@ -2109,6 +2167,10 @@ function CapsulesPage({
   onSelectCapsule,
   onImport,
   onRefresh,
+  onRefreshStatus,
+  onUseSampleCatalog,
+  onOpenTeamLibrary,
+  onOpenSettings,
   onEnable,
   onDisable,
   onRefreshRuntime,
@@ -2121,6 +2183,8 @@ function CapsulesPage({
   filter: CapsuleFilter;
   selectedCapsuleId?: string;
   selectedCapsule?: SwitchboardCapsule;
+  statusSnapshot?: DashboardRefreshSnapshot;
+  catalogPath: string;
   error?: SwitchboardActionError;
   pendingCapsuleId?: string;
   onQueryChange: (query: string) => void;
@@ -2128,6 +2192,10 @@ function CapsulesPage({
   onSelectCapsule: (capsuleId: string) => void;
   onImport: () => void;
   onRefresh: () => void;
+  onRefreshStatus: () => void;
+  onUseSampleCatalog: () => void;
+  onOpenTeamLibrary: () => void;
+  onOpenSettings: () => void;
   onEnable: (capsule: SwitchboardCapsule) => void;
   onDisable: (capsule: SwitchboardCapsule) => void;
   onRefreshRuntime: () => void;
@@ -2140,6 +2208,20 @@ function CapsulesPage({
   };
 
   return (
+    <>
+    <FirstRunPanel
+      t={t}
+      locale={locale}
+      coreDetected={Boolean(statusSnapshot?.contracts.host)}
+      coreVersion={coreVersionFromSnapshot(statusSnapshot)}
+      catalogReady={Boolean(catalogPath.trim())}
+      hasCapsules={allCapsules.length > 0}
+      enabledCount={summary.enabled}
+      onRefreshStatus={onRefreshStatus}
+      onUseSampleCatalog={onUseSampleCatalog}
+      onOpenTeamLibrary={onOpenTeamLibrary}
+      onOpenSettings={onOpenSettings}
+    />
     <section className="capsules-page">
       <section className="capsule-list-panel" aria-label={t.capsulesTitle}>
         {allCapsules.length === 0 ? (
@@ -2243,6 +2325,111 @@ function CapsulesPage({
         onDisable={onDisable}
         onRefreshRuntime={onRefreshRuntime}
       />
+    </section>
+    </>
+  );
+}
+
+function FirstRunPanel({
+  t,
+  locale,
+  coreDetected,
+  coreVersion,
+  catalogReady,
+  hasCapsules,
+  enabledCount,
+  onRefreshStatus,
+  onUseSampleCatalog,
+  onOpenTeamLibrary,
+  onOpenSettings,
+}: {
+  t: typeof copy[Locale];
+  locale: Locale;
+  coreDetected: boolean;
+  coreVersion?: string;
+  catalogReady: boolean;
+  hasCapsules: boolean;
+  enabledCount: number;
+  onRefreshStatus: () => void;
+  onUseSampleCatalog: () => void;
+  onOpenTeamLibrary: () => void;
+  onOpenSettings: () => void;
+}) {
+  const steps = [
+    {
+      icon: TerminalSquare,
+      title: t.firstRunCoreTitle,
+      body: coreDetected
+        ? `${t.firstRunCoreReady}${coreVersion ? ` ${coreVersion}` : ""}`
+        : t.firstRunCoreMissing,
+      complete: coreDetected,
+      action: coreDetected ? onOpenSettings : onRefreshStatus,
+      actionLabel: coreDetected ? t.settingsTitle : t.refresh,
+    },
+    {
+      icon: LibraryBig,
+      title: t.firstRunCatalogTitle,
+      body: catalogReady ? t.firstRunCatalogReady : t.firstRunCatalogEmpty,
+      complete: catalogReady,
+      action: catalogReady ? onOpenTeamLibrary : onUseSampleCatalog,
+      actionLabel: catalogReady ? t.openTeamLibrary : t.useSampleCatalog,
+    },
+    {
+      icon: CheckCircle2,
+      title: t.firstRunInstallTitle,
+      body: hasCapsules ? `${t.imported}: ${hasCapsules ? t.true : t.false}` : t.firstRunInstallBody,
+      complete: hasCapsules,
+      action: onOpenTeamLibrary,
+      actionLabel: t.openTeamLibrary,
+    },
+    {
+      icon: Route,
+      title: t.firstRunExposureTitle,
+      body: enabledCount > 0 ? `${t.enabled}: ${enabledCount}` : t.firstRunExposureBody,
+      complete: enabledCount > 0,
+      action: onOpenTeamLibrary,
+      actionLabel: t.openTeamLibrary,
+    },
+  ];
+
+  return (
+    <section className="first-run-panel" aria-label={t.firstRunTitle}>
+      <div className="first-run-copy">
+        <Badge tone={coreDetected ? "success" : "warning"}>{coreDetected ? t.coreDetected : t.notChecked}</Badge>
+        <h3>{t.firstRunTitle}</h3>
+        <p>{t.firstRunSubtitle}</p>
+        <div className="button-group">
+          <Button icon={Play} onClick={onUseSampleCatalog}>
+            {t.useSampleCatalog}
+          </Button>
+          <Button variant="secondary" icon={LibraryBig} onClick={onOpenTeamLibrary}>
+            {t.openTeamLibrary}
+          </Button>
+        </div>
+        <p className="form-hint">{t.sampleCatalogHint}</p>
+      </div>
+      <div className="first-run-steps">
+        {steps.map((step) => {
+          const Icon = step.icon;
+          return (
+            <button
+              key={step.title}
+              type="button"
+              className={step.complete ? "first-run-step complete" : "first-run-step"}
+              onClick={step.action}
+            >
+              <Icon aria-hidden="true" />
+              <span>
+                <strong>{step.title}</strong>
+                <small>{step.body}</small>
+              </span>
+              <Badge tone={step.complete ? "success" : "neutral"}>
+                {step.complete ? statusWord("ready", locale) : step.actionLabel}
+              </Badge>
+            </button>
+          );
+        })}
+      </div>
     </section>
   );
 }
